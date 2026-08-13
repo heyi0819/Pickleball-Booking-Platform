@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: pickleball-booking-backend
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/pickleball_booking}
+    username: ${DATABASE_USERNAME:pickleball}
+    password: ${DATABASE_PASSWORD:change-me-for-local-use}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
