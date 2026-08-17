@@ -12,6 +12,21 @@ spring:
   flyway:
     enabled: true
 
+security:
+  jwt:
+    # Required at runtime; production injects this from its secret store.
+    signing-secret: ${JWT_SIGNING_SECRET:}
+
+line:
+  login:
+    channel-id: ${LINE_LOGIN_CHANNEL_ID:${LINE_CHANNEL_ID:}}
+    verify-url: ${LINE_VERIFY_URL:https://api.line.me/oauth2/v2.1/verify}
+    timeout-millis: ${LINE_VERIFY_TIMEOUT_MILLIS:3000}
+
+identity:
+  default-organization-code: ${DEFAULT_ORGANIZATION_CODE:MVP-DEFAULT}
+  default-organization-name: ${DEFAULT_ORGANIZATION_NAME:Pickleball MVP}
+
 management:
   endpoints:
     web:

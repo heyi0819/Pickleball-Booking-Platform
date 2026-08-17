@@ -3,7 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "package-lock.json"] },
+  { ignores: ["**/dist/**", "**/node_modules/**", "package-lock.json", "packages/api-client/src/generated/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
