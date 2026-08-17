@@ -47,7 +47,9 @@ function Import-DotEnv {
 }
 
 function Test-DockerDaemon {
-    & docker info *> $null
+    # Run through cmd.exe so Docker CLI stderr is redirected before Windows PowerShell
+    # can turn it into a NativeCommandError when $ErrorActionPreference is 'Stop'.
+    & cmd.exe /d /c 'docker info >nul 2>&1'
     return $LASTEXITCODE -eq 0
 }
 
@@ -56,9 +58,20 @@ function Wait-ForDocker {
         return
     }
 
-    $dockerDesktop = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-    if (-not (Test-Path -LiteralPath $dockerDesktop)) {
-        Stop-WithError "Docker daemon is unavailable and Docker Desktop was not found at '$dockerDesktop'. Start Docker Desktop manually, then rerun this script."
+    $dockerDesktopCandidates = @(
+        if ($env:ProgramFiles) {
+            Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
+        }
+        if ($env:LOCALAPPDATA) {
+            Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\Docker Desktop.exe'
+        }
+        if ($env:LOCALAPPDATA) {
+            Join-Path $env:LOCALAPPDATA 'Programs\Docker\Desktop\Docker Desktop.exe'
+        }
+    )
+    $dockerDesktop = $dockerDesktopCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $dockerDesktop) {
+        Stop-WithError "Docker daemon is unavailable and Docker Desktop was not found in the standard install locations: $($dockerDesktopCandidates -join '; '). Open Docker Desktop manually, then rerun this script."
     }
 
     Write-Host 'Docker daemon is unavailable. Starting Docker Desktop and waiting up to 120 seconds...'
