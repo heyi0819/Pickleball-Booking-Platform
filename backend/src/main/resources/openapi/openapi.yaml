@@ -1,0 +1,135 @@
+openapi: 3.1.0
+info:
+  title: Pickleball Booking Platform API
+  version: v1
+  description: Slice 1 identity API contract.
+servers:
+  - url: /api/v1
+paths:
+  /auth/line/login:
+    post:
+      operationId: loginWithLine
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/LineLoginRequest' } } }
+      responses:
+        '200': { description: Platform access token issued, content: { application/json: { schema: { $ref: '#/components/schemas/LoginResponseEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /me:
+    get:
+      operationId: getCurrentUser
+      tags: [Current user]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Current user, content: { application/json: { schema: { $ref: '#/components/schemas/MeResponseEnvelope' } } } }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /me/profile:
+    patch:
+      operationId: updateCurrentUserProfile
+      tags: [Current user]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ProfileUpdateRequest' } } }
+      responses:
+        '200': { description: Updated current user, content: { application/json: { schema: { $ref: '#/components/schemas/MeResponseEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /me/roles:
+    get:
+      operationId: getCurrentUserRoles
+      tags: [Current user]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Active role assignments, content: { application/json: { schema: { $ref: '#/components/schemas/RolesResponseEnvelope' } } } }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    InvalidToken: { description: Invalid or missing token, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+    Forbidden: { description: Access forbidden, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+    ValidationFailed: { description: Invalid request, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+  schemas:
+    LineLoginRequest:
+      type: object
+      required: [idToken]
+      properties: { idToken: { type: string, minLength: 1, maxLength: 10000 } }
+    ProfileUpdateRequest:
+      type: object
+      required: [displayName, locale]
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 100 }
+        phone: { type: [string, 'null'], maxLength: 30 }
+        email: { type: [string, 'null'], format: email, maxLength: 254 }
+        locale: { type: string, minLength: 1, maxLength: 10 }
+    RoleCode: { type: string, enum: [STUDENT, COACH, COMMITTEE, PLATFORM_ADMIN] }
+    RoleContext:
+      type: object
+      required: [roleCode]
+      properties:
+        roleCode: { $ref: '#/components/schemas/RoleCode' }
+        organizationId: { type: [string, 'null'], format: uuid }
+        organizationCode: { type: [string, 'null'] }
+        organizationName: { type: [string, 'null'] }
+    LoginUser:
+      type: object
+      required: [id, displayName, roles]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+        roles: { type: array, items: { $ref: '#/components/schemas/RoleCode' } }
+    LoginData:
+      type: object
+      required: [accessToken, tokenType, expiresIn, user]
+      properties:
+        accessToken: { type: string }
+        tokenType: { type: string, enum: [Bearer] }
+        expiresIn: { type: integer, format: int64, example: 1800 }
+        user: { $ref: '#/components/schemas/LoginUser' }
+    Me:
+      type: object
+      required: [id, displayName, locale, profileComplete, roles]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+        phone: { type: [string, 'null'] }
+        email: { type: [string, 'null'], format: email }
+        locale: { type: string }
+        profileComplete: { type: boolean }
+        roles: { type: array, items: { $ref: '#/components/schemas/RoleContext' } }
+    Meta:
+      type: object
+      required: [requestId]
+      properties: { requestId: { type: string } }
+    LoginResponseEnvelope:
+      type: object
+      required: [data, meta]
+      properties: { data: { $ref: '#/components/schemas/LoginData' }, meta: { $ref: '#/components/schemas/Meta' } }
+    MeResponseEnvelope:
+      type: object
+      required: [data, meta]
+      properties: { data: { $ref: '#/components/schemas/Me' }, meta: { $ref: '#/components/schemas/Meta' } }
+    RolesResponseEnvelope:
+      type: object
+      required: [data, meta]
+      properties: { data: { type: array, items: { $ref: '#/components/schemas/RoleContext' } }, meta: { $ref: '#/components/schemas/Meta' } }
+    ErrorBody:
+      type: object
+      required: [code, message, fieldErrors, details, traceId]
+      properties:
+        code: { type: string, example: AUTH_INVALID_TOKEN }
+        message: { type: string }
+        fieldErrors: { type: array, items: {} }
+        details: { type: object, additionalProperties: true }
+        traceId: { type: string }
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties: { error: { $ref: '#/components/schemas/ErrorBody' } }

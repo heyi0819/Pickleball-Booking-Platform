@@ -10,6 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@line/liff": "2.30.0",
+    "@pickleball/api-client": "0.0.1",
     "@pickleball/shared": "0.0.1",
     "@pickleball/ui": "0.0.1",
     "@vitejs/plugin-react": "^5.1.1",

@@ -47,6 +47,15 @@ jobs:
       - name: Build
         working-directory: frontend
         run: npm run build
+      - name: Verify generated API client
+        working-directory: frontend
+        run: npm run api:check
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Slice 1 smoke E2E
+        working-directory: frontend
+        run: npm run e2e
 
   migration:
     name: Clean PostgreSQL migration

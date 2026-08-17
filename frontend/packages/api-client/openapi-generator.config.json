@@ -1,0 +1,8 @@
+{
+  "npmName": "@pickleball/api-client-generated",
+  "npmVersion": "0.0.1",
+  "supportsES6": true,
+  "useSingleRequestParameter": true,
+  "withoutRuntimeChecks": false,
+  "withInterfaces": true
+}
