@@ -1,0 +1,8 @@
+package com.pickleball.booking.lessonrequest.infrastructure;
+import com.pickleball.booking.lessonrequest.domain.AvailabilityClaimStatus; import jakarta.persistence.*; import java.time.Instant; import java.util.UUID;
+@Entity @Table(name="coach_availability_claims")
+public class AvailabilityClaimEntity {
+ @Id private UUID id; @Column(name="organization_id",nullable=false) private UUID organizationId; @Column(name="coach_availability_proposal_id",nullable=false) private UUID proposalId; @Column(name="lesson_request_id",nullable=false) private UUID lessonRequestId; @Enumerated(EnumType.STRING) @Column(nullable=false) private AvailabilityClaimStatus status=AvailabilityClaimStatus.ACTIVE; @Column(name="claimed_at",nullable=false) private Instant claimedAt; @Column(name="released_at") private Instant releasedAt; @Column(name="released_by") private UUID releasedBy; @Column(name="release_reason") private String releaseReason; @Column(name="converted_course_match_id") private UUID convertedCourseMatchId; @Column(name="created_at",nullable=false) private Instant createdAt; @Column(name="updated_at",nullable=false) private Instant updatedAt; @Version private long version;
+ protected AvailabilityClaimEntity(){} public AvailabilityClaimEntity(UUID org,UUID proposal,UUID request){id=UUID.randomUUID();organizationId=org;proposalId=proposal;lessonRequestId=request;} @PrePersist void created(){var now=Instant.now();claimedAt=now;createdAt=now;updatedAt=now;} @PreUpdate void updated(){updatedAt=Instant.now();}
+ public UUID getId(){return id;} public UUID getProposalId(){return proposalId;} public UUID getLessonRequestId(){return lessonRequestId;} public AvailabilityClaimStatus getStatus(){return status;}
+}

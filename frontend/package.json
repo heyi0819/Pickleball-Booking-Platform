@@ -17,8 +17,8 @@
     "lint": "eslint .",
     "test": "npm run test --workspace @pickleball/admin && npm run test --workspace @pickleball/liff",
     "build": "npm run build --workspaces --if-present",
-    "api:generate": "npm run generate --workspace @pickleball/api-client",
-    "api:check": "npm run api:generate && git diff --exit-code -- packages/api-client/src/generated",
+    "api:generate": "node scripts/sync-openapi-client.mjs",
+    "api:check": "node scripts/sync-openapi-client.mjs --check",
     "e2e": "playwright test"
   },
   "devDependencies": {
