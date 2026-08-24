@@ -62,6 +62,15 @@ All URIs are relative to */api/v1*
 *CoachAvailabilityApi* | [**listMyAvailabilityProposals**](docs/CoachAvailabilityApi.md#listmyavailabilityproposals) | **GET** /coach-availability-proposals/mine |
 *CoachAvailabilityApi* | [**reviewAvailabilityProposal**](docs/CoachAvailabilityApi.md#reviewavailabilityproposal) | **POST** /coach-availability-proposals/{id}/review |
 *CoachAvailabilityApi* | [**submitAvailabilityProposal**](docs/CoachAvailabilityApi.md#submitavailabilityproposal) | **POST** /coach-availability-proposals/{id}/submission |
+*CourseMatchInvitationsApi* | [**listMyCourseMatchInvitations**](docs/CourseMatchInvitationsApi.md#listmycoursematchinvitations) | **GET** /course-match-invitations/mine |
+*CourseMatchInvitationsApi* | [**respondCourseMatchInvitation**](docs/CourseMatchInvitationsApi.md#respondcoursematchinvitation) | **POST** /course-match-invitations/{invitationId}/response |
+*CourseMatchesApi* | [**confirmCourseMatch**](docs/CourseMatchesApi.md#confirmcoursematch) | **POST** /course-matches/{courseMatchId}/confirmation |
+*CourseMatchesApi* | [**confirmCourseMatchPricing**](docs/CourseMatchesApi.md#confirmcoursematchpricing) | **POST** /course-matches/{courseMatchId}/pricing-confirmation |
+*CourseMatchesApi* | [**createCourseMatch**](docs/CourseMatchesApi.md#createcoursematch) | **POST** /course-matches |
+*CourseMatchesApi* | [**getCourseMatch**](docs/CourseMatchesApi.md#getcoursematch) | **GET** /course-matches/{courseMatchId} |
+*CourseMatchesApi* | [**listCourseMatches**](docs/CourseMatchesApi.md#listcoursematches) | **GET** /course-matches |
+*CourseMatchesApi* | [**previewCourseMatchPricing**](docs/CourseMatchesApi.md#previewcoursematchpricing) | **POST** /course-matches/{courseMatchId}/pricing-preview |
+*CourseMatchesApi* | [**updateCourseMatch**](docs/CourseMatchesApi.md#updatecoursematch) | **PATCH** /course-matches/{courseMatchId} |
 *CurrentUserApi* | [**getCurrentUser**](docs/CurrentUserApi.md#getcurrentuser) | **GET** /me |
 *CurrentUserApi* | [**getCurrentUserRoles**](docs/CurrentUserApi.md#getcurrentuserroles) | **GET** /me/roles |
 *CurrentUserApi* | [**updateCurrentUserProfile**](docs/CurrentUserApi.md#updatecurrentuserprofile) | **PATCH** /me/profile |
@@ -84,6 +93,32 @@ All URIs are relative to */api/v1*
 - [CoachApplicationEnvelope](docs/CoachApplicationEnvelope.md)
 - [CoachApplicationListEnvelope](docs/CoachApplicationListEnvelope.md)
 - [CoachApplicationRequest](docs/CoachApplicationRequest.md)
+- [CourseMatch](docs/CourseMatch.md)
+- [CourseMatchCoachAssignmentRequest](docs/CourseMatchCoachAssignmentRequest.md)
+- [CourseMatchConfirmation](docs/CourseMatchConfirmation.md)
+- [CourseMatchConfirmationEnvelope](docs/CourseMatchConfirmationEnvelope.md)
+- [CourseMatchConfirmationRequest](docs/CourseMatchConfirmationRequest.md)
+- [CourseMatchCreateRequest](docs/CourseMatchCreateRequest.md)
+- [CourseMatchEnvelope](docs/CourseMatchEnvelope.md)
+- [CourseMatchInvitation](docs/CourseMatchInvitation.md)
+- [CourseMatchInvitationResponse](docs/CourseMatchInvitationResponse.md)
+- [CourseMatchInvitationResponseEnvelope](docs/CourseMatchInvitationResponseEnvelope.md)
+- [CourseMatchInvitationResponseRequest](docs/CourseMatchInvitationResponseRequest.md)
+- [CourseMatchInvitationSummary](docs/CourseMatchInvitationSummary.md)
+- [CourseMatchInvitationSummaryListEnvelope](docs/CourseMatchInvitationSummaryListEnvelope.md)
+- [CourseMatchPatchRequest](docs/CourseMatchPatchRequest.md)
+- [CourseMatchPriceSnapshot](docs/CourseMatchPriceSnapshot.md)
+- [CourseMatchPriceSnapshotEnvelope](docs/CourseMatchPriceSnapshotEnvelope.md)
+- [CourseMatchPriceState](docs/CourseMatchPriceState.md)
+- [CourseMatchPricingConfirmationRequest](docs/CourseMatchPricingConfirmationRequest.md)
+- [CourseMatchPricingItem](docs/CourseMatchPricingItem.md)
+- [CourseMatchPricingPreview](docs/CourseMatchPricingPreview.md)
+- [CourseMatchPricingPreviewEnvelope](docs/CourseMatchPricingPreviewEnvelope.md)
+- [CourseMatchReadiness](docs/CourseMatchReadiness.md)
+- [CourseMatchSession](docs/CourseMatchSession.md)
+- [CourseMatchSessionPlanRequest](docs/CourseMatchSessionPlanRequest.md)
+- [CourseMatchSummary](docs/CourseMatchSummary.md)
+- [CourseMatchSummaryListEnvelope](docs/CourseMatchSummaryListEnvelope.md)
 - [ErrorBody](docs/ErrorBody.md)
 - [ErrorEnvelope](docs/ErrorEnvelope.md)
 - [LessonRequest](docs/LessonRequest.md)

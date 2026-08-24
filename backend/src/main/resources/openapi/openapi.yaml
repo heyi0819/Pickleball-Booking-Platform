@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pickleball Booking Platform API
   version: v1
-  description: Slice 1 identity API contract.
+  description: P0 API contract through Slice 3 matching and course formation.
 servers:
   - url: /api/v1
 paths:
@@ -12,12 +12,15 @@ paths:
       tags: [Authentication]
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/LineLoginRequest' } } }
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LineLoginRequest' }
       responses:
         '200': { description: Platform access token issued, content: { application/json: { schema: { $ref: '#/components/schemas/LoginResponseEnvelope' } } } }
         '400': { $ref: '#/components/responses/ValidationFailed' }
         '401': { $ref: '#/components/responses/InvalidToken' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
   /me:
     get:
       operationId: getCurrentUser
@@ -27,6 +30,7 @@ paths:
         '200': { description: Current user, content: { application/json: { schema: { $ref: '#/components/schemas/MeResponseEnvelope' } } } }
         '401': { $ref: '#/components/responses/InvalidToken' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
   /me/profile:
     patch:
       operationId: updateCurrentUserProfile
@@ -34,12 +38,15 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/ProfileUpdateRequest' } } }
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfileUpdateRequest' }
       responses:
         '200': { description: Updated current user, content: { application/json: { schema: { $ref: '#/components/schemas/MeResponseEnvelope' } } } }
         '400': { $ref: '#/components/responses/ValidationFailed' }
         '401': { $ref: '#/components/responses/InvalidToken' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
   /me/roles:
     get:
       operationId: getCurrentUserRoles
@@ -49,106 +56,152 @@ paths:
         '200': { description: Active role assignments, content: { application/json: { schema: { $ref: '#/components/schemas/RolesResponseEnvelope' } } } }
         '401': { $ref: '#/components/responses/InvalidToken' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
   /coach-applications:
     post:
       operationId: createCoachApplication
       tags: [Coach applications]
       security: [{ bearerAuth: [] }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationRequest' } } } }
-      responses: { '201': { description: Coach application, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationEnvelope' } } } } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationRequest' } } }
+      responses:
+        '201': { description: Coach application, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationEnvelope' } } } }
     get:
       operationId: listCoachApplicationsForReview
       tags: [Coach applications]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: Coach applications, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationListEnvelope' } } } } }
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Coach applications, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationListEnvelope' } } } }
+
   /coach-applications/mine:
     get:
       operationId: listMyCoachApplications
       tags: [Coach applications]
       security: [{ bearerAuth: [] }]
-      responses: { '200': { description: My coach applications, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationListEnvelope' } } } } }
+      responses:
+        '200': { description: My coach applications, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationListEnvelope' } } } }
+
   /coach-applications/{id}/review:
     post:
       operationId: reviewCoachApplication
       tags: [Coach applications]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewRequest' } } } }
-      responses: { '200': { description: Reviewed application, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationEnvelope' } } } } }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReviewRequest' } } }
+      responses:
+        '200': { description: Reviewed application, content: { application/json: { schema: { $ref: '#/components/schemas/CoachApplicationEnvelope' } } } }
+
   /coach-availability-proposals:
     post:
       operationId: createAvailabilityProposal
       tags: [Coach availability]
       security: [{ bearerAuth: [] }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalRequest' } } } }
-      responses: { '201': { description: Availability proposal, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalEnvelope' } } } } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalRequest' } } }
+      responses:
+        '201': { description: Availability proposal, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalEnvelope' } } } }
     get:
       operationId: listAvailabilityForReview
       tags: [Coach availability]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: Availability proposals, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalListEnvelope' } } } } }
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Availability proposals, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalListEnvelope' } } } }
+
   /coach-availability-proposals/mine:
     get:
       operationId: listMyAvailabilityProposals
       tags: [Coach availability]
       security: [{ bearerAuth: [] }]
-      responses: { '200': { description: My availability proposals, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalListEnvelope' } } } } }
+      responses:
+        '200': { description: My availability proposals, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalListEnvelope' } } } }
+
   /coach-availability-proposals/available:
     get:
       operationId: listApprovedAvailability
       tags: [Coach availability]
       security: [{ bearerAuth: [] }]
-      responses: { '200': { description: Approved future availability for the current student organization, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalListEnvelope' } } } } }
+      responses:
+        '200': { description: Approved future availability for current student organization, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalListEnvelope' } } } }
+
   /coach-availability-proposals/{id}/submission:
     post:
       operationId: submitAvailabilityProposal
       tags: [Coach availability]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: Submitted availability, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalEnvelope' } } } } }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Submitted availability, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalEnvelope' } } } }
+
   /coach-availability-proposals/{id}/review:
     post:
       operationId: reviewAvailabilityProposal
       tags: [Coach availability]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewRequest' } } } }
-      responses: { '200': { description: Reviewed availability, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalEnvelope' } } } } }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReviewRequest' } } }
+      responses:
+        '200': { description: Reviewed availability, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalEnvelope' } } } }
+
   /coach-availability-proposals/{id}/close:
     post:
       operationId: closeAvailabilityProposal
       tags: [Coach availability]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: Closed availability, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalEnvelope' } } } } }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Closed availability, content: { application/json: { schema: { $ref: '#/components/schemas/AvailabilityProposalEnvelope' } } } }
+
   /lesson-requests:
     post:
       operationId: createLessonRequest
       tags: [Lesson requests]
       security: [{ bearerAuth: [] }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestCreateRequest' } } } }
-      responses: { '201': { description: Lesson request, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestEnvelope' } } } } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestCreateRequest' } } }
+      responses:
+        '201': { description: Lesson request, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestEnvelope' } } } }
     get:
       operationId: listLessonRequestsForReview
       tags: [Lesson requests]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: Lesson requests, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestListEnvelope' } } } } }
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Lesson requests, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestListEnvelope' } } } }
+
   /lesson-requests/mine:
     get:
       operationId: listMyLessonRequests
       tags: [Lesson requests]
       security: [{ bearerAuth: [] }]
-      responses: { '200': { description: My lesson requests, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestListEnvelope' } } } } }
+      responses:
+        '200': { description: My lesson requests, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestListEnvelope' } } } }
+
   /lesson-requests/{id}:
     get:
       operationId: getLessonRequest
       tags: [Lesson requests]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: Lesson request detail, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestDetailEnvelope' } } } } }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Lesson request detail, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestDetailEnvelope' } } } }
+
   /lesson-requests/{id}/submission:
     post:
       operationId: submitLessonRequest
@@ -157,35 +210,194 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
         - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 100 } }
-      responses: { '200': { description: Submitted lesson request, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestEnvelope' } } } } }
+      responses:
+        '200': { description: Submitted lesson request, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestEnvelope' } } } }
+
   /lesson-requests/{id}/selected-availability:
     patch:
       operationId: updateLessonRequestSelectedAvailability
       tags: [Lesson requests]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SelectedAvailabilityRequest' } } } }
-      responses: { '200': { description: Updated draft availability selection, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestEnvelope' } } } } }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SelectedAvailabilityRequest' } } }
+      responses:
+        '200': { description: Updated draft availability selection, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestEnvelope' } } } }
+
   /lesson-requests/{id}/review:
     post:
       operationId: reviewLessonRequest
       tags: [Lesson requests]
       security: [{ bearerAuth: [] }]
-      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewRequest' } } } }
-      responses: { '200': { description: Reviewed lesson request, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestEnvelope' } } } } }
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReviewRequest' } } }
+      responses:
+        '200': { description: Reviewed lesson request, content: { application/json: { schema: { $ref: '#/components/schemas/LessonRequestEnvelope' } } } }
+
+  /course-matches:
+    get:
+      operationId: listCourseMatches
+      tags: [Course matches]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Organization course matches, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchSummaryListEnvelope' } } } }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createCourseMatch
+      tags: [Course matches]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchCreateRequest' } } }
+      responses:
+        '201': { description: Draft course match, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /course-matches/{courseMatchId}:
+    get:
+      operationId: getCourseMatch
+      tags: [Course matches]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: courseMatchId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Course match detail, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchEnvelope' } } } }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateCourseMatch
+      tags: [Course matches]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: courseMatchId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchPatchRequest' } } }
+      responses:
+        '200': { description: Updated draft course match, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /course-matches/{courseMatchId}/pricing-preview:
+    post:
+      operationId: previewCourseMatchPricing
+      tags: [Course matches]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: courseMatchId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Current pricing preview, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchPricingPreviewEnvelope' } } } }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /course-matches/{courseMatchId}/pricing-confirmation:
+    post:
+      operationId: confirmCourseMatchPricing
+      tags: [Course matches]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: courseMatchId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 100 } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchPricingConfirmationRequest' } } }
+      responses:
+        '201': { description: Confirmed immutable match price snapshot, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchPriceSnapshotEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /course-matches/{courseMatchId}/confirmation:
+    post:
+      operationId: confirmCourseMatch
+      tags: [Course matches]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: courseMatchId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 100 } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchConfirmationRequest' } } }
+      responses:
+        '201': { description: Formal active course created atomically, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchConfirmationEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /course-match-invitations/mine:
+    get:
+      operationId: listMyCourseMatchInvitations
+      tags: [Course match invitations]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Current coach invitation inbox and response history, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchInvitationSummaryListEnvelope' } } } }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /course-match-invitations/{invitationId}/response:
+    post:
+      operationId: respondCourseMatchInvitation
+      tags: [Course match invitations]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: invitationId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchInvitationResponseRequest' } } }
+      responses:
+        '200': { description: Invitation response, content: { application/json: { schema: { $ref: '#/components/schemas/CourseMatchInvitationResponseEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
   responses:
     InvalidToken: { description: Invalid or missing token, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
     Forbidden: { description: Access forbidden, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+    NotFound: { description: Resource not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+    Conflict: { description: State, concurrency, schedule, or idempotency conflict, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+    Unprocessable: { description: Business validation failed, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
     ValidationFailed: { description: Invalid request, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+
   schemas:
     LineLoginRequest:
       type: object
       required: [idToken]
-      properties: { idToken: { type: string, minLength: 1, maxLength: 10000 } }
+      properties:
+        idToken: { type: string, minLength: 1, maxLength: 10000 }
+
     ProfileUpdateRequest:
       type: object
       required: [displayName, locale]
@@ -194,7 +406,9 @@ components:
         phone: { type: [string, 'null'], maxLength: 30 }
         email: { type: [string, 'null'], format: email, maxLength: 254 }
         locale: { type: string, minLength: 1, maxLength: 10 }
+
     RoleCode: { type: string, enum: [STUDENT, COACH, COMMITTEE, PLATFORM_ADMIN] }
+
     RoleContext:
       type: object
       required: [roleCode]
@@ -203,6 +417,7 @@ components:
         organizationId: { type: [string, 'null'], format: uuid }
         organizationCode: { type: [string, 'null'] }
         organizationName: { type: [string, 'null'] }
+
     LoginUser:
       type: object
       required: [id, displayName, roles]
@@ -210,6 +425,7 @@ components:
         id: { type: string, format: uuid }
         displayName: { type: string }
         roles: { type: array, items: { $ref: '#/components/schemas/RoleCode' } }
+
     LoginData:
       type: object
       required: [accessToken, tokenType, expiresIn, user]
@@ -218,6 +434,7 @@ components:
         tokenType: { type: string, enum: [Bearer] }
         expiresIn: { type: integer, format: int64, example: 1800 }
         user: { $ref: '#/components/schemas/LoginUser' }
+
     Me:
       type: object
       required: [id, displayName, locale, profileComplete, roles]
@@ -229,22 +446,13 @@ components:
         locale: { type: string }
         profileComplete: { type: boolean }
         roles: { type: array, items: { $ref: '#/components/schemas/RoleContext' } }
+
     Meta:
       type: object
       required: [requestId]
-      properties: { requestId: { type: string } }
-    LoginResponseEnvelope:
-      type: object
-      required: [data, meta]
-      properties: { data: { $ref: '#/components/schemas/LoginData' }, meta: { $ref: '#/components/schemas/Meta' } }
-    MeResponseEnvelope:
-      type: object
-      required: [data, meta]
-      properties: { data: { $ref: '#/components/schemas/Me' }, meta: { $ref: '#/components/schemas/Meta' } }
-    RolesResponseEnvelope:
-      type: object
-      required: [data, meta]
-      properties: { data: { type: array, items: { $ref: '#/components/schemas/RoleContext' } }, meta: { $ref: '#/components/schemas/Meta' } }
+      properties:
+        requestId: { type: string }
+
     ErrorBody:
       type: object
       required: [code, message, fieldErrors, details, traceId]
@@ -254,22 +462,27 @@ components:
         fieldErrors: { type: array, items: {} }
         details: { type: object, additionalProperties: true }
         traceId: { type: string }
+
     ErrorEnvelope:
       type: object
       required: [error]
-      properties: { error: { $ref: '#/components/schemas/ErrorBody' } }
+      properties:
+        error: { $ref: '#/components/schemas/ErrorBody' }
+
     ReviewRequest:
       type: object
       required: [decision, reviewNote]
       properties:
         decision: { type: string, enum: [APPROVE, REJECT] }
         reviewNote: { type: string, minLength: 1, maxLength: 5000 }
+
     CoachApplicationRequest:
       type: object
       properties:
         applicationNote: { type: [string, 'null'], maxLength: 5000 }
         skillLevel: { type: [string, 'null'], maxLength: 30 }
         bio: { type: [string, 'null'], maxLength: 10000 }
+
     CoachApplication:
       type: object
       required: [id, coachProfileId, status, submittedAt]
@@ -282,6 +495,7 @@ components:
         reviewedBy: { type: [string, 'null'], format: uuid }
         reviewedAt: { type: [string, 'null'], format: date-time }
         reviewNote: { type: [string, 'null'] }
+
     AvailabilityProposalRequest:
       type: object
       required: [startAt, endAt]
@@ -289,6 +503,7 @@ components:
         startAt: { type: string, format: date-time }
         endAt: { type: string, format: date-time }
         preferredVenueId: { type: [string, 'null'], format: uuid }
+
     AvailabilityProposal:
       type: object
       required: [id, coachProfileId, startAt, endAt, status]
@@ -303,6 +518,7 @@ components:
         reviewedBy: { type: [string, 'null'], format: uuid }
         reviewedAt: { type: [string, 'null'], format: date-time }
         reviewNote: { type: [string, 'null'] }
+
     SessionPreference:
       type: object
       required: [sequenceNo, startAt, endAt]
@@ -312,10 +528,12 @@ components:
         endAt: { type: string, format: date-time }
         preferredVenueId: { type: [string, 'null'], format: uuid }
         note: { type: [string, 'null'], maxLength: 500 }
+
     SelectedAvailabilityRequest:
       type: object
       properties:
         selectedAvailabilityProposalId: { type: [string, 'null'], format: uuid }
+
     LessonRequestCreateRequest:
       type: object
       required: [lessonType, scheduleType, billingMode, participantCount, guestParticipantCount, requestedSessionCount, sessionPreferences]
@@ -333,6 +551,7 @@ components:
         selectedAvailabilityProposalId: { type: [string, 'null'], format: uuid }
         sessionPreferences: { type: array, minItems: 1, items: { $ref: '#/components/schemas/SessionPreference' } }
         notes: { type: [string, 'null'], maxLength: 10000 }
+
     LessonRequest:
       type: object
       required: [id, requesterUserId, lessonType, scheduleType, billingMode, participantCount, guestParticipantCount, requestedSessionCount, status]
@@ -356,37 +575,352 @@ components:
         reviewedBy: { type: [string, 'null'], format: uuid }
         reviewedAt: { type: [string, 'null'], format: date-time }
         reviewNote: { type: [string, 'null'] }
+
     LessonRequestDetail:
       type: object
       required: [lessonRequest, sessionPreferences]
       properties:
         lessonRequest: { $ref: '#/components/schemas/LessonRequest' }
         sessionPreferences: { type: array, items: { $ref: '#/components/schemas/SessionPreference' } }
+
+    CourseMatchCoachAssignmentRequest:
+      type: object
+      required: [coachProfileId, sessionIndexes]
+      properties:
+        coachProfileId: { type: string, format: uuid }
+        sessionIndexes:
+          type: array
+          minItems: 1
+          items: { type: integer, minimum: 1 }
+
+    CourseMatchSessionPlanRequest:
+      type: object
+      required: [sequenceNo, startAt, endAt]
+      properties:
+        sequenceNo: { type: integer, minimum: 1 }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        venueId: { type: [string, 'null'], format: uuid }
+        venueName: { type: [string, 'null'], maxLength: 150 }
+        venueAddress: { type: [string, 'null'], maxLength: 300 }
+
+    CourseMatchCreateRequest:
+      type: object
+      required: [lessonRequestId, coachAssignments, sessionPlan, participantCount]
+      properties:
+        lessonRequestId: { type: string, format: uuid }
+        coachAssignments:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/CourseMatchCoachAssignmentRequest' }
+        sessionPlan:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/CourseMatchSessionPlanRequest' }
+        participantCount: { type: integer, minimum: 1 }
+
+    CourseMatchPatchRequest:
+      type: object
+      properties:
+        participantCount: { type: [integer, 'null'], minimum: 1 }
+        coachAssignments:
+          type: [array, 'null']
+          items: { $ref: '#/components/schemas/CourseMatchCoachAssignmentRequest' }
+        sessionPlan:
+          type: [array, 'null']
+          items: { $ref: '#/components/schemas/CourseMatchSessionPlanRequest' }
+
+    CourseMatchReadiness:
+      type: object
+      required: [lessonRequestApproved, coachesAccepted, sessionsFuture, scheduleConflictFree, venueReady, pricingConfirmed, participantCountValid, readyToConfirm]
+      properties:
+        lessonRequestApproved: { type: boolean }
+        coachesAccepted: { type: boolean }
+        sessionsFuture: { type: boolean }
+        scheduleConflictFree: { type: boolean }
+        venueReady: { type: boolean }
+        pricingConfirmed: { type: boolean }
+        participantCountValid: { type: boolean }
+        readyToConfirm: { type: boolean }
+
+    CourseMatchPriceState:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [NOT_CONFIRMED, CONFIRMED] }
+        priceSnapshotId: { type: [string, 'null'], format: uuid }
+
+    CourseMatchSession:
+      type: object
+      required: [id, sequenceNo, startAt, endAt, venueType, venueName]
+      properties:
+        id: { type: string, format: uuid }
+        sequenceNo: { type: integer, minimum: 1 }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        venueType: { type: string, enum: [VENUE, OTHER] }
+        venueId: { type: [string, 'null'], format: uuid }
+        venueName: { type: string }
+        venueAddress: { type: [string, 'null'] }
+
+    CourseMatchInvitation:
+      type: object
+      required: [invitationId, courseMatchSessionId, sessionIndex, coachProfileId, assignmentOrder, status, invitationSentAt]
+      properties:
+        invitationId: { type: string, format: uuid }
+        courseMatchSessionId: { type: string, format: uuid }
+        sessionIndex: { type: integer, minimum: 1 }
+        coachProfileId: { type: string, format: uuid }
+        assignmentOrder: { type: integer, minimum: 1 }
+        status: { type: string, enum: [INVITED, ACCEPTED, REJECTED, CANCELLED] }
+        invitationSentAt: { type: string, format: date-time }
+        respondedAt: { type: [string, 'null'], format: date-time }
+        responseNote: { type: [string, 'null'] }
+
+    CourseMatch:
+      type: object
+      required: [id, lessonRequestId, status, participantCount, version, sessions, coachInvitations, readiness, pricing]
+      properties:
+        id: { type: string, format: uuid }
+        lessonRequestId: { type: string, format: uuid }
+        status: { type: string, enum: [DRAFT, CONFIRMED, CANCELLED] }
+        participantCount: { type: integer, minimum: 1 }
+        minimumParticipants: { type: [integer, 'null'] }
+        maximumParticipants: { type: [integer, 'null'] }
+        version: { type: integer, format: int64 }
+        sessions: { type: array, items: { $ref: '#/components/schemas/CourseMatchSession' } }
+        coachInvitations: { type: array, items: { $ref: '#/components/schemas/CourseMatchInvitation' } }
+        readiness: { $ref: '#/components/schemas/CourseMatchReadiness' }
+        pricing: { $ref: '#/components/schemas/CourseMatchPriceState' }
+
+    CourseMatchSummary:
+      type: object
+      required: [id, lessonRequestId, status, participantCount, version, createdAt, readiness, pricing]
+      properties:
+        id: { type: string, format: uuid }
+        lessonRequestId: { type: string, format: uuid }
+        status: { type: string, enum: [DRAFT, CONFIRMED, CANCELLED] }
+        participantCount: { type: integer, minimum: 1 }
+        version: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time }
+        readiness: { $ref: '#/components/schemas/CourseMatchReadiness' }
+        pricing: { $ref: '#/components/schemas/CourseMatchPriceState' }
+
+    CourseMatchPricingItem:
+      type: object
+      required: [itemType, description, quantity, unitAmount, lineAmount]
+      properties:
+        courseMatchSessionId: { type: [string, 'null'], format: uuid }
+        itemType: { type: string, enum: [TUITION, VENUE, ADJUSTMENT] }
+        description: { type: string }
+        quantity: { type: string }
+        unitAmount: { type: string }
+        lineAmount: { type: string }
+        sourceReferenceType: { type: [string, 'null'] }
+        sourceReferenceId: { type: [string, 'null'], format: uuid }
+
+    CourseMatchPricingPreview:
+      type: object
+      required: [courseMatchId, currency, billingMode, totalAmount, breakdown, pricingFingerprint]
+      properties:
+        courseMatchId: { type: string, format: uuid }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        billingMode: { type: string, enum: [FULL_COURSE, PER_SESSION] }
+        totalAmount: { type: string }
+        breakdown: { type: array, items: { $ref: '#/components/schemas/CourseMatchPricingItem' } }
+        pricingFingerprint: { type: string, minLength: 64, maxLength: 64 }
+
+    CourseMatchPricingConfirmationRequest:
+      type: object
+      required: [acceptedTotalAmount, currency, pricingFingerprint]
+      properties:
+        acceptedTotalAmount: { type: string }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        pricingFingerprint: { type: string, minLength: 64, maxLength: 64 }
+        confirmationNote: { type: [string, 'null'], maxLength: 5000 }
+
+    CourseMatchPriceSnapshot:
+      type: object
+      required: [priceSnapshotId, courseMatchId, status, billingMode, totalAmount, currency, pricingFingerprint, confirmedBy, confirmedAt]
+      properties:
+        priceSnapshotId: { type: string, format: uuid }
+        courseMatchId: { type: string, format: uuid }
+        status: { type: string, enum: [CONFIRMED] }
+        billingMode: { type: string, enum: [FULL_COURSE, PER_SESSION] }
+        totalAmount: { type: string }
+        currency: { type: string }
+        pricingFingerprint: { type: string }
+        confirmedBy: { type: string, format: uuid }
+        confirmedAt: { type: string, format: date-time }
+
+    CourseMatchConfirmationRequest:
+      type: object
+      required: [confirm]
+      properties:
+        confirm: { type: boolean }
+
+    CourseMatchConfirmation:
+      type: object
+      required: [courseMatchId, courseMatchStatus, courseId, courseStatus, sessionIds, receivableIds]
+      properties:
+        courseMatchId: { type: string, format: uuid }
+        courseMatchStatus: { type: string, enum: [CONFIRMED] }
+        courseId: { type: string, format: uuid }
+        courseStatus: { type: string, enum: [ACTIVE] }
+        sessionIds: { type: array, items: { type: string, format: uuid } }
+        receivableIds: { type: array, items: { type: string, format: uuid } }
+
+    CourseMatchInvitationSummary:
+      type: object
+      required: [invitationId, courseMatchId, courseMatchSessionId, sessionIndex, startAt, endAt, venueName, coachProfileId, status, invitationSentAt]
+      properties:
+        invitationId: { type: string, format: uuid }
+        courseMatchId: { type: string, format: uuid }
+        courseMatchSessionId: { type: string, format: uuid }
+        sessionIndex: { type: integer, minimum: 1 }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        venueName: { type: string }
+        coachProfileId: { type: string, format: uuid }
+        status: { type: string, enum: [INVITED, ACCEPTED, REJECTED] }
+        invitationSentAt: { type: string, format: date-time }
+        respondedAt: { type: [string, 'null'], format: date-time }
+        responseNote: { type: [string, 'null'] }
+
+    CourseMatchInvitationResponseRequest:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ACCEPTED, REJECTED] }
+        responseNote: { type: [string, 'null'], maxLength: 5000 }
+
+    CourseMatchInvitationResponse:
+      type: object
+      required: [invitationId, courseMatchId, courseMatchSessionId, coachProfileId, status, respondedAt]
+      properties:
+        invitationId: { type: string, format: uuid }
+        courseMatchId: { type: string, format: uuid }
+        courseMatchSessionId: { type: string, format: uuid }
+        coachProfileId: { type: string, format: uuid }
+        status: { type: string, enum: [ACCEPTED, REJECTED] }
+        respondedAt: { type: string, format: date-time }
+        responseNote: { type: [string, 'null'] }
+
+    LoginResponseEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/LoginData' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    MeResponseEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Me' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    RolesResponseEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/RoleContext' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+
     CoachApplicationEnvelope:
       type: object
       required: [data, meta]
-      properties: { data: { $ref: '#/components/schemas/CoachApplication' }, meta: { $ref: '#/components/schemas/Meta' } }
+      properties:
+        data: { $ref: '#/components/schemas/CoachApplication' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
     CoachApplicationListEnvelope:
       type: object
       required: [data, meta]
-      properties: { data: { type: array, items: { $ref: '#/components/schemas/CoachApplication' } }, meta: { $ref: '#/components/schemas/Meta' } }
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/CoachApplication' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+
     AvailabilityProposalEnvelope:
       type: object
       required: [data, meta]
-      properties: { data: { $ref: '#/components/schemas/AvailabilityProposal' }, meta: { $ref: '#/components/schemas/Meta' } }
+      properties:
+        data: { $ref: '#/components/schemas/AvailabilityProposal' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
     AvailabilityProposalListEnvelope:
       type: object
       required: [data, meta]
-      properties: { data: { type: array, items: { $ref: '#/components/schemas/AvailabilityProposal' } }, meta: { $ref: '#/components/schemas/Meta' } }
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/AvailabilityProposal' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+
     LessonRequestEnvelope:
       type: object
       required: [data, meta]
-      properties: { data: { $ref: '#/components/schemas/LessonRequest' }, meta: { $ref: '#/components/schemas/Meta' } }
+      properties:
+        data: { $ref: '#/components/schemas/LessonRequest' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
     LessonRequestListEnvelope:
       type: object
       required: [data, meta]
-      properties: { data: { type: array, items: { $ref: '#/components/schemas/LessonRequest' } }, meta: { $ref: '#/components/schemas/Meta' } }
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/LessonRequest' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+
     LessonRequestDetailEnvelope:
       type: object
       required: [data, meta]
-      properties: { data: { $ref: '#/components/schemas/LessonRequestDetail' }, meta: { $ref: '#/components/schemas/Meta' } }
+      properties:
+        data: { $ref: '#/components/schemas/LessonRequestDetail' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    CourseMatchEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/CourseMatch' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    CourseMatchSummaryListEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/CourseMatchSummary' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    CourseMatchPricingPreviewEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/CourseMatchPricingPreview' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    CourseMatchPriceSnapshotEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/CourseMatchPriceSnapshot' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    CourseMatchConfirmationEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/CourseMatchConfirmation' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    CourseMatchInvitationSummaryListEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/CourseMatchInvitationSummary' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    CourseMatchInvitationResponseEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/CourseMatchInvitationResponse' }
+        meta: { $ref: '#/components/schemas/Meta' }
