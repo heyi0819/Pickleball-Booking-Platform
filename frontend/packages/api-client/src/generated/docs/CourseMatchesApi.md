@@ -89,7 +89,7 @@ example().catch(console.error);
 | **401** | Invalid or missing token |  -  |
 | **403** | Access forbidden |  -  |
 | **404** | Resource not found |  -  |
-| **409** | State |  -  |
+| **409** | State, concurrency, schedule, or idempotency conflict |  -  |
 | **422** | Business validation failed |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -170,7 +170,7 @@ example().catch(console.error);
 | **401** | Invalid or missing token |  -  |
 | **403** | Access forbidden |  -  |
 | **404** | Resource not found |  -  |
-| **409** | State |  -  |
+| **409** | State, concurrency, schedule, or idempotency conflict |  -  |
 | **422** | Business validation failed |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -244,7 +244,7 @@ example().catch(console.error);
 | **400** | Invalid request |  -  |
 | **401** | Invalid or missing token |  -  |
 | **403** | Access forbidden |  -  |
-| **409** | State |  -  |
+| **409** | State, concurrency, schedule, or idempotency conflict |  -  |
 | **422** | Business validation failed |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -461,7 +461,7 @@ example().catch(console.error);
 | **401** | Invalid or missing token |  -  |
 | **403** | Access forbidden |  -  |
 | **404** | Resource not found |  -  |
-| **409** | State |  -  |
+| **409** | State, concurrency, schedule, or idempotency conflict |  -  |
 | **422** | Business validation failed |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -539,7 +539,7 @@ example().catch(console.error);
 | **401** | Invalid or missing token |  -  |
 | **403** | Access forbidden |  -  |
 | **404** | Resource not found |  -  |
-| **409** | State |  -  |
+| **409** | State, concurrency, schedule, or idempotency conflict |  -  |
 | **422** | Business validation failed |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
