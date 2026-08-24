@@ -1,5 +1,6 @@
 package com.pickleball.booking.coursematch.api;
 
+import com.pickleball.booking.coursematch.application.ConfirmCourseMatchService;
 import com.pickleball.booking.coursematch.application.CourseMatchService;
 import com.pickleball.booking.coursematch.application.CourseMatchService.*;
 import com.pickleball.booking.coursematch.application.MatchPricingService;
@@ -22,10 +23,15 @@ import org.springframework.web.bind.annotation.*;
 public class CourseMatchController {
     private final CourseMatchService service;
     private final MatchPricingService pricing;
+    private final ConfirmCourseMatchService confirmation;
 
-    public CourseMatchController(CourseMatchService service, MatchPricingService pricing) {
+    public CourseMatchController(
+            CourseMatchService service,
+            MatchPricingService pricing,
+            ConfirmCourseMatchService confirmation) {
         this.service = service;
         this.pricing = pricing;
+        this.confirmation = confirmation;
     }
 
     @PostMapping
@@ -74,6 +80,22 @@ public class CourseMatchController {
                 request.acceptedTotalAmount(), request.currency(), request.pricingFingerprint(), request.confirmationNote());
         return response(priceSnapshotView(pricing.confirm(
                 principal(authentication), courseMatchId, idempotencyKey, command)), httpRequest);
+    }
+
+    @PostMapping("/{courseMatchId}/confirmation")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<ConfirmationView> confirmation(
+            Authentication authentication,
+            @PathVariable UUID courseMatchId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody ConfirmationRequest request,
+            HttpServletRequest httpRequest) {
+        var result = confirmation.confirm(
+                principal(authentication), courseMatchId, idempotencyKey,
+                new ConfirmCourseMatchService.ConfirmCommand(request.confirm()));
+        return response(new ConfirmationView(
+                result.courseMatchId(), result.courseMatchStatus(), result.courseId(), result.courseStatus(),
+                result.sessionIds(), result.receivableIds()), httpRequest);
     }
 
     private CreateCommand createCommand(CreateRequest request) {
@@ -194,6 +216,8 @@ public class CourseMatchController {
             @NotBlank @Size(min = 64, max = 64) String pricingFingerprint,
             @Size(max = 5000) String confirmationNote) {}
 
+    public record ConfirmationRequest(boolean confirm) {}
+
     public record CourseMatchView(
             UUID id,
             UUID lessonRequestId,
@@ -256,4 +280,12 @@ public class CourseMatchController {
             String pricingFingerprint,
             UUID confirmedBy,
             Instant confirmedAt) {}
+
+    public record ConfirmationView(
+            UUID courseMatchId,
+            String courseMatchStatus,
+            UUID courseId,
+            String courseStatus,
+            List<UUID> sessionIds,
+            List<UUID> receivableIds) {}
 }

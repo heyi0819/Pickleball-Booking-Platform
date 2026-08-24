@@ -97,7 +97,7 @@ class Slice3V5ForwardMigrationIT {
 
         assertThat(jdbc.queryForObject(
                 "select max(version) from " + schema + ".flyway_schema_history where success = true",
-                String.class)).isEqualTo("6");
+                String.class)).isEqualTo("7");
         assertThat(jdbc.queryForObject(
                 "select created_by from " + schema + ".course_matches where id = ?",
                 UUID.class, courseMatchId)).isEqualTo(reviewerId);
@@ -112,6 +112,8 @@ class Slice3V5ForwardMigrationIT {
                 Integer.class, sessionId)).isEqualTo(64);
         assertThat(jdbc.queryForObject(
                 "select to_regclass(?) is not null", Boolean.class, schema + ".pricing_rules")).isTrue();
+        assertThat(jdbc.queryForObject(
+                "select to_regclass(?) is not null", Boolean.class, schema + ".schedule_reservations")).isTrue();
 
         List<Integer> activeOrders = jdbc.queryForList("""
                 select assignment_order

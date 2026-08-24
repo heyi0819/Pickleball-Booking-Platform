@@ -14,6 +14,7 @@ import com.pickleball.booking.lessonrequest.infrastructure.LessonRequestReposito
 import com.pickleball.booking.organization.infrastructure.OrganizationEntity;
 import com.pickleball.booking.organization.infrastructure.OrganizationRepository;
 import com.pickleball.booking.shared.application.BusinessException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -41,6 +42,7 @@ class CourseMatchServiceIT {
     }
 
     @Autowired CourseMatchService service;
+    @Autowired CourseMatchInvitationService invitations;
     @Autowired OrganizationRepository organizations;
     @Autowired PlatformUserRepository users;
     @Autowired RoleAssignmentRepository roles;
@@ -89,6 +91,68 @@ class CourseMatchServiceIT {
         assertThat(jdbc.queryForObject(
                 "select count(*) from outbox_events where aggregate_type='CourseMatch' and aggregate_id=?",
                 Integer.class, detail.match().getId())).isEqualTo(1);
+    }
+
+    @Test
+    void readinessUsesAcceptedCoachReservationsAndConfirmedPricing() {
+        Fixture fixture = fixture();
+        Instant startAt = Instant.now().plusSeconds(7200);
+        Instant endAt = startAt.plusSeconds(3600);
+        var created = service.create(new AuthenticatedPrincipal(fixture.committeeId()), new CreateCommand(
+                fixture.lessonRequestId(),
+                List.of(new CoachAssignmentCommand(fixture.coachProfileId(), List.of((short) 1))),
+                List.of(new SessionPlanCommand((short) 1, startAt, endAt,
+                        null, "Readiness Court", "Taipei")),
+                (short) 2));
+
+        invitations.respond(new AuthenticatedPrincipal(fixture.coachId()),
+                created.coachAssignments().getFirst().getId(),
+                new CourseMatchInvitationService.ResponseCommand("ACCEPTED", "available"));
+
+        UUID priceSnapshotId = UUID.randomUUID();
+        jdbc.update("""
+                insert into course_match_price_snapshots(
+                    id, organization_id, course_match_id, version_no, status, billing_mode,
+                    total_amount, pricing_fingerprint, confirmed_by, confirmed_at, created_by)
+                values (?, ?, ?, 1, 'CONFIRMED', 'FULL_COURSE', 1800.00, ?, ?, now(), ?)
+                """, priceSnapshotId, fixture.organizationId(), created.match().getId(), "r".repeat(64),
+                fixture.committeeId(), fixture.committeeId());
+
+        var ready = service.detail(new AuthenticatedPrincipal(fixture.committeeId()), created.match().getId());
+        assertThat(ready.readiness().coachesAccepted()).isTrue();
+        assertThat(ready.readiness().pricingConfirmed()).isTrue();
+        assertThat(ready.readiness().scheduleConflictFree()).isTrue();
+        assertThat(ready.readiness().readyToConfirm()).isTrue();
+
+        UUID conflictingCourseId = UUID.randomUUID();
+        UUID conflictingSessionId = UUID.randomUUID();
+        jdbc.update("""
+                insert into courses(
+                    id, organization_id, course_no, created_by_user_id, course_type, schedule_type,
+                    billing_mode, expected_participant_count, guest_participant_count,
+                    maximum_participants, total_session_count, status, activated_at)
+                values (?, ?, ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 1, 0, 4, 1, 'ACTIVE', now())
+                """, conflictingCourseId, fixture.organizationId(),
+                "R-" + UUID.randomUUID().toString().substring(0, 20), fixture.committeeId());
+        jdbc.update("""
+                insert into course_sessions(
+                    id, organization_id, course_id, sequence_no, scheduled_start_at, scheduled_end_at,
+                    expected_participant_count, guest_participant_count, status)
+                values (?, ?, ?, 1, ?, ?, 1, 0, 'SCHEDULED')
+                """, conflictingSessionId, fixture.organizationId(), conflictingCourseId,
+                Timestamp.from(startAt), Timestamp.from(endAt));
+        jdbc.update("""
+                insert into schedule_reservations(
+                    id, organization_id, user_id, course_session_id, reservation_role,
+                    reserved_period, status)
+                values (?, ?, ?, ?, 'COACH', tstzrange(?, ?, '[)'), 'CONFIRMED')
+                """, UUID.randomUUID(), fixture.organizationId(), fixture.coachId(), conflictingSessionId,
+                Timestamp.from(startAt), Timestamp.from(endAt));
+
+        var conflicted = service.detail(new AuthenticatedPrincipal(fixture.committeeId()), created.match().getId());
+        assertThat(conflicted.readiness().coachesAccepted()).isTrue();
+        assertThat(conflicted.readiness().scheduleConflictFree()).isFalse();
+        assertThat(conflicted.readiness().readyToConfirm()).isFalse();
     }
 
     @Test

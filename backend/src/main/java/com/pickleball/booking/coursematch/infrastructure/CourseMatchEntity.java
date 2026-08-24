@@ -101,6 +101,23 @@ public class CourseMatchEntity {
         }
     }
 
+    public void confirm(UUID actor, String note) {
+        requireDraft();
+        if (actor == null) {
+            throw new BusinessException("VALIDATION_FAILED", "Course match confirmation actor is required");
+        }
+        if (minimumParticipantsSnapshot != null && participantCount < minimumParticipantsSnapshot) {
+            throw new BusinessException("PARTICIPANT_BELOW_MIN", "Participant count is below the approved minimum");
+        }
+        if (maximumParticipantsSnapshot != null && participantCount > maximumParticipantsSnapshot) {
+            throw new BusinessException("PARTICIPANT_ABOVE_MAX", "Participant count is above the approved maximum");
+        }
+        status = CourseMatchStatus.CONFIRMED;
+        confirmedBy = actor;
+        confirmedAt = Instant.now();
+        decisionNote = note == null || note.isBlank() ? null : note.trim();
+    }
+
     public boolean participantCountValid() {
         if (minimumParticipantsSnapshot != null && participantCount < minimumParticipantsSnapshot) {
             return false;
@@ -126,6 +143,8 @@ public class CourseMatchEntity {
     public Short getMaximumParticipantsSnapshot() { return maximumParticipantsSnapshot; }
     public CourseMatchStatus getStatus() { return status; }
     public String getDecisionNote() { return decisionNote; }
+    public UUID getConfirmedBy() { return confirmedBy; }
+    public Instant getConfirmedAt() { return confirmedAt; }
     public UUID getCreatedBy() { return createdBy; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

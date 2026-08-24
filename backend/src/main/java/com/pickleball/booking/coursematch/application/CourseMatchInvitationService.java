@@ -53,13 +53,20 @@ public class CourseMatchInvitationService {
             throw new BusinessException("VALIDATION_FAILED", "Invitation response status is required");
         }
 
-        CourseMatchSessionCoachEntity invitation = assignments.findLockedById(invitationId)
+        // Resolve immutable ownership first, then acquire locks in the same Match-first order
+        // used by draft editing and final confirmation to avoid lock-order deadlocks.
+        CourseMatchSessionCoachEntity reference = assignments.findById(invitationId)
                 .orElseThrow(() -> new BusinessException("RESOURCE_NOT_FOUND", "Course match invitation was not found"));
-        CourseMatchSessionEntity session = sessions.findById(invitation.getCourseMatchSessionId())
+        CourseMatchSessionEntity session = sessions.findById(reference.getCourseMatchSessionId())
                 .orElseThrow(() -> new BusinessException("RESOURCE_NOT_FOUND", "Course match session was not found"));
         CourseMatchEntity match = matches.findLockedById(session.getCourseMatchId())
                 .orElseThrow(() -> new BusinessException("RESOURCE_NOT_FOUND", "Course match was not found"));
         match.requireDraft();
+        CourseMatchSessionCoachEntity invitation = assignments.findLockedById(invitationId)
+                .orElseThrow(() -> new BusinessException("RESOURCE_NOT_FOUND", "Course match invitation was not found"));
+        if (!invitation.getCourseMatchSessionId().equals(session.getId())) {
+            throw new BusinessException("CONCURRENT_MODIFICATION", "Course match invitation changed concurrently");
+        }
 
         CoachProfileEntity coach = coachProfiles.findById(invitation.getCoachProfileId())
                 .orElseThrow(() -> new BusinessException("RESOURCE_NOT_FOUND", "Coach profile was not found"));
