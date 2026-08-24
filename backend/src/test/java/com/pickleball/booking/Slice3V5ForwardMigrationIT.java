@@ -56,7 +56,7 @@ class Slice3V5ForwardMigrationIT {
                     id, organization_id, requester_user_id, lesson_type, schedule_type, billing_mode,
                     participant_count, guest_participant_count, requested_session_count, status,
                     submitted_at, reviewed_by, reviewed_at, review_note)
-                values (?, ?, ?, 'GROUP', 'SINGLE', 'FULL_COURSE', 3, 0, 1, 'APPROVED',
+                values (?, ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 3, 0, 1, 'APPROVED',
                     now(), ?, now(), 'approved')
                 """.formatted(schema), lessonRequestId, organizationId, requesterId, reviewerId);
         jdbc.update("""
