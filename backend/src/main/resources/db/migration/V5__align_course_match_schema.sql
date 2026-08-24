@@ -27,6 +27,7 @@ ALTER TABLE course_match_sessions
 ALTER TABLE course_match_sessions
     ADD COLUMN venue_snapshot_type varchar(20) NOT NULL,
     ADD COLUMN venue_fingerprint varchar(64) NOT NULL,
+    ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now(),
     ADD CONSTRAINT ck_course_match_sessions_venue_snapshot_type
         CHECK (venue_snapshot_type IN ('VENUE', 'OTHER')),
     ADD CONSTRAINT ck_course_match_sessions_venue_snapshot_identity
