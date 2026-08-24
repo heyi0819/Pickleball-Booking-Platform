@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import process from "node:process";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const openapi = resolve(root, "..", "backend", "src", "main", "resources", "openapi", "openapi.yaml");
