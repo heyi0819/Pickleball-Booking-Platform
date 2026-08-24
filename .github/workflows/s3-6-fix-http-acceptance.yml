@@ -1,0 +1,38 @@
+name: S3.6 acceptance compile fix
+
+on:
+  push:
+    branches:
+      - codex/slice-3-s3-6
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/slice-3-s3-6
+      - name: Patch test and self-clean
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('backend/src/test/java/com/pickleball/booking/coursematch/api/Slice3HttpEndToEndIT.java')
+          s=p.read_text()
+          s=s.replace('com.fasterxml.jackson.databind.JsonNode','tools.jackson.databind.JsonNode')
+          s=s.replace('com.fasterxml.jackson.databind.ObjectMapper','tools.jackson.databind.ObjectMapper')
+          s=s.replace('private JsonNode expectData(HttpResponse<String> response, int expectedStatus) throws Exception {\n        assertThat(response.statusCode())\n                .withFailMessage("Expected HTTP %s but got %s: %s", expectedStatus, response.statusCode(), response.body())\n                .isEqualTo(expectedStatus);\n        JsonNode envelope = objectMapper.readTree(response.body());', 'private JsonNode expectData(HttpResponse<String> response) throws Exception {\n        JsonNode envelope = objectMapper.readTree(response.body());')
+          s=s.replace('int unusedExpectedStatus) throws Exception {', 'int expectedStatus) throws Exception {')
+          s=s.replace('return HttpClient.newHttpClient().send(builder.build(), HttpResponse.BodyHandlers.ofString());', 'HttpResponse<String> response = HttpClient.newHttpClient().send(builder.build(), HttpResponse.BodyHandlers.ofString());\n        assertThat(response.statusCode())\n                .withFailMessage("Expected HTTP %s but got %s: %s", expectedStatus, response.statusCode(), response.body())\n                .isEqualTo(expectedStatus);\n        return response;')
+          p.write_text(s)
+          PY
+          rm .github/workflows/s3-6-fix-http-acceptance.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add backend/src/test/java/com/pickleball/booking/coursematch/api/Slice3HttpEndToEndIT.java .github/workflows/s3-6-fix-http-acceptance.yml
+          git commit -m "fix(slice3): compile HTTP acceptance on Jackson 3"
+          git push origin HEAD:codex/slice-3-s3-6
