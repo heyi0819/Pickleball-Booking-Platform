@@ -1,4 +1,4 @@
-import { ApiClientError, createApiClient, type AvailabilityProposal, type LessonRequest, type Me, type RoleContext } from "@pickleball/api-client";
+import { ApiClientError, createApiClient, type AvailabilityProposal, type CourseMatchInvitationSummary, type LessonRequest, type Me, type RoleContext } from "@pickleball/api-client";
 import liff from "@line/liff";
 import { PageShell } from "@pickleball/ui";
 import { platformName } from "@pickleball/shared";
@@ -74,10 +74,13 @@ function StudentLessonDemand({ token }: { token: string }) {
 }
 
 function CoachSupply({ token }: { token: string }) {
-  const [proposals, setProposals] = useState<AvailabilityProposal[]>([]); const [message, setMessage] = useState("");
-  const refresh = async () => setProposals(await api.myAvailability(token));
-  useEffect(() => { void refresh().catch(() => setMessage("Unable to load your availability.")); }, [token]);
+  const [proposals, setProposals] = useState<AvailabilityProposal[]>([]);
+  const [invitations, setInvitations] = useState<CourseMatchInvitationSummary[]>([]);
+  const [message, setMessage] = useState("");
+  const refresh = async () => { const [availability, matchInvitations] = await Promise.all([api.myAvailability(token), api.myCourseMatchInvitations(token)]); setProposals(availability); setInvitations(matchInvitations); };
+  useEffect(() => { void refresh().catch(() => setMessage("Unable to load coach work.")); }, [token]);
   async function create(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); const form = new FormData(event.currentTarget); try { await api.createAvailability(token, { startAt: new Date(String(form.get("startAt"))), endAt: new Date(String(form.get("endAt"))), preferredVenueId: null }); setMessage("Availability draft created."); await refresh(); } catch { setMessage("Unable to create availability."); } }
   async function submit(id: string) { try { await api.submitAvailability(token, id); setMessage("Availability submitted for review."); await refresh(); } catch { setMessage("Unable to submit availability."); } }
-  return <section><h3>My availability</h3>{message && <p role="status">{message}</p>}<form onSubmit={create}><label>Start <input name="startAt" type="datetime-local" required /></label><label>End <input name="endAt" type="datetime-local" required /></label><button>Create availability draft</button></form><ul>{proposals.map((proposal) => <li key={proposal.id}>{new Date(proposal.startAt).toLocaleString()} — {proposal.status}{proposal.status === "DRAFT" && <button onClick={() => void submit(proposal.id)}>Submit for review</button>}</li>)}</ul></section>;
+  async function respond(invitationId: string, status: "ACCEPTED" | "REJECTED") { try { await api.respondCourseMatchInvitation(token, invitationId, { status, responseNote: status === "ACCEPTED" ? "Accepted via Coach LIFF" : "Rejected via Coach LIFF" }); setMessage(status === "ACCEPTED" ? "Match invitation accepted." : "Match invitation rejected."); await refresh(); } catch (error) { setMessage(error instanceof ApiClientError ? `Unable to respond: ${error.code}` : "Unable to respond to invitation."); } }
+  return <section><h3>Match invitations</h3>{message && <p role="status">{message}</p>}{invitations.length === 0 ? <p>No match invitations.</p> : <ul>{invitations.map((invitation) => <li key={invitation.invitationId}><strong>Session {invitation.sessionIndex}</strong> · {new Date(invitation.startAt).toLocaleString()} · {invitation.venueName || "Venue pending"} · {invitation.status}{invitation.status === "INVITED" && <><button onClick={() => void respond(invitation.invitationId, "ACCEPTED")}>Accept match</button><button onClick={() => void respond(invitation.invitationId, "REJECTED")}>Reject match</button></>}{invitation.respondedAt && <span> · responded {new Date(invitation.respondedAt).toLocaleString()}</span>}</li>)}</ul>}<h3>My availability</h3><form onSubmit={create}><label>Start <input name="startAt" type="datetime-local" required /></label><label>End <input name="endAt" type="datetime-local" required /></label><button>Create availability draft</button></form><ul>{proposals.map((proposal) => <li key={proposal.id}>{new Date(proposal.startAt).toLocaleString()} — {proposal.status}{proposal.status === "DRAFT" && <button onClick={() => void submit(proposal.id)}>Submit for review</button>}</li>)}</ul></section>;
 }
