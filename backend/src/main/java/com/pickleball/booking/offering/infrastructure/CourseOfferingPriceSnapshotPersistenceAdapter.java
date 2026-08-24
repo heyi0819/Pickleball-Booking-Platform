@@ -14,4 +14,5 @@ public class CourseOfferingPriceSnapshotPersistenceAdapter implements CourseOffe
     @Override public Optional<CourseOfferingPriceSnapshot> findConfirmedByOfferingId(UUID offeringId){return snapshots.findByCourseOfferingIdAndStatus(offeringId,OfferingPriceSnapshotStatus.CONFIRMED).map(CourseOfferingPriceSnapshotEntity::toDomain);}
     public int nextVersion(UUID offeringId){return snapshots.findTopByCourseOfferingIdOrderByVersionNoDesc(offeringId).map(s -> s.getVersionNo()+1).orElse(1);}
     @Override public CourseOfferingPriceSnapshot save(CourseOfferingPriceSnapshot snapshot){var entity=snapshots.findById(snapshot.id()).orElseGet(() -> new CourseOfferingPriceSnapshotEntity(snapshot)); entity.apply(snapshot); snapshots.save(entity); return snapshot;}
+    public void flush(){snapshots.flush();}
 }
