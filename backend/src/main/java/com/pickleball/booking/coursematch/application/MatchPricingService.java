@@ -299,8 +299,13 @@ public class MatchPricingService {
         return new PricingRule(
                 rs.getObject("id", UUID.class), rs.getString("name"), rs.getInt("priority"),
                 rs.getObject("coach_profile_id", UUID.class), rs.getString("course_type"), rs.getString("skill_level"),
-                (Short) rs.getObject("min_participants"), (Short) rs.getObject("max_participants"),
+                nullableShort(rs, "min_participants"), nullableShort(rs, "max_participants"),
                 money(rs.getBigDecimal("base_amount")), rs.getString("pricing_unit"), rs.getLong("version"));
+    }
+
+    private Short nullableShort(ResultSet rs, String column) throws SQLException {
+        Number value = (Number) rs.getObject(column);
+        return value == null ? null : value.shortValue();
     }
 
     private VenueCost venueCost(UUID organizationId, CourseMatchSessionEntity session) {
