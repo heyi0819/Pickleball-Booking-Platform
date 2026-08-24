@@ -1,8 +1,18 @@
 import {
   AuthenticationApi,
+  CoachApplicationsApi,
+  CoachAvailabilityApi,
   Configuration,
   CurrentUserApi,
+  LessonRequestsApi,
   ResponseError,
+  type AvailabilityProposal,
+  type AvailabilityProposalRequest,
+  type CoachApplication,
+  type CoachApplicationRequest,
+  type LessonRequest,
+  type LessonRequestCreateRequest,
+  type ReviewRequest,
   type LoginData,
   type Me,
   type ProfileUpdateRequest,
@@ -10,7 +20,7 @@ import {
   type RoleContext,
 } from "./generated/src";
 
-export type { LoginData as Login, Me, ProfileUpdateRequest as ProfileUpdate, RoleCode, RoleContext };
+export type { AvailabilityProposal, AvailabilityProposalRequest, CoachApplication, CoachApplicationRequest, LessonRequest, LessonRequestCreateRequest, LoginData as Login, Me, ProfileUpdateRequest as ProfileUpdate, ReviewRequest, RoleCode, RoleContext };
 export type ApiClientOptions = { baseUrl: string };
 
 export class ApiClientError extends Error {
@@ -29,11 +39,30 @@ async function mapError(caught: unknown): Promise<never> {
 export function createApiClient({ baseUrl }: ApiClientOptions) {
   const anonymous = new AuthenticationApi(new Configuration({ basePath: baseUrl }));
   const authenticated = (token: string) => new CurrentUserApi(new Configuration({ basePath: baseUrl, accessToken: token }));
+  const coachApplications = (token: string) => new CoachApplicationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
+  const coachAvailability = (token: string) => new CoachAvailabilityApi(new Configuration({ basePath: baseUrl, accessToken: token }));
+  const lessonRequests = (token: string) => new LessonRequestsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
     baseUrl,
     async loginWithLine(idToken: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken } })).data; } catch (caught) { return mapError(caught); } },
     async me(token: string): Promise<Me> { try { return (await authenticated(token).getCurrentUser()).data; } catch (caught) { return mapError(caught); } },
     async roles(token: string): Promise<RoleContext[]> { try { return (await authenticated(token).getCurrentUserRoles()).data; } catch (caught) { return mapError(caught); } },
     async updateProfile(token: string, profile: ProfileUpdateRequest): Promise<Me> { try { return (await authenticated(token).updateCurrentUserProfile({ profileUpdateRequest: profile })).data; } catch (caught) { return mapError(caught); } },
+    async applyForCoach(token: string, request: CoachApplicationRequest): Promise<CoachApplication> { try { return (await coachApplications(token).createCoachApplication({ coachApplicationRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async myCoachApplications(token: string): Promise<CoachApplication[]> { try { return (await coachApplications(token).listMyCoachApplications()).data; } catch (caught) { return mapError(caught); } },
+    async createAvailability(token: string, request: AvailabilityProposalRequest): Promise<AvailabilityProposal> { try { return (await coachAvailability(token).createAvailabilityProposal({ availabilityProposalRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async submitAvailability(token: string, id: string): Promise<AvailabilityProposal> { try { return (await coachAvailability(token).submitAvailabilityProposal({ id })).data; } catch (caught) { return mapError(caught); } },
+    async myAvailability(token: string): Promise<AvailabilityProposal[]> { try { return (await coachAvailability(token).listMyAvailabilityProposals()).data; } catch (caught) { return mapError(caught); } },
+    async approvedAvailability(token: string): Promise<AvailabilityProposal[]> { try { return (await coachAvailability(token).listApprovedAvailability()).data; } catch (caught) { return mapError(caught); } },
+    async reviewCoachApplication(token: string, id: string, request: ReviewRequest): Promise<CoachApplication> { try { return (await coachApplications(token).reviewCoachApplication({ id, reviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async reviewAvailability(token: string, id: string, request: ReviewRequest): Promise<AvailabilityProposal> { try { return (await coachAvailability(token).reviewAvailabilityProposal({ id, reviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async coachApplicationsForReview(token: string, organizationId: string): Promise<CoachApplication[]> { try { return (await coachApplications(token).listCoachApplicationsForReview({ organizationId })).data; } catch (caught) { return mapError(caught); } },
+    async availabilityForReview(token: string, organizationId: string): Promise<AvailabilityProposal[]> { try { return (await coachAvailability(token).listAvailabilityForReview({ organizationId })).data; } catch (caught) { return mapError(caught); } },
+    async createLessonRequest(token: string, request: LessonRequestCreateRequest): Promise<LessonRequest> { try { return (await lessonRequests(token).createLessonRequest({ lessonRequestCreateRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async selectLessonRequestAvailability(token: string, id: string, selectedAvailabilityProposalId: string | null): Promise<LessonRequest> { try { return (await lessonRequests(token).updateLessonRequestSelectedAvailability({ id, selectedAvailabilityRequest: { selectedAvailabilityProposalId } })).data; } catch (caught) { return mapError(caught); } },
+    async submitLessonRequest(token: string, id: string, idempotencyKey: string): Promise<LessonRequest> { try { return (await lessonRequests(token).submitLessonRequest({ id, idempotencyKey })).data; } catch (caught) { return mapError(caught); } },
+    async myLessonRequests(token: string): Promise<LessonRequest[]> { try { return (await lessonRequests(token).listMyLessonRequests()).data; } catch (caught) { return mapError(caught); } },
+    async lessonRequestsForReview(token: string, organizationId: string): Promise<LessonRequest[]> { try { return (await lessonRequests(token).listLessonRequestsForReview({ organizationId })).data; } catch (caught) { return mapError(caught); } },
+    async reviewLessonRequest(token: string, id: string, request: ReviewRequest): Promise<LessonRequest> { try { return (await lessonRequests(token).reviewLessonRequest({ id, reviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
   };
 }

@@ -1,7 +1,21 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './AvailabilityProposal';
+export * from './AvailabilityProposalEnvelope';
+export * from './AvailabilityProposalListEnvelope';
+export * from './AvailabilityProposalRequest';
+export * from './CoachApplication';
+export * from './CoachApplicationEnvelope';
+export * from './CoachApplicationListEnvelope';
+export * from './CoachApplicationRequest';
 export * from './ErrorBody';
 export * from './ErrorEnvelope';
+export * from './LessonRequest';
+export * from './LessonRequestCreateRequest';
+export * from './LessonRequestDetail';
+export * from './LessonRequestDetailEnvelope';
+export * from './LessonRequestEnvelope';
+export * from './LessonRequestListEnvelope';
 export * from './LineLoginRequest';
 export * from './LoginData';
 export * from './LoginResponseEnvelope';
@@ -10,6 +24,9 @@ export * from './Me';
 export * from './MeResponseEnvelope';
 export * from './Meta';
 export * from './ProfileUpdateRequest';
+export * from './ReviewRequest';
 export * from './RoleCode';
 export * from './RoleContext';
 export * from './RolesResponseEnvelope';
+export * from './SelectedAvailabilityRequest';
+export * from './SessionPreference';

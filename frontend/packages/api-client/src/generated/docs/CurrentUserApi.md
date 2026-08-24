@@ -27,7 +27,7 @@ import type { GetCurrentUserRequest } from '@pickleball/api-client-generated';
 
 async function example() {
   console.log("🚀 Testing @pickleball/api-client-generated SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // Configure HTTP bearer authorization: bearerAuth
     accessToken: "YOUR BEARER TOKEN",
   });
@@ -90,7 +90,7 @@ import type { GetCurrentUserRolesRequest } from '@pickleball/api-client-generate
 
 async function example() {
   console.log("🚀 Testing @pickleball/api-client-generated SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // Configure HTTP bearer authorization: bearerAuth
     accessToken: "YOUR BEARER TOKEN",
   });
@@ -153,7 +153,7 @@ import type { UpdateCurrentUserProfileRequest } from '@pickleball/api-client-gen
 
 async function example() {
   console.log("🚀 Testing @pickleball/api-client-generated SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // Configure HTTP bearer authorization: bearerAuth
     accessToken: "YOUR BEARER TOKEN",
   });
@@ -206,4 +206,3 @@ example().catch(console.error);
 | **403** | Access forbidden |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
