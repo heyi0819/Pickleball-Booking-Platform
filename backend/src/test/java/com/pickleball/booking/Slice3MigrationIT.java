@@ -46,7 +46,7 @@ class Slice3MigrationIT {
     void emptyDatabaseMigratesThroughSliceThree() {
         assertThat(jdbc.queryForObject(
                 "select version from flyway_schema_history where success = true order by installed_rank desc limit 1",
-                String.class)).isEqualTo("4");
+                String.class)).isEqualTo("5");
 
         assertThat(tableExists("course_matches")).isTrue();
         assertThat(tableExists("course_match_sessions")).isTrue();
@@ -56,6 +56,14 @@ class Slice3MigrationIT {
         assertThat(tableExists("courses")).isTrue();
         assertThat(tableExists("course_sessions")).isTrue();
         assertThat(tableExists("session_price_snapshots")).isTrue();
+
+        assertThat(columnExists("course_matches", "participant_count")).isTrue();
+        assertThat(columnExists("course_matches", "created_by")).isTrue();
+        assertThat(columnExists("course_match_sessions", "session_index")).isTrue();
+        assertThat(columnExists("course_match_sessions", "venue_snapshot_type")).isTrue();
+        assertThat(columnExists("course_match_sessions", "venue_fingerprint")).isTrue();
+        assertThat(columnExists("course_match_session_coaches", "assignment_order")).isTrue();
+        assertThat(columnExists("course_match_session_coaches", "role_type")).isFalse();
     }
 
     @Test
@@ -91,7 +99,7 @@ class Slice3MigrationIT {
                 Integer.class, organizationId)).isEqualTo(1);
         assertThat(upgradeJdbc.queryForObject(
                 "select max(version) from " + schema + ".flyway_schema_history where success = true",
-                String.class)).isEqualTo("4");
+                String.class)).isEqualTo("5");
         assertThat(upgradeJdbc.queryForObject(
                 "select to_regclass(?) is not null",
                 Boolean.class, schema + ".course_matches")).isTrue();
@@ -108,19 +116,20 @@ class Slice3MigrationIT {
         jdbc.update("""
                 insert into course_matches(
                     id, organization_id, lesson_request_id, status,
-                    participant_count_snapshot, minimum_participants_snapshot, maximum_participants_snapshot)
-                values (?, ?, ?, 'DRAFT', 2, 1, 4)
-                """, courseMatchId, fixture.organizationId(), fixture.lessonRequestId());
+                    participant_count, minimum_participants_snapshot, maximum_participants_snapshot, created_by)
+                values (?, ?, ?, 'DRAFT', 2, 1, 4, ?)
+                """, courseMatchId, fixture.organizationId(), fixture.lessonRequestId(), fixture.committeeUserId());
         jdbc.update("""
                 insert into course_match_sessions(
-                    id, course_match_id, sequence_no, start_at, end_at,
-                    venue_name_snapshot, venue_address_snapshot)
-                values (?, ?, 1, now() + interval '2 hours', now() + interval '3 hours', 'Test Venue', 'Taipei')
-                """, matchSessionId, courseMatchId);
+                    id, course_match_id, session_index, scheduled_start_at, scheduled_end_at,
+                    venue_snapshot_type, venue_snapshot_name, venue_snapshot_address, venue_fingerprint)
+                values (?, ?, 1, now() + interval '2 hours', now() + interval '3 hours',
+                    'OTHER', 'Test Venue', 'Taipei', ?)
+                """, matchSessionId, courseMatchId, fingerprint("v"));
         jdbc.update("""
                 insert into course_match_session_coaches(
-                    id, course_match_session_id, coach_profile_id, role_type, status, invited_by)
-                values (?, ?, ?, 'PRIMARY', 'INVITED', ?)
+                    id, course_match_session_id, coach_profile_id, assignment_order, status, invited_by)
+                values (?, ?, ?, 1, 'INVITED', ?)
                 """, UUID.randomUUID(), matchSessionId, fixture.coachProfileId(), fixture.committeeUserId());
 
         jdbc.update("""
@@ -150,9 +159,9 @@ class Slice3MigrationIT {
 
         UUID secondMatchId = UUID.randomUUID();
         jdbc.update("""
-                insert into course_matches(id, organization_id, lesson_request_id, status, participant_count_snapshot)
-                values (?, ?, ?, 'DRAFT', 1)
-                """, secondMatchId, fixture.organizationId(), fixture.lessonRequestId());
+                insert into course_matches(id, organization_id, lesson_request_id, status, participant_count, created_by)
+                values (?, ?, ?, 'DRAFT', 1, ?)
+                """, secondMatchId, fixture.organizationId(), fixture.lessonRequestId(), fixture.committeeUserId());
         assertThat(catchThrowable(() -> jdbc.update("""
                 insert into course_match_price_snapshots(
                     id, organization_id, course_match_id, version_no, status,
@@ -218,9 +227,9 @@ class Slice3MigrationIT {
         Fixture fixture = seedFixture();
         UUID courseMatchId = UUID.randomUUID();
         jdbc.update("""
-                insert into course_matches(id, organization_id, lesson_request_id, status, participant_count_snapshot)
-                values (?, ?, ?, 'DRAFT', 1)
-                """, courseMatchId, fixture.organizationId(), fixture.lessonRequestId());
+                insert into course_matches(id, organization_id, lesson_request_id, status, participant_count, created_by)
+                values (?, ?, ?, 'DRAFT', 1, ?)
+                """, courseMatchId, fixture.organizationId(), fixture.lessonRequestId(), fixture.committeeUserId());
 
         UUID claimId = UUID.randomUUID();
         jdbc.update("""
@@ -294,6 +303,17 @@ class Slice3MigrationIT {
     private boolean tableExists(String tableName) {
         return Boolean.TRUE.equals(jdbc.queryForObject(
                 "select to_regclass(?) is not null", Boolean.class, tableName));
+    }
+
+    private boolean columnExists(String tableName, String columnName) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+                select exists (
+                    select 1 from information_schema.columns
+                    where table_schema = current_schema()
+                      and table_name = ?
+                      and column_name = ?
+                )
+                """, Boolean.class, tableName, columnName));
     }
 
     private String fingerprint(String value) {
