@@ -16,6 +16,7 @@ import com.pickleball.booking.shared.application.BusinessException;
 import jakarta.transaction.Transactional;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -26,6 +27,7 @@ public class CourseMatchInvitationService {
     private final CourseMatchRepository matches;
     private final CoachProfileRepository coachProfiles;
     private final AuditOutboxService audit;
+    private final JdbcTemplate jdbc;
 
     public CourseMatchInvitationService(
             IdentityService identity,
@@ -33,13 +35,15 @@ public class CourseMatchInvitationService {
             CourseMatchSessionRepository sessions,
             CourseMatchRepository matches,
             CoachProfileRepository coachProfiles,
-            AuditOutboxService audit) {
+            AuditOutboxService audit,
+            JdbcTemplate jdbc) {
         this.identity = identity;
         this.assignments = assignments;
         this.sessions = sessions;
         this.matches = matches;
         this.coachProfiles = coachProfiles;
         this.audit = audit;
+        this.jdbc = jdbc;
     }
 
     @Transactional
@@ -72,6 +76,7 @@ public class CourseMatchInvitationService {
             invitation.accept(command.responseNote());
         } else if ("REJECTED".equals(response)) {
             invitation.reject(command.responseNote());
+            supersedeConfirmedPricing(match.getId());
         } else {
             throw new BusinessException("VALIDATION_FAILED", "Invitation response must be ACCEPTED or REJECTED");
         }
@@ -79,6 +84,14 @@ public class CourseMatchInvitationService {
         audit.record(match.getOrganizationId(), actor.userId(), "COURSE_MATCH_INVITATION_RESPONDED",
                 "CourseMatchSessionCoach", invitation.getId(), response);
         return new InvitationResult(match.getId(), session.getId(), invitation);
+    }
+
+    private void supersedeConfirmedPricing(UUID courseMatchId) {
+        jdbc.update("""
+                update course_match_price_snapshots
+                set status = 'SUPERSEDED'
+                where course_match_id = ? and status = 'CONFIRMED'
+                """, courseMatchId);
     }
 
     public record ResponseCommand(String status, String responseNote) {}
