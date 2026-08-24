@@ -45,6 +45,7 @@ class CourseMatchQueryServiceIT {
     }
 
     @Autowired CourseMatchQueryService query;
+    @Autowired CourseMatchInvitationQueryService invitationQuery;
     @Autowired CourseMatchService commands;
     @Autowired OrganizationRepository organizations;
     @Autowired PlatformUserRepository users;
@@ -54,6 +55,45 @@ class CourseMatchQueryServiceIT {
 
     @Test
     void committeeCanListOrganizationMatchesButUnrelatedStudentCannot() {
+        Fixture fixture = fixture();
+        var created = createMatch(fixture);
+
+        var results = query.listForOrganization(new AuthenticatedPrincipal(fixture.committee().getId()), fixture.org().getId());
+        assertThat(results).extracting(detail -> detail.match().getId()).contains(created.match().getId());
+
+        Throwable denied = catchThrowable(() -> query.listForOrganization(
+                new AuthenticatedPrincipal(fixture.unrelated().getId()), fixture.org().getId()));
+        assertThat(denied).isInstanceOf(BusinessException.class);
+        assertThat(((BusinessException) denied).code()).isEqualTo("AUTH_FORBIDDEN");
+    }
+
+    @Test
+    void coachCanReadOnlyOwnedInvitationInboxAndStudentCannotUseCoachInbox() {
+        Fixture fixture = fixture();
+        var created = createMatch(fixture);
+
+        var invitations = invitationQuery.mine(new AuthenticatedPrincipal(fixture.coach().getId()));
+        assertThat(invitations).hasSize(1);
+        assertThat(invitations.getFirst().courseMatchId()).isEqualTo(created.match().getId());
+        assertThat(invitations.getFirst().coachProfileId()).isEqualTo(fixture.coachProfile().getId());
+        assertThat(invitations.getFirst().status()).isEqualTo("INVITED");
+
+        Throwable denied = catchThrowable(() -> invitationQuery.mine(
+                new AuthenticatedPrincipal(fixture.unrelated().getId())));
+        assertThat(denied).isInstanceOf(BusinessException.class);
+        assertThat(((BusinessException) denied).code()).isEqualTo("AUTH_FORBIDDEN");
+    }
+
+    private CourseMatchService.Detail createMatch(Fixture fixture) {
+        return commands.create(new AuthenticatedPrincipal(fixture.committee().getId()), new CreateCommand(
+                fixture.request().getId(),
+                List.of(new CoachAssignmentCommand(fixture.coachProfile().getId(), List.of((short) 1))),
+                List.of(new SessionPlanCommand((short) 1, Instant.now().plusSeconds(7200),
+                        Instant.now().plusSeconds(10800), null, "Court", "Taipei")),
+                (short) 1));
+    }
+
+    private Fixture fixture() {
         OrganizationEntity org = organizations.saveAndFlush(new OrganizationEntity("Q-" + UUID.randomUUID(), "Query Test"));
         PlatformUserEntity committee = users.saveAndFlush(new PlatformUserEntity(UUID.randomUUID(), "Committee"));
         PlatformUserEntity requester = users.saveAndFlush(new PlatformUserEntity(UUID.randomUUID(), "Requester"));
@@ -66,25 +106,21 @@ class CourseMatchQueryServiceIT {
 
         CoachProfileEntity coachProfile = coachProfiles.saveAndFlush(new CoachProfileEntity(org.getId(), coach.getId(), null, null));
         coachProfile.approve(committee.getId());
-        coachProfiles.saveAndFlush(coachProfile);
+        coachProfile = coachProfiles.saveAndFlush(coachProfile);
 
         LessonRequestEntity request = new LessonRequestEntity(org.getId(), requester.getId(), coachProfile.getId(), null,
                 "PRIVATE", "SINGLE", "FULL_COURSE", null, (short) 1, (short) 0, null, (short) 4, (short) 1, null);
         request.submit();
         request.review(true, committee.getId(), "approved");
         request = lessonRequests.saveAndFlush(request);
-
-        var created = commands.create(new AuthenticatedPrincipal(committee.getId()), new CreateCommand(
-                request.getId(),
-                List.of(new CoachAssignmentCommand(coachProfile.getId(), List.of((short) 1))),
-                List.of(new SessionPlanCommand((short) 1, Instant.now().plusSeconds(7200), Instant.now().plusSeconds(10800), null, "Court", "Taipei")),
-                (short) 1));
-
-        var results = query.listForOrganization(new AuthenticatedPrincipal(committee.getId()), org.getId());
-        assertThat(results).extracting(detail -> detail.match().getId()).contains(created.match().getId());
-
-        Throwable denied = catchThrowable(() -> query.listForOrganization(new AuthenticatedPrincipal(unrelated.getId()), org.getId()));
-        assertThat(denied).isInstanceOf(BusinessException.class);
-        assertThat(((BusinessException) denied).code()).isEqualTo("AUTH_FORBIDDEN");
+        return new Fixture(org, committee, coach, unrelated, coachProfile, request);
     }
+
+    private record Fixture(
+            OrganizationEntity org,
+            PlatformUserEntity committee,
+            PlatformUserEntity coach,
+            PlatformUserEntity unrelated,
+            CoachProfileEntity coachProfile,
+            LessonRequestEntity request) {}
 }
