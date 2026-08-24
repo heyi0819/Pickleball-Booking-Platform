@@ -167,17 +167,16 @@ class Slice3MigrationIT {
                     id, organization_id, course_no, source_match_id, created_by_user_id,
                     course_type, schedule_type, billing_mode, expected_participant_count,
                     minimum_participants, maximum_participants, total_session_count, status, activated_at)
-                values (?, ?, ?, ?, ?, 'PRIVATE', 'RECURRING', 'FULL_COURSE', 2, 1, 4, 2, 'ACTIVE', now())
-                """, courseId, fixture.organizationId(), "C-" + courseId, courseMatchId, fixture.committeeUserId());
+                values (?, ?, 'S3-COURSE-1', ?, ?, 'PRIVATE', 'RECURRING', 'FULL_COURSE', 2, 1, 4, 2, 'ACTIVE', now())
+                """, courseId, fixture.organizationId(), courseMatchId, fixture.committeeUserId());
 
         assertThat(catchThrowable(() -> jdbc.update("""
                 insert into courses(
                     id, organization_id, course_no, source_match_id, created_by_user_id,
                     course_type, schedule_type, billing_mode, expected_participant_count,
                     minimum_participants, maximum_participants, total_session_count, status)
-                values (?, ?, ?, ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 2, 1, 4, 1, 'DRAFT')
-                """, UUID.randomUUID(), fixture.organizationId(), "C-DUP-" + courseId,
-                courseMatchId, fixture.committeeUserId())))
+                values (?, ?, 'S3-COURSE-2', ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 2, 1, 4, 1, 'DRAFT')
+                """, UUID.randomUUID(), fixture.organizationId(), courseMatchId, fixture.committeeUserId())))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         UUID courseSessionOne = createCourseSession(fixture.organizationId(), courseId, 1, "4 hours", "5 hours");
