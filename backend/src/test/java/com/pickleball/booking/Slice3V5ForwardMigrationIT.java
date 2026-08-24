@@ -97,7 +97,7 @@ class Slice3V5ForwardMigrationIT {
 
         assertThat(jdbc.queryForObject(
                 "select max(version) from " + schema + ".flyway_schema_history where success = true",
-                String.class)).isEqualTo("7");
+                String.class)).isEqualTo("8");
         assertThat(jdbc.queryForObject(
                 "select created_by from " + schema + ".course_matches where id = ?",
                 UUID.class, courseMatchId)).isEqualTo(reviewerId);

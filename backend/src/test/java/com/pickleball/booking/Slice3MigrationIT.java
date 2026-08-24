@@ -36,7 +36,7 @@ class Slice3MigrationIT {
 
     @Test
     void emptyDatabaseMigratesThroughCurrentSliceThree() {
-        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("7");
+        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("8");
         for (String table : java.util.List.of(
                 "course_matches", "course_match_sessions", "course_match_session_coaches",
                 "course_match_price_snapshots", "course_match_price_snapshot_items", "pricing_rules",
@@ -71,7 +71,7 @@ class Slice3MigrationIT {
         assertThat(upgradeJdbc.queryForObject(
                 "select count(*) from " + schema + ".organizations where id = ?", Integer.class, organizationId))
                 .isEqualTo(1);
-        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("7");
+        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("8");
         assertThat(upgradeJdbc.queryForObject("select to_regclass(?) is not null", Boolean.class,
                 schema + ".schedule_reservations")).isTrue();
     }
