@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Pickleball Booking Platform API
- * Slice 1 identity API contract.
+ * P0 API contract through Slice 3 matching and course formation.
  *
  * The version of the OpenAPI document: v1
  *
