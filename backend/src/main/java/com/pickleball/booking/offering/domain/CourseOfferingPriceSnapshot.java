@@ -44,9 +44,7 @@ public final class CourseOfferingPriceSnapshot {
                     OfferingDomainError.INVALID_PRICE,
                     "pricePerParticipant must not be negative");
         }
-        this.ruleTrace = ruleTrace == null
-                ? Map.of()
-                : Map.copyOf(new LinkedHashMap<>(ruleTrace));
+        this.ruleTrace = ruleTrace == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(ruleTrace));
         this.createdBy = createdBy;
         this.status = OfferingPriceSnapshotStatus.DRAFT;
     }
@@ -61,14 +59,31 @@ public final class CourseOfferingPriceSnapshot {
             Map<String, Object> ruleTrace,
             UUID createdBy) {
         return new CourseOfferingPriceSnapshot(
-                id,
-                organizationId,
-                courseOfferingId,
-                versionNo,
-                currency,
-                pricePerParticipant,
-                ruleTrace,
-                createdBy);
+                id, organizationId, courseOfferingId, versionNo, currency, pricePerParticipant, ruleTrace, createdBy);
+    }
+
+    public static CourseOfferingPriceSnapshot rehydrate(
+            UUID id,
+            UUID organizationId,
+            UUID courseOfferingId,
+            int versionNo,
+            String currency,
+            BigDecimal pricePerParticipant,
+            Map<String, Object> ruleTrace,
+            UUID createdBy,
+            OfferingPriceSnapshotStatus status,
+            UUID confirmedBy,
+            Instant confirmedAt) {
+        CourseOfferingPriceSnapshot snapshot = new CourseOfferingPriceSnapshot(
+                id, organizationId, courseOfferingId, versionNo, currency, pricePerParticipant, ruleTrace, createdBy);
+        snapshot.status = Objects.requireNonNull(status, "status");
+        snapshot.confirmedBy = confirmedBy;
+        snapshot.confirmedAt = confirmedAt;
+        if (status == OfferingPriceSnapshotStatus.CONFIRMED && (confirmedBy == null || confirmedAt == null)) {
+            throw new OfferingDomainException(
+                    OfferingDomainError.INVALID_STATE, "confirmed price snapshot lifecycle metadata is missing");
+        }
+        return snapshot;
     }
 
     public void confirm(UUID actorUserId, Instant now) {
@@ -100,47 +115,15 @@ public final class CourseOfferingPriceSnapshot {
         return value.trim().toUpperCase(java.util.Locale.ROOT);
     }
 
-    public UUID id() {
-        return id;
-    }
-
-    public UUID organizationId() {
-        return organizationId;
-    }
-
-    public UUID courseOfferingId() {
-        return courseOfferingId;
-    }
-
-    public int versionNo() {
-        return versionNo;
-    }
-
-    public OfferingPriceSnapshotStatus status() {
-        return status;
-    }
-
-    public String currency() {
-        return currency;
-    }
-
-    public BigDecimal pricePerParticipant() {
-        return pricePerParticipant;
-    }
-
-    public Map<String, Object> ruleTrace() {
-        return ruleTrace;
-    }
-
-    public UUID createdBy() {
-        return createdBy;
-    }
-
-    public UUID confirmedBy() {
-        return confirmedBy;
-    }
-
-    public Instant confirmedAt() {
-        return confirmedAt;
-    }
+    public UUID id() { return id; }
+    public UUID organizationId() { return organizationId; }
+    public UUID courseOfferingId() { return courseOfferingId; }
+    public int versionNo() { return versionNo; }
+    public OfferingPriceSnapshotStatus status() { return status; }
+    public String currency() { return currency; }
+    public BigDecimal pricePerParticipant() { return pricePerParticipant; }
+    public Map<String, Object> ruleTrace() { return ruleTrace; }
+    public UUID createdBy() { return createdBy; }
+    public UUID confirmedBy() { return confirmedBy; }
+    public Instant confirmedAt() { return confirmedAt; }
 }
