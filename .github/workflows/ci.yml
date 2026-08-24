@@ -58,7 +58,7 @@ jobs:
         run: npm run e2e
 
   migration:
-    name: Clean PostgreSQL migration
+    name: Clean and forward PostgreSQL migration
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +67,6 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Verify Flyway migration using PostgreSQL Testcontainers
+      - name: Verify Flyway migrations using PostgreSQL Testcontainers
         working-directory: backend
-        run: bash ./mvnw -Dtest=PostgresMigrationIT test
+        run: bash ./mvnw -Dtest=PostgresMigrationIT,Slice3MigrationIT test
