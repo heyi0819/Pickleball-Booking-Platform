@@ -2,6 +2,7 @@ package com.pickleball.booking.coursematch.api;
 
 import com.pickleball.booking.coursematch.application.CourseMatchService;
 import com.pickleball.booking.coursematch.application.CourseMatchService.*;
+import com.pickleball.booking.coursematch.application.MatchPricingService;
 import com.pickleball.booking.coursematch.infrastructure.CourseMatchSessionEntity;
 import com.pickleball.booking.identity.application.AuthenticatedPrincipal;
 import com.pickleball.booking.shared.api.ApiResponse;
@@ -20,8 +21,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/course-matches")
 public class CourseMatchController {
     private final CourseMatchService service;
+    private final MatchPricingService pricing;
 
-    public CourseMatchController(CourseMatchService service) { this.service = service; }
+    public CourseMatchController(CourseMatchService service, MatchPricingService pricing) {
+        this.service = service;
+        this.pricing = pricing;
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -47,6 +52,28 @@ public class CourseMatchController {
             @Valid @RequestBody PatchRequest request,
             HttpServletRequest httpRequest) {
         return response(view(service.patch(principal(authentication), courseMatchId, patchCommand(request))), httpRequest);
+    }
+
+    @PostMapping("/{courseMatchId}/pricing-preview")
+    public ApiResponse<PricingPreviewView> pricingPreview(
+            Authentication authentication,
+            @PathVariable UUID courseMatchId,
+            HttpServletRequest httpRequest) {
+        return response(pricingPreviewView(pricing.preview(principal(authentication), courseMatchId)), httpRequest);
+    }
+
+    @PostMapping("/{courseMatchId}/pricing-confirmation")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<PriceSnapshotView> pricingConfirmation(
+            Authentication authentication,
+            @PathVariable UUID courseMatchId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PricingConfirmationRequest request,
+            HttpServletRequest httpRequest) {
+        var command = new MatchPricingService.ConfirmPricingCommand(
+                request.acceptedTotalAmount(), request.currency(), request.pricingFingerprint(), request.confirmationNote());
+        return response(priceSnapshotView(pricing.confirm(
+                principal(authentication), courseMatchId, idempotencyKey, command)), httpRequest);
     }
 
     private CreateCommand createCommand(CreateRequest request) {
@@ -112,6 +139,24 @@ public class CourseMatchController {
                 detail.pricing());
     }
 
+    private PricingPreviewView pricingPreviewView(MatchPricingService.PricingPreview preview) {
+        return new PricingPreviewView(
+                preview.courseMatchId(), preview.currency(), preview.billingMode(),
+                preview.totalAmount().toPlainString(),
+                preview.breakdown().stream().map(item -> new PricingItemView(
+                        item.courseMatchSessionId(), item.itemType(), item.description(),
+                        item.quantity().stripTrailingZeros().toPlainString(), item.unitAmount().toPlainString(),
+                        item.lineAmount().toPlainString(), item.sourceReferenceType(), item.sourceReferenceId())).toList(),
+                preview.pricingFingerprint());
+    }
+
+    private PriceSnapshotView priceSnapshotView(MatchPricingService.PriceSnapshot snapshot) {
+        return new PriceSnapshotView(
+                snapshot.priceSnapshotId(), snapshot.courseMatchId(), snapshot.status(), snapshot.billingMode(),
+                snapshot.totalAmount().toPlainString(), snapshot.currency(), snapshot.pricingFingerprint(),
+                snapshot.confirmedBy(), snapshot.confirmedAt());
+    }
+
     private AuthenticatedPrincipal principal(Authentication authentication) {
         return (AuthenticatedPrincipal) authentication.getPrincipal();
     }
@@ -142,6 +187,12 @@ public class CourseMatchController {
             UUID venueId,
             @Size(max = 150) String venueName,
             @Size(max = 300) String venueAddress) {}
+
+    public record PricingConfirmationRequest(
+            @NotNull @DecimalMin("0.00") java.math.BigDecimal acceptedTotalAmount,
+            @NotBlank @Size(min = 3, max = 3) String currency,
+            @NotBlank @Size(min = 64, max = 64) String pricingFingerprint,
+            @Size(max = 5000) String confirmationNote) {}
 
     public record CourseMatchView(
             UUID id,
@@ -176,4 +227,33 @@ public class CourseMatchController {
             Instant invitationSentAt,
             Instant respondedAt,
             String responseNote) {}
+
+    public record PricingPreviewView(
+            UUID courseMatchId,
+            String currency,
+            String billingMode,
+            String totalAmount,
+            List<PricingItemView> breakdown,
+            String pricingFingerprint) {}
+
+    public record PricingItemView(
+            UUID courseMatchSessionId,
+            String itemType,
+            String description,
+            String quantity,
+            String unitAmount,
+            String lineAmount,
+            String sourceReferenceType,
+            UUID sourceReferenceId) {}
+
+    public record PriceSnapshotView(
+            UUID priceSnapshotId,
+            UUID courseMatchId,
+            String status,
+            String billingMode,
+            String totalAmount,
+            String currency,
+            String pricingFingerprint,
+            UUID confirmedBy,
+            Instant confirmedAt) {}
 }
