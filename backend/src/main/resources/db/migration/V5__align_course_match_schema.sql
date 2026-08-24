@@ -30,18 +30,12 @@ ALTER TABLE course_matches
     ADD CONSTRAINT fk_course_matches_created_by
         FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT;
 
-ALTER TABLE course_match_sessions
-    RENAME COLUMN sequence_no TO session_index;
-ALTER TABLE course_match_sessions
-    RENAME COLUMN start_at TO scheduled_start_at;
-ALTER TABLE course_match_sessions
-    RENAME COLUMN end_at TO scheduled_end_at;
-ALTER TABLE course_match_sessions
-    RENAME COLUMN venue_id TO venue_snapshot_id;
-ALTER TABLE course_match_sessions
-    RENAME COLUMN venue_name_snapshot TO venue_snapshot_name;
-ALTER TABLE course_match_sessions
-    RENAME COLUMN venue_address_snapshot TO venue_snapshot_address;
+ALTER TABLE course_match_sessions RENAME COLUMN sequence_no TO session_index;
+ALTER TABLE course_match_sessions RENAME COLUMN start_at TO scheduled_start_at;
+ALTER TABLE course_match_sessions RENAME COLUMN end_at TO scheduled_end_at;
+ALTER TABLE course_match_sessions RENAME COLUMN venue_id TO venue_snapshot_id;
+ALTER TABLE course_match_sessions RENAME COLUMN venue_name_snapshot TO venue_snapshot_name;
+ALTER TABLE course_match_sessions RENAME COLUMN venue_address_snapshot TO venue_snapshot_address;
 
 ALTER TABLE course_match_sessions
     ADD COLUMN venue_snapshot_type varchar(20),
@@ -89,17 +83,27 @@ WHERE status = 'REPLACED';
 ALTER TABLE course_match_session_coaches
     ADD COLUMN assignment_order smallint;
 
-UPDATE course_match_session_coaches
-SET assignment_order = CASE role_type WHEN 'PRIMARY' THEN 1 ELSE 2 END
-WHERE assignment_order IS NULL;
+-- V4 allowed multiple assistants. Assign a deterministic order per session instead
+-- of collapsing every assistant to order=2, which would break the new active-order index.
+WITH ranked AS (
+    SELECT id,
+           row_number() OVER (
+               PARTITION BY course_match_session_id
+               ORDER BY CASE role_type WHEN 'PRIMARY' THEN 0 ELSE 1 END, created_at, id
+           )::smallint AS assignment_order
+    FROM course_match_session_coaches
+)
+UPDATE course_match_session_coaches c
+SET assignment_order = r.assignment_order
+FROM ranked r
+WHERE c.id = r.id;
 
 ALTER TABLE course_match_session_coaches
     ALTER COLUMN assignment_order SET NOT NULL,
     ALTER COLUMN assignment_order SET DEFAULT 1,
-    DROP COLUMN role_type,
-    RENAME COLUMN invited_at TO invitation_sent_at;
-ALTER TABLE course_match_session_coaches
-    RENAME COLUMN response_reason TO response_note;
+    DROP COLUMN role_type;
+ALTER TABLE course_match_session_coaches RENAME COLUMN invited_at TO invitation_sent_at;
+ALTER TABLE course_match_session_coaches RENAME COLUMN response_reason TO response_note;
 
 ALTER TABLE course_match_session_coaches
     ADD CONSTRAINT ck_course_match_session_coaches_assignment_order
