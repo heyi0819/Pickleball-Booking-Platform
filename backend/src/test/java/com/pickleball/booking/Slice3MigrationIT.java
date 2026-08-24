@@ -36,13 +36,15 @@ class Slice3MigrationIT {
 
     @Test
     void emptyDatabaseMigratesThroughCurrentSliceThree() {
-        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("6");
-        assertThat(tableExists("course_matches")).isTrue();
-        assertThat(tableExists("course_match_sessions")).isTrue();
-        assertThat(tableExists("course_match_session_coaches")).isTrue();
-        assertThat(tableExists("course_match_price_snapshots")).isTrue();
-        assertThat(tableExists("course_match_price_snapshot_items")).isTrue();
-        assertThat(tableExists("pricing_rules")).isTrue();
+        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("7");
+        for (String table : java.util.List.of(
+                "course_matches", "course_match_sessions", "course_match_session_coaches",
+                "course_match_price_snapshots", "course_match_price_snapshot_items", "pricing_rules",
+                "courses", "course_sessions", "course_contact_assignments", "course_memberships", "enrollments",
+                "session_coach_assignments", "course_approvals", "schedule_reservations",
+                "session_venue_arrangements", "receivables", "receivable_items")) {
+            assertThat(tableExists(table)).as(table).isTrue();
+        }
         assertThat(columnExists("course_matches", "participant_count")).isTrue();
         assertThat(columnExists("course_match_sessions", "venue_fingerprint")).isTrue();
         assertThat(columnExists("course_match_session_coaches", "assignment_order")).isTrue();
@@ -69,9 +71,9 @@ class Slice3MigrationIT {
         assertThat(upgradeJdbc.queryForObject(
                 "select count(*) from " + schema + ".organizations where id = ?", Integer.class, organizationId))
                 .isEqualTo(1);
-        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("6");
+        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("7");
         assertThat(upgradeJdbc.queryForObject("select to_regclass(?) is not null", Boolean.class,
-                schema + ".pricing_rules")).isTrue();
+                schema + ".schedule_reservations")).isTrue();
     }
 
     @Test
@@ -119,6 +121,45 @@ class Slice3MigrationIT {
                 values (?, ?, ?, 2, 'CONFIRMED', 'FULL_COURSE', 800.00, ?, ?, now(), ?)
                 """, UUID.randomUUID(), fixture.organizationId(), matchId, fingerprint("b"),
                 fixture.committeeUserId(), fixture.committeeUserId())))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void formalScheduleReservationExclusionRejectsOverlapButAllowsAdjacent() {
+        Fixture fixture = seedFixture();
+        UUID matchId = createMatch(fixture);
+        UUID courseId = UUID.randomUUID();
+        jdbc.update("""
+                insert into courses(
+                    id, organization_id, course_no, source_match_id, created_by_user_id,
+                    course_type, schedule_type, billing_mode, expected_participant_count,
+                    guest_participant_count, total_session_count, status, activated_at)
+                values (?, ?, ?, ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 2, 0, 1, 'ACTIVE', now())
+                """, courseId, fixture.organizationId(), "C-" + courseId.toString().replace("-", "").substring(0, 20),
+                matchId, fixture.committeeUserId());
+        UUID s1 = insertFormalSession(fixture.organizationId(), courseId, (short) 1, "2030-01-01 10:00+00", "2030-01-01 11:00+00");
+        UUID s2 = insertFormalSession(fixture.organizationId(), courseId, (short) 2, "2030-01-01 11:00+00", "2030-01-01 12:00+00");
+        UUID s3 = insertFormalSession(fixture.organizationId(), courseId, (short) 3, "2030-01-01 10:30+00", "2030-01-01 11:30+00");
+
+        jdbc.update("""
+                insert into schedule_reservations(
+                    id, organization_id, user_id, course_session_id, reservation_role, reserved_period, status)
+                values (?, ?, ?, ?, 'COACH', tstzrange(?::timestamptz, ?::timestamptz, '[)'), 'CONFIRMED')
+                """, UUID.randomUUID(), fixture.organizationId(), fixture.coachUserId(), s1,
+                "2030-01-01 10:00+00", "2030-01-01 11:00+00");
+        jdbc.update("""
+                insert into schedule_reservations(
+                    id, organization_id, user_id, course_session_id, reservation_role, reserved_period, status)
+                values (?, ?, ?, ?, 'COACH', tstzrange(?::timestamptz, ?::timestamptz, '[)'), 'CONFIRMED')
+                """, UUID.randomUUID(), fixture.organizationId(), fixture.coachUserId(), s2,
+                "2030-01-01 11:00+00", "2030-01-01 12:00+00");
+
+        assertThat(catchThrowable(() -> jdbc.update("""
+                insert into schedule_reservations(
+                    id, organization_id, user_id, course_session_id, reservation_role, reserved_period, status)
+                values (?, ?, ?, ?, 'COACH', tstzrange(?::timestamptz, ?::timestamptz, '[)'), 'CONFIRMED')
+                """, UUID.randomUUID(), fixture.organizationId(), fixture.coachUserId(), s3,
+                "2030-01-01 10:30+00", "2030-01-01 11:30+00")))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -173,7 +214,7 @@ class Slice3MigrationIT {
                 values (?, ?, ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 2, 0, 1, 'APPROVED',
                     now(), ?, now(), 'approved')
                 """, lessonRequestId, organizationId, studentUserId, coachProfileId, committeeUserId);
-        return new Fixture(organizationId, coachProfileId, proposalId, lessonRequestId, committeeUserId);
+        return new Fixture(organizationId, coachUserId, coachProfileId, proposalId, lessonRequestId, committeeUserId);
     }
 
     private UUID createMatch(Fixture fixture) {
@@ -196,6 +237,17 @@ class Slice3MigrationIT {
         return sessionId;
     }
 
+    private UUID insertFormalSession(UUID organizationId, UUID courseId, short sequence, String start, String end) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                insert into course_sessions(
+                    id, organization_id, course_id, sequence_no, scheduled_start_at, scheduled_end_at,
+                    expected_participant_count, guest_participant_count, status)
+                values (?, ?, ?, ?, ?::timestamptz, ?::timestamptz, 2, 0, 'SCHEDULED')
+                """, id, organizationId, courseId, sequence, start, end);
+        return id;
+    }
+
     private String latestVersion(JdbcTemplate template, String historyTable) {
         return template.queryForObject(
                 "select version from " + historyTable + " where success=true order by installed_rank desc limit 1",
@@ -215,6 +267,6 @@ class Slice3MigrationIT {
 
     private String fingerprint(String value) { return value.repeat(64).substring(0, 64); }
 
-    private record Fixture(UUID organizationId, UUID coachProfileId, UUID availabilityProposalId,
+    private record Fixture(UUID organizationId, UUID coachUserId, UUID coachProfileId, UUID availabilityProposalId,
             UUID lessonRequestId, UUID committeeUserId) {}
 }
