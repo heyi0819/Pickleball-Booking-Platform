@@ -1,0 +1,14 @@
+package com.pickleball.booking.offering.domain;
+
+public enum OfferingDomainError {
+    REQUIRED_FIELD,
+    INVALID_STATE,
+    INVALID_CAPACITY,
+    INVALID_REGISTRATION_WINDOW,
+    INVALID_SESSION_PLAN,
+    OFFERING_NOT_READY,
+    PARTICIPANT_BELOW_MIN,
+    PARTICIPANT_ABOVE_MAX,
+    REGISTRATION_ACTOR_FORBIDDEN,
+    INVALID_PRICE
+}
