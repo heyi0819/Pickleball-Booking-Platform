@@ -75,6 +75,7 @@ class CourseMatchQueryServiceIT {
         var invitations = invitationQuery.mine(new AuthenticatedPrincipal(fixture.coach().getId()));
         assertThat(invitations).hasSize(1);
         assertThat(invitations.getFirst().courseMatchId()).isEqualTo(created.match().getId());
+        assertThat(invitations.getFirst().sessionIndex()).isEqualTo((short) 1);
         assertThat(invitations.getFirst().coachProfileId()).isEqualTo(fixture.coachProfile().getId());
         assertThat(invitations.getFirst().status()).isEqualTo("INVITED");
 
