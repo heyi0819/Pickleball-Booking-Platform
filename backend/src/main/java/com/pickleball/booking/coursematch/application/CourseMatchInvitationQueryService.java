@@ -5,6 +5,7 @@ import com.pickleball.booking.identity.application.IdentityService;
 import com.pickleball.booking.identity.domain.RoleCode;
 import com.pickleball.booking.shared.application.BusinessException;
 import jakarta.transaction.Transactional;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -53,15 +54,19 @@ public class CourseMatchInvitationQueryService {
                 rs.getObject("course_match_id", UUID.class),
                 rs.getObject("course_match_session_id", UUID.class),
                 rs.getShort("session_index"),
-                rs.getObject("scheduled_start_at", Instant.class),
-                rs.getObject("scheduled_end_at", Instant.class),
+                instant(rs.getTimestamp("scheduled_start_at")),
+                instant(rs.getTimestamp("scheduled_end_at")),
                 rs.getString("venue_snapshot_name"),
                 rs.getObject("coach_profile_id", UUID.class),
                 rs.getString("status"),
-                rs.getObject("invitation_sent_at", Instant.class),
-                rs.getObject("responded_at", Instant.class),
+                instant(rs.getTimestamp("invitation_sent_at")),
+                instant(rs.getTimestamp("responded_at")),
                 rs.getString("response_note")),
                 actor.userId());
+    }
+
+    private Instant instant(Timestamp timestamp) {
+        return timestamp == null ? null : timestamp.toInstant();
     }
 
     public record InvitationSummary(
