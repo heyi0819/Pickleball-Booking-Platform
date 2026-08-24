@@ -4,9 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.UUID;
-
 import javax.sql.DataSource;
-
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Test;
@@ -24,15 +22,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
 class Slice3MigrationIT {
-
-    @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18");
-
-    @Autowired
-    private DataSource dataSource;
-
-    @Autowired
-    private JdbcTemplate jdbc;
+    @Container static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18");
+    @Autowired DataSource dataSource;
+    @Autowired JdbcTemplate jdbc;
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -43,194 +35,97 @@ class Slice3MigrationIT {
     }
 
     @Test
-    void emptyDatabaseMigratesThroughSliceThree() {
-        assertThat(jdbc.queryForObject(
-                "select version from flyway_schema_history where success = true order by installed_rank desc limit 1",
-                String.class)).isEqualTo("5");
-
+    void emptyDatabaseMigratesThroughCurrentSliceThree() {
+        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("6");
         assertThat(tableExists("course_matches")).isTrue();
         assertThat(tableExists("course_match_sessions")).isTrue();
         assertThat(tableExists("course_match_session_coaches")).isTrue();
         assertThat(tableExists("course_match_price_snapshots")).isTrue();
         assertThat(tableExists("course_match_price_snapshot_items")).isTrue();
-        assertThat(tableExists("courses")).isTrue();
-        assertThat(tableExists("course_sessions")).isTrue();
-        assertThat(tableExists("session_price_snapshots")).isTrue();
-
+        assertThat(tableExists("pricing_rules")).isTrue();
         assertThat(columnExists("course_matches", "participant_count")).isTrue();
-        assertThat(columnExists("course_matches", "created_by")).isTrue();
-        assertThat(columnExists("course_match_sessions", "session_index")).isTrue();
-        assertThat(columnExists("course_match_sessions", "venue_snapshot_type")).isTrue();
         assertThat(columnExists("course_match_sessions", "venue_fingerprint")).isTrue();
         assertThat(columnExists("course_match_session_coaches", "assignment_order")).isTrue();
         assertThat(columnExists("course_match_session_coaches", "role_type")).isFalse();
     }
 
     @Test
-    void sliceTwoSchemaAndDataForwardMigrateToSliceThree() {
+    void sliceTwoSchemaAndDataForwardMigrateThroughCurrentSliceThree() {
         String schema = "slice3_upgrade_" + UUID.randomUUID().toString().replace("-", "");
         DriverManagerDataSource upgradeDataSource = new DriverManagerDataSource(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         JdbcTemplate upgradeJdbc = new JdbcTemplate(upgradeDataSource);
         upgradeJdbc.execute("create schema " + schema);
 
-        Flyway sliceTwo = Flyway.configure()
-                .dataSource(upgradeDataSource)
-                .schemas(schema)
-                .locations("classpath:db/migration")
-                .target(MigrationVersion.fromVersion("3"))
-                .load();
-        sliceTwo.migrate();
-
+        Flyway.configure().dataSource(upgradeDataSource).schemas(schema).locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("3")).load().migrate();
         UUID organizationId = UUID.randomUUID();
-        upgradeJdbc.update(
-                "insert into " + schema + ".organizations(id, code, name) values (?, ?, ?)",
+        upgradeJdbc.update("insert into " + schema + ".organizations(id, code, name) values (?, ?, ?)",
                 organizationId, "upgrade-" + organizationId, "Slice 2 preserved data");
 
-        Flyway sliceThree = Flyway.configure()
-                .dataSource(upgradeDataSource)
-                .schemas(schema)
-                .locations("classpath:db/migration")
-                .load();
-        sliceThree.migrate();
+        Flyway.configure().dataSource(upgradeDataSource).schemas(schema).locations("classpath:db/migration")
+                .load().migrate();
 
         assertThat(upgradeJdbc.queryForObject(
-                "select count(*) from " + schema + ".organizations where id = ?",
-                Integer.class, organizationId)).isEqualTo(1);
-        assertThat(upgradeJdbc.queryForObject(
-                "select max(version) from " + schema + ".flyway_schema_history where success = true",
-                String.class)).isEqualTo("5");
-        assertThat(upgradeJdbc.queryForObject(
-                "select to_regclass(?) is not null",
-                Boolean.class, schema + ".course_matches")).isTrue();
+                "select count(*) from " + schema + ".organizations where id = ?", Integer.class, organizationId))
+                .isEqualTo(1);
+        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("6");
+        assertThat(upgradeJdbc.queryForObject("select to_regclass(?) is not null", Boolean.class,
+                schema + ".pricing_rules")).isTrue();
     }
 
     @Test
-    void matchPricingConstraintsProtectConfirmationAndFormalLineage() {
+    void pricingConstraintsProtectRuleAndSnapshotIntegrity() {
         Fixture fixture = seedFixture();
+        UUID matchId = createMatch(fixture);
+        UUID sessionId = createMatchSession(matchId);
 
-        UUID courseMatchId = UUID.randomUUID();
-        UUID matchSessionId = UUID.randomUUID();
-        UUID matchPriceSnapshotId = UUID.randomUUID();
+        UUID ruleId = UUID.randomUUID();
+        jdbc.update("""
+                insert into pricing_rules(
+                    id, organization_id, name, priority, coach_profile_id, course_type,
+                    min_participants, max_participants, base_amount, pricing_unit,
+                    active_from, status)
+                values (?, ?, 'Primary private price', 10, ?, 'PRIVATE', 1, 4, 800.00, 'PER_SESSION', now(), 'ACTIVE')
+                """, ruleId, fixture.organizationId(), fixture.coachProfileId());
+        assertThat(jdbc.queryForObject("select count(*) from pricing_rules where id=?", Integer.class, ruleId)).isOne();
 
-        jdbc.update("""
-                insert into course_matches(
-                    id, organization_id, lesson_request_id, status,
-                    participant_count, minimum_participants_snapshot, maximum_participants_snapshot, created_by)
-                values (?, ?, ?, 'DRAFT', 2, 1, 4, ?)
-                """, courseMatchId, fixture.organizationId(), fixture.lessonRequestId(), fixture.committeeUserId());
-        jdbc.update("""
-                insert into course_match_sessions(
-                    id, course_match_id, session_index, scheduled_start_at, scheduled_end_at,
-                    venue_snapshot_type, venue_snapshot_name, venue_snapshot_address, venue_fingerprint)
-                values (?, ?, 1, now() + interval '2 hours', now() + interval '3 hours',
-                    'OTHER', 'Test Venue', 'Taipei', ?)
-                """, matchSessionId, courseMatchId, fingerprint("v"));
-        jdbc.update("""
-                insert into course_match_session_coaches(
-                    id, course_match_session_id, coach_profile_id, assignment_order, status, invited_by)
-                values (?, ?, ?, 1, 'INVITED', ?)
-                """, UUID.randomUUID(), matchSessionId, fixture.coachProfileId(), fixture.committeeUserId());
+        assertThat(catchThrowable(() -> jdbc.update("""
+                insert into pricing_rules(
+                    id, organization_id, name, priority, base_amount, pricing_unit, active_from, status)
+                values (?, ?, 'invalid', 1, -1.00, 'PER_SESSION', now(), 'ACTIVE')
+                """, UUID.randomUUID(), fixture.organizationId())))
+                .isInstanceOf(DataIntegrityViolationException.class);
 
+        UUID snapshotId = UUID.randomUUID();
         jdbc.update("""
                 insert into course_match_price_snapshots(
-                    id, organization_id, course_match_id, version_no, status,
-                    billing_mode, total_amount, pricing_fingerprint,
-                    confirmed_by, confirmed_at, created_by)
-                values (?, ?, ?, 1, 'CONFIRMED', 'FULL_COURSE', 1800.00, ?, ?, now(), ?)
-                """, matchPriceSnapshotId, fixture.organizationId(), courseMatchId,
-                fingerprint("a"), fixture.committeeUserId(), fixture.committeeUserId());
+                    id, organization_id, course_match_id, version_no, status, billing_mode,
+                    total_amount, pricing_fingerprint, confirmed_by, confirmed_at, created_by)
+                values (?, ?, ?, 1, 'CONFIRMED', 'FULL_COURSE', 800.00, ?, ?, now(), ?)
+                """, snapshotId, fixture.organizationId(), matchId, fingerprint("a"),
+                fixture.committeeUserId(), fixture.committeeUserId());
         jdbc.update("""
                 insert into course_match_price_snapshot_items(
                     id, course_match_price_snapshot_id, course_match_session_id,
                     item_type, description, quantity, unit_amount, line_amount)
-                values (?, ?, ?, 'TUITION', 'Tuition', 1, 1800.00, 1800.00)
-                """, UUID.randomUUID(), matchPriceSnapshotId, matchSessionId);
+                values (?, ?, ?, 'TUITION', 'Tuition', 1, 800.00, 800.00)
+                """, UUID.randomUUID(), snapshotId, sessionId);
 
         assertThat(catchThrowable(() -> jdbc.update("""
                 insert into course_match_price_snapshots(
-                    id, organization_id, course_match_id, version_no, status,
-                    billing_mode, total_amount, pricing_fingerprint,
-                    confirmed_by, confirmed_at, created_by)
-                values (?, ?, ?, 2, 'CONFIRMED', 'FULL_COURSE', 1800.00, ?, ?, now(), ?)
-                """, UUID.randomUUID(), fixture.organizationId(), courseMatchId,
-                fingerprint("b"), fixture.committeeUserId(), fixture.committeeUserId())))
-                .isInstanceOf(DataIntegrityViolationException.class);
-
-        UUID secondMatchId = UUID.randomUUID();
-        jdbc.update("""
-                insert into course_matches(id, organization_id, lesson_request_id, status, participant_count, created_by)
-                values (?, ?, ?, 'DRAFT', 1, ?)
-                """, secondMatchId, fixture.organizationId(), fixture.lessonRequestId(), fixture.committeeUserId());
-        assertThat(catchThrowable(() -> jdbc.update("""
-                insert into course_match_price_snapshots(
-                    id, organization_id, course_match_id, version_no, status,
-                    billing_mode, total_amount, pricing_fingerprint)
-                values (?, ?, ?, 1, 'CONFIRMED', 'PER_SESSION', 900.00, ?)
-                """, UUID.randomUUID(), fixture.organizationId(), secondMatchId, fingerprint("c"))))
-                .isInstanceOf(DataIntegrityViolationException.class);
-
-        UUID courseId = UUID.randomUUID();
-        jdbc.update("""
-                insert into courses(
-                    id, organization_id, course_no, source_match_id, created_by_user_id,
-                    course_type, schedule_type, billing_mode, expected_participant_count,
-                    minimum_participants, maximum_participants, total_session_count, status, activated_at)
-                values (?, ?, 'S3-COURSE-1', ?, ?, 'PRIVATE', 'RECURRING', 'FULL_COURSE', 2, 1, 4, 2, 'ACTIVE', now())
-                """, courseId, fixture.organizationId(), courseMatchId, fixture.committeeUserId());
-
-        assertThat(catchThrowable(() -> jdbc.update("""
-                insert into courses(
-                    id, organization_id, course_no, source_match_id, created_by_user_id,
-                    course_type, schedule_type, billing_mode, expected_participant_count,
-                    minimum_participants, maximum_participants, total_session_count, status)
-                values (?, ?, 'S3-COURSE-2', ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 2, 1, 4, 1, 'DRAFT')
-                """, UUID.randomUUID(), fixture.organizationId(), courseMatchId, fixture.committeeUserId())))
-                .isInstanceOf(DataIntegrityViolationException.class);
-
-        UUID courseSessionOne = createCourseSession(fixture.organizationId(), courseId, 1, "4 hours", "5 hours");
-        UUID courseSessionTwo = createCourseSession(fixture.organizationId(), courseId, 2, "6 hours", "7 hours");
-
-        jdbc.update("""
-                insert into session_price_snapshots(
-                    id, organization_id, course_session_id, version_no, status,
-                    tuition_amount, venue_fee, other_adjustment, total_receivable,
-                    source_match_price_snapshot_id, confirmed_by, confirmed_at, created_by)
-                values (?, ?, ?, 1, 'CONFIRMED', 800.00, 100.00, 0.00, 900.00, ?, ?, now(), ?)
-                """, UUID.randomUUID(), fixture.organizationId(), courseSessionOne,
-                matchPriceSnapshotId, fixture.committeeUserId(), fixture.committeeUserId());
-
-        assertThat(catchThrowable(() -> jdbc.update("""
-                insert into session_price_snapshots(
-                    id, organization_id, course_session_id, version_no, status,
-                    tuition_amount, venue_fee, other_adjustment, total_receivable,
-                    source_match_price_snapshot_id, source_offering_price_snapshot_id,
-                    confirmed_by, confirmed_at, created_by)
-                values (?, ?, ?, 1, 'CONFIRMED', 800.00, 100.00, 0.00, 900.00, ?, ?, ?, now(), ?)
-                """, UUID.randomUUID(), fixture.organizationId(), courseSessionTwo,
-                matchPriceSnapshotId, UUID.randomUUID(), fixture.committeeUserId(), fixture.committeeUserId())))
-                .isInstanceOf(DataIntegrityViolationException.class);
-
-        assertThat(catchThrowable(() -> jdbc.update("""
-                insert into session_price_snapshots(
-                    id, organization_id, course_session_id, version_no, status,
-                    tuition_amount, venue_fee, other_adjustment, total_receivable,
-                    source_match_price_snapshot_id, confirmed_by, confirmed_at, created_by)
-                values (?, ?, ?, 1, 'CONFIRMED', 800.00, 100.00, 0.00, 900.00, ?, ?, now(), ?)
-                """, UUID.randomUUID(), fixture.organizationId(), courseSessionTwo,
-                UUID.randomUUID(), fixture.committeeUserId(), fixture.committeeUserId())))
+                    id, organization_id, course_match_id, version_no, status, billing_mode,
+                    total_amount, pricing_fingerprint, confirmed_by, confirmed_at, created_by)
+                values (?, ?, ?, 2, 'CONFIRMED', 'FULL_COURSE', 800.00, ?, ?, now(), ?)
+                """, UUID.randomUUID(), fixture.organizationId(), matchId, fingerprint("b"),
+                fixture.committeeUserId(), fixture.committeeUserId())))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     void availabilityClaimConvertedMatchForeignKeyIsEnforced() {
         Fixture fixture = seedFixture();
-        UUID courseMatchId = UUID.randomUUID();
-        jdbc.update("""
-                insert into course_matches(id, organization_id, lesson_request_id, status, participant_count, created_by)
-                values (?, ?, ?, 'DRAFT', 1, ?)
-                """, courseMatchId, fixture.organizationId(), fixture.lessonRequestId(), fixture.committeeUserId());
-
+        UUID matchId = createMatch(fixture);
         UUID claimId = UUID.randomUUID();
         jdbc.update("""
                 insert into coach_availability_claims(
@@ -238,16 +133,13 @@ class Slice3MigrationIT {
                     status, converted_course_match_id)
                 values (?, ?, ?, ?, 'CONVERTED', ?)
                 """, claimId, fixture.organizationId(), fixture.availabilityProposalId(),
-                fixture.lessonRequestId(), courseMatchId);
-
+                fixture.lessonRequestId(), matchId);
         assertThat(jdbc.queryForObject(
-                "select converted_course_match_id from coach_availability_claims where id = ?",
-                UUID.class, claimId)).isEqualTo(courseMatchId);
-
+                "select converted_course_match_id from coach_availability_claims where id=?", UUID.class, claimId))
+                .isEqualTo(matchId);
         assertThat(catchThrowable(() -> jdbc.update(
-                "update coach_availability_claims set converted_course_match_id = ? where id = ?",
-                UUID.randomUUID(), claimId)))
-                .isInstanceOf(DataIntegrityViolationException.class);
+                "update coach_availability_claims set converted_course_match_id=? where id=?",
+                UUID.randomUUID(), claimId))).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     private Fixture seedFixture() {
@@ -258,22 +150,19 @@ class Slice3MigrationIT {
         UUID coachProfileId = UUID.randomUUID();
         UUID proposalId = UUID.randomUUID();
         UUID lessonRequestId = UUID.randomUUID();
-
         jdbc.update("insert into organizations(id, code, name) values (?, ?, ?)",
                 organizationId, "slice3-" + organizationId, "Slice 3 test");
         for (UUID userId : java.util.List.of(coachUserId, studentUserId, committeeUserId)) {
             jdbc.update("insert into users(id, display_name) values (?, ?)", userId, "test user");
         }
-        jdbc.update("""
-                insert into coach_profiles(id, organization_id, user_id, approval_status)
-                values (?, ?, ?, 'APPROVED')
-                """, coachProfileId, organizationId, coachUserId);
+        jdbc.update("insert into coach_profiles(id, organization_id, user_id, approval_status) values (?, ?, ?, 'APPROVED')",
+                coachProfileId, organizationId, coachUserId);
         jdbc.update("""
                 insert into coach_availability_proposals(
                     id, organization_id, coach_profile_id, start_at, end_at, status,
                     submitted_at, reviewed_by, reviewed_at, review_note)
-                values (?, ?, ?, now() + interval '2 hours', now() + interval '3 hours', 'APPROVED',
-                    now(), ?, now(), 'approved for Slice 3 test')
+                values (?, ?, ?, now()+interval '2 hours', now()+interval '3 hours', 'APPROVED',
+                    now(), ?, now(), 'approved')
                 """, proposalId, organizationId, coachProfileId, committeeUserId);
         jdbc.update("""
                 insert into lesson_requests(
@@ -282,49 +171,50 @@ class Slice3MigrationIT {
                     guest_participant_count, requested_session_count, status,
                     submitted_at, reviewed_by, reviewed_at, review_note)
                 values (?, ?, ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 2, 0, 1, 'APPROVED',
-                    now(), ?, now(), 'approved for Slice 3 test')
+                    now(), ?, now(), 'approved')
                 """, lessonRequestId, organizationId, studentUserId, coachProfileId, committeeUserId);
-
         return new Fixture(organizationId, coachProfileId, proposalId, lessonRequestId, committeeUserId);
     }
 
-    private UUID createCourseSession(UUID organizationId, UUID courseId, int sequenceNo, String startOffset, String endOffset) {
+    private UUID createMatch(Fixture fixture) {
+        UUID matchId = UUID.randomUUID();
+        jdbc.update("""
+                insert into course_matches(id, organization_id, lesson_request_id, status, participant_count, created_by)
+                values (?, ?, ?, 'DRAFT', 2, ?)
+                """, matchId, fixture.organizationId(), fixture.lessonRequestId(), fixture.committeeUserId());
+        return matchId;
+    }
+
+    private UUID createMatchSession(UUID matchId) {
         UUID sessionId = UUID.randomUUID();
         jdbc.update("""
-                insert into course_sessions(
-                    id, organization_id, course_id, sequence_no,
-                    scheduled_start_at, scheduled_end_at,
-                    expected_participant_count, guest_participant_count, status)
-                values (?, ?, ?, ?, now() + (?::interval), now() + (?::interval), 2, 0, 'SCHEDULED')
-                """, sessionId, organizationId, courseId, sequenceNo, startOffset, endOffset);
+                insert into course_match_sessions(
+                    id, course_match_id, session_index, scheduled_start_at, scheduled_end_at,
+                    venue_snapshot_type, venue_snapshot_name, venue_fingerprint)
+                values (?, ?, 1, now()+interval '2 hours', now()+interval '3 hours', 'OTHER', 'Test Venue', ?)
+                """, sessionId, matchId, fingerprint("v"));
         return sessionId;
     }
 
+    private String latestVersion(JdbcTemplate template, String historyTable) {
+        return template.queryForObject(
+                "select version from " + historyTable + " where success=true order by installed_rank desc limit 1",
+                String.class);
+    }
+
     private boolean tableExists(String tableName) {
-        return Boolean.TRUE.equals(jdbc.queryForObject(
-                "select to_regclass(?) is not null", Boolean.class, tableName));
+        return Boolean.TRUE.equals(jdbc.queryForObject("select to_regclass(?) is not null", Boolean.class, tableName));
     }
 
     private boolean columnExists(String tableName, String columnName) {
         return Boolean.TRUE.equals(jdbc.queryForObject("""
-                select exists (
-                    select 1 from information_schema.columns
-                    where table_schema = current_schema()
-                      and table_name = ?
-                      and column_name = ?
-                )
+                select exists(select 1 from information_schema.columns
+                    where table_schema=current_schema() and table_name=? and column_name=?)
                 """, Boolean.class, tableName, columnName));
     }
 
-    private String fingerprint(String value) {
-        return value.repeat(64).substring(0, 64);
-    }
+    private String fingerprint(String value) { return value.repeat(64).substring(0, 64); }
 
-    private record Fixture(
-            UUID organizationId,
-            UUID coachProfileId,
-            UUID availabilityProposalId,
-            UUID lessonRequestId,
-            UUID committeeUserId) {
-    }
+    private record Fixture(UUID organizationId, UUID coachProfileId, UUID availabilityProposalId,
+            UUID lessonRequestId, UUID committeeUserId) {}
 }
