@@ -131,8 +131,8 @@ class CourseMatchServiceIT {
                     billing_mode, expected_participant_count, guest_participant_count,
                     maximum_participants, total_session_count, status, activated_at)
                 values (?, ?, ?, ?, 'PRIVATE', 'SINGLE', 'FULL_COURSE', 1, 0, 4, 1, 'ACTIVE', now())
-                """, conflictingCourseId, fixture.organizationId(), "READINESS-" + UUID.randomUUID(),
-                fixture.committeeId());
+                """, conflictingCourseId, fixture.organizationId(),
+                "R-" + UUID.randomUUID().toString().substring(0, 20), fixture.committeeId());
         jdbc.update("""
                 insert into course_sessions(
                     id, organization_id, course_id, sequence_no, scheduled_start_at, scheduled_end_at,
