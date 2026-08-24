@@ -2,8 +2,8 @@ package com.pickleball.booking.coursematch.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.pickleball.booking.coach.infrastructure.CoachProfileEntity;
 import com.pickleball.booking.coach.infrastructure.CoachProfileRepository;
 import com.pickleball.booking.identity.application.PlatformTokenService;
@@ -231,10 +231,7 @@ class Slice3HttpEndToEndIT {
                 coachProfile.getId(), request.getId(), venueId);
     }
 
-    private JsonNode expectData(HttpResponse<String> response, int expectedStatus) throws Exception {
-        assertThat(response.statusCode())
-                .withFailMessage("Expected HTTP %s but got %s: %s", expectedStatus, response.statusCode(), response.body())
-                .isEqualTo(expectedStatus);
+    private JsonNode expectData(HttpResponse<String> response) throws Exception {
         JsonNode envelope = objectMapper.readTree(response.body());
         assertThat(envelope.has("data")).withFailMessage("Missing data envelope: %s", response.body()).isTrue();
         return envelope.get("data");
@@ -246,7 +243,7 @@ class Slice3HttpEndToEndIT {
             String token,
             String idempotencyKey,
             String body,
-            int unusedExpectedStatus) throws Exception {
+            int expectedStatus) throws Exception {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
                 .header("Accept", "application/json")
                 .header("Authorization", "Bearer " + token);
@@ -259,7 +256,11 @@ class Slice3HttpEndToEndIT {
         } else {
             builder.method(method, HttpRequest.BodyPublishers.noBody());
         }
-        return HttpClient.newHttpClient().send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClient.newHttpClient().send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode())
+                .withFailMessage("Expected HTTP %s but got %s: %s", expectedStatus, response.statusCode(), response.body())
+                .isEqualTo(expectedStatus);
+        return response;
     }
 
     private record Fixture(
