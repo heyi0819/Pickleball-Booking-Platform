@@ -20,20 +20,20 @@ class Slice3V5ForwardMigrationIT {
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18");
 
     @Test
-    void v4RowsWithMultipleAssistantsArePreservedAndAlignedByV5() {
+    void v4RowsWithMultipleAssistantsRemainAlignedAfterCurrentMigrations() {
         String schema = "slice3_v5_" + UUID.randomUUID().toString().replace("-", "");
         DriverManagerDataSource dataSource = new DriverManagerDataSource(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         jdbc.execute("create schema " + schema);
 
-        Flyway throughV4 = Flyway.configure()
+        Flyway.configure()
                 .dataSource(dataSource)
                 .schemas(schema)
                 .locations("classpath:db/migration")
                 .target(MigrationVersion.fromVersion("4"))
-                .load();
-        throughV4.migrate();
+                .load()
+                .migrate();
 
         UUID organizationId = UUID.randomUUID();
         UUID requesterId = UUID.randomUUID();
@@ -88,16 +88,16 @@ class Slice3V5ForwardMigrationIT {
         insertV4Coach(jdbc, schema, sessionId, coachProfiles.get(2), "ASSISTANT", "ACCEPTED", reviewerId);
         insertV4Coach(jdbc, schema, sessionId, coachProfiles.get(3), "ASSISTANT", "REPLACED", reviewerId);
 
-        Flyway throughV5 = Flyway.configure()
+        Flyway.configure()
                 .dataSource(dataSource)
                 .schemas(schema)
                 .locations("classpath:db/migration")
-                .load();
-        throughV5.migrate();
+                .load()
+                .migrate();
 
         assertThat(jdbc.queryForObject(
                 "select max(version) from " + schema + ".flyway_schema_history where success = true",
-                String.class)).isEqualTo("5");
+                String.class)).isEqualTo("6");
         assertThat(jdbc.queryForObject(
                 "select created_by from " + schema + ".course_matches where id = ?",
                 UUID.class, courseMatchId)).isEqualTo(reviewerId);
@@ -110,6 +110,8 @@ class Slice3V5ForwardMigrationIT {
         assertThat(jdbc.queryForObject(
                 "select length(venue_fingerprint) from " + schema + ".course_match_sessions where id = ?",
                 Integer.class, sessionId)).isEqualTo(64);
+        assertThat(jdbc.queryForObject(
+                "select to_regclass(?) is not null", Boolean.class, schema + ".pricing_rules")).isTrue();
 
         List<Integer> activeOrders = jdbc.queryForList("""
                 select assignment_order
