@@ -131,7 +131,7 @@ class Slice3V5ForwardMigrationIT {
                     id, course_match_session_id, coach_profile_id, role_type, status,
                     invited_at, responded_at, invited_by)
                 values (?, ?, ?, ?, ?, now(),
-                    case when ? in ('ACCEPTED','REJECTED') then now() else null end, ?)
+                    case when ? <> 'INVITED' then now() else null end, ?)
                 """.formatted(schema), UUID.randomUUID(), sessionId, coachProfileId, role, status, status, invitedBy);
     }
 }
