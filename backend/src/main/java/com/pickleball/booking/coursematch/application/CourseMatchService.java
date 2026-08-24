@@ -233,19 +233,17 @@ public class CourseMatchService {
                 && sessionList.stream().allMatch(s -> s.getScheduledStartAt().isAfter(Instant.now()));
         boolean venueReady = !sessionList.isEmpty() && sessionList.stream().allMatch(this::venueReady);
         boolean coachesAccepted = coachesAccepted(sessionList, coachList);
-        boolean pricingConfirmed = confirmedPriceSnapshotId(match.getId()).isPresent();
+        Optional<UUID> priceSnapshotId = confirmedPriceSnapshotId(match.getId());
+        boolean pricingConfirmed = priceSnapshotId.isPresent();
         boolean participantCountValid = match.participantCountValid();
-
-        // Authoritative schedule reservations/exclusion are introduced by S3.4.
-        // Until then readiness stays conservative and can never claim final confirmability.
-        boolean scheduleConflictFree = false;
+        boolean scheduleConflictFree = coachesAccepted && scheduleConflictFree(match.getId(), match.getOrganizationId());
         boolean readyToConfirm = lessonApproved && coachesAccepted && sessionsFuture && venueReady
                 && pricingConfirmed && participantCountValid && scheduleConflictFree;
 
         Readiness readiness = new Readiness(lessonApproved, coachesAccepted, sessionsFuture,
                 scheduleConflictFree, venueReady, pricingConfirmed, participantCountValid, readyToConfirm);
         PriceState pricing = new PriceState(pricingConfirmed ? "CONFIRMED" : "NOT_CONFIRMED",
-                confirmedPriceSnapshotId(match.getId()).orElse(null));
+                priceSnapshotId.orElse(null));
         return new Detail(match, sessionList, coachList, readiness, pricing);
     }
 
@@ -261,6 +259,29 @@ public class CourseMatchService {
             List<CourseMatchSessionCoachEntity> active = activeBySession.getOrDefault(session.getId(), List.of());
             return !active.isEmpty() && active.stream().allMatch(a -> a.getStatus() == CourseMatchCoachStatus.ACCEPTED);
         });
+    }
+
+    private boolean scheduleConflictFree(UUID courseMatchId, UUID organizationId) {
+        Boolean hasConflict = jdbc.queryForObject("""
+                select exists (
+                    select 1
+                    from course_match_sessions ms
+                    join course_match_session_coaches mc
+                      on mc.course_match_session_id = ms.id
+                     and mc.status = 'ACCEPTED'
+                    join coach_profiles cp on cp.id = mc.coach_profile_id
+                    join schedule_reservations r
+                      on r.organization_id = ?
+                     and r.user_id = cp.user_id
+                     and r.status in ('HELD','CONFIRMED')
+                     and r.reserved_period && tstzrange(ms.scheduled_start_at, ms.scheduled_end_at, '[)')
+                    join course_sessions cs on cs.id = r.course_session_id
+                    join courses c on c.id = cs.course_id
+                    where ms.course_match_id = ?
+                      and (c.source_match_id is null or c.source_match_id <> ?)
+                )
+                """, Boolean.class, organizationId, courseMatchId, courseMatchId);
+        return !Boolean.TRUE.equals(hasConflict);
     }
 
     private boolean venueReady(CourseMatchSessionEntity session) {
