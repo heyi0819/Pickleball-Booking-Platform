@@ -14,6 +14,7 @@ import com.pickleball.booking.lessonrequest.infrastructure.LessonRequestReposito
 import com.pickleball.booking.organization.infrastructure.OrganizationEntity;
 import com.pickleball.booking.organization.infrastructure.OrganizationRepository;
 import com.pickleball.booking.shared.application.BusinessException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -138,14 +139,15 @@ class CourseMatchServiceIT {
                     id, organization_id, course_id, sequence_no, scheduled_start_at, scheduled_end_at,
                     expected_participant_count, guest_participant_count, status)
                 values (?, ?, ?, 1, ?, ?, 1, 0, 'SCHEDULED')
-                """, conflictingSessionId, fixture.organizationId(), conflictingCourseId, startAt, endAt);
+                """, conflictingSessionId, fixture.organizationId(), conflictingCourseId,
+                Timestamp.from(startAt), Timestamp.from(endAt));
         jdbc.update("""
                 insert into schedule_reservations(
                     id, organization_id, user_id, course_session_id, reservation_role,
                     reserved_period, status)
                 values (?, ?, ?, ?, 'COACH', tstzrange(?, ?, '[)'), 'CONFIRMED')
                 """, UUID.randomUUID(), fixture.organizationId(), fixture.coachId(), conflictingSessionId,
-                startAt, endAt);
+                Timestamp.from(startAt), Timestamp.from(endAt));
 
         var conflicted = service.detail(new AuthenticatedPrincipal(fixture.committeeId()), created.match().getId());
         assertThat(conflicted.readiness().coachesAccepted()).isTrue();
