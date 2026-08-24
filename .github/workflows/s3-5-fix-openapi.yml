@@ -1,0 +1,37 @@
+name: S3.5 OpenAPI cleanup
+
+on:
+  push:
+    branches:
+      - codex/slice-3-s3-5
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/slice-3-s3-5
+      - name: Normalize Conflict response and self-clean
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('backend/src/main/resources/openapi/openapi.yaml')
+          text = path.read_text()
+          old = "    Conflict: { description: State, concurrency, schedule, or idempotency conflict, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }"
+          new = """    Conflict:\n      description: \"State, concurrency, schedule, or idempotency conflict\"\n      content:\n        application/json:\n          schema:\n            $ref: '#/components/schemas/ErrorEnvelope'"""
+          if old not in text:
+              raise SystemExit('Expected Conflict response mapping not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          rm .github/workflows/s3-5-fix-openapi.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add backend/src/main/resources/openapi/openapi.yaml .github/workflows/s3-5-fix-openapi.yml
+          git commit -m "fix(slice3): normalize OpenAPI conflict response"
+          git push origin HEAD:codex/slice-3-s3-5
