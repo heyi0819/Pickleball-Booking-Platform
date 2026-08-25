@@ -1,0 +1,124 @@
+name: Slice 5 S5.5 Contract Backfill
+
+on:
+  push:
+    branches:
+      - feat/slice-5-course-operations-ui
+    paths:
+      - .github/workflows/slice5-s55-contract-backfill.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'chore(slice5): add S5.5 contract backfill helper'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/slice-5-course-operations-ui
+          fetch-depth: 0
+
+      - name: Apply S5.5 review queue contract backfill
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              return text.replace(old, new, 1)
+
+          query_path = Path('backend/src/main/java/com/pickleball/booking/course/application/CourseOperationsQueryService.java')
+          text = query_path.read_text()
+          anchor = '''    private String sessionSelect() {\n'''
+          methods = '''    @Transactional(readOnly = true)\n    public List<SessionChangeReviewSummary> sessionChangeRequestsForReview(\n            AuthenticatedPrincipal actor, UUID organizationId) {\n        requireActor(actor);\n        requireCommitteeScope(actor, organizationId);\n        var params = new MapSqlParameterSource().addValue("organizationId", organizationId);\n        return jdbc.query("""\n                select r.id as request_id, r.course_session_id, s.course_id, c.course_no, s.sequence_no,\n                       s.scheduled_start_at, s.scheduled_end_at, r.requested_by, u.display_name as requester_display_name,\n                       r.proposed_start_at, r.proposed_end_at, r.reason, r.status, r.created_at\n                  from session_change_requests r\n                  join course_sessions s on s.id=r.course_session_id\n                  join courses c on c.id=s.course_id\n                  join users u on u.id=r.requested_by\n                 where r.organization_id=:organizationId\n                   and r.request_type='RESCHEDULE'\n                   and r.status='PENDING'\n                 order by r.created_at asc, r.id\n                """, params, SESSION_CHANGE_REVIEW_MAPPER);\n    }\n\n    @Transactional(readOnly = true)\n    public List<CoachCancellationReviewSummary> coachCancellationRequestsForReview(\n            AuthenticatedPrincipal actor, UUID organizationId) {\n        requireActor(actor);\n        requireCommitteeScope(actor, organizationId);\n        var params = new MapSqlParameterSource().addValue("organizationId", organizationId);\n        return jdbc.query("""\n                select r.id as request_id, r.course_session_id, s.course_id, c.course_no, s.sequence_no,\n                       s.scheduled_start_at, s.scheduled_end_at, r.requested_by, u.display_name as requester_display_name,\n                       r.reason, r.status, r.created_at\n                  from course_cancellation_requests r\n                  join course_sessions s on s.id=r.course_session_id\n                  join courses c on c.id=s.course_id\n                  join users u on u.id=r.requested_by\n                 where r.organization_id=:organizationId\n                   and r.status='PENDING_REVIEW'\n                 order by r.created_at asc, r.id\n                """, params, COACH_CANCELLATION_REVIEW_MAPPER);\n    }\n\n'''
+          text = replace_once(text, anchor, methods + anchor, 'review query methods')
+
+          scope_anchor = '''    private String buildCourseWhere(Scope scope, CourseFilter filter, MapSqlParameterSource params) {\n'''
+          scope_method = '''    private void requireCommitteeScope(AuthenticatedPrincipal actor, UUID organizationId) {\n        if (organizationId == null) {\n            throw new IllegalArgumentException("organizationId is required");\n        }\n        Scope actorScope = scope(actor);\n        if (actorScope.committeeOrganizations().isEmpty()) {\n            throw new BusinessException("AUTH_FORBIDDEN", "Committee role is required for Course Operations review queues");\n        }\n        if (!actorScope.committeeOrganizations().contains(organizationId)) {\n            throw new BusinessException("ORG_SCOPE_DENIED", "Requested organization is outside the Committee authorization scope");\n        }\n    }\n\n'''
+          text = replace_once(text, scope_anchor, scope_method + scope_anchor, 'committee review queue scope')
+
+          mapper_anchor = '''    public record CourseFilter(\n'''
+          mappers = '''    private static final RowMapper<SessionChangeReviewSummary> SESSION_CHANGE_REVIEW_MAPPER = (rs, rowNum) ->\n            new SessionChangeReviewSummary(\n                    uuid(rs, "request_id"), uuid(rs, "course_session_id"), uuid(rs, "course_id"),\n                    rs.getString("course_no"), rs.getInt("sequence_no"),\n                    instant(rs, "scheduled_start_at"), instant(rs, "scheduled_end_at"),\n                    uuid(rs, "requested_by"), rs.getString("requester_display_name"),\n                    instant(rs, "proposed_start_at"), instant(rs, "proposed_end_at"),\n                    rs.getString("reason"), rs.getString("status"), instant(rs, "created_at"));\n\n    private static final RowMapper<CoachCancellationReviewSummary> COACH_CANCELLATION_REVIEW_MAPPER = (rs, rowNum) ->\n            new CoachCancellationReviewSummary(\n                    uuid(rs, "request_id"), uuid(rs, "course_session_id"), uuid(rs, "course_id"),\n                    rs.getString("course_no"), rs.getInt("sequence_no"),\n                    instant(rs, "scheduled_start_at"), instant(rs, "scheduled_end_at"),\n                    uuid(rs, "requested_by"), rs.getString("requester_display_name"),\n                    rs.getString("reason"), rs.getString("status"), instant(rs, "created_at"));\n\n'''
+          text = replace_once(text, mapper_anchor, mappers + mapper_anchor, 'review queue mappers')
+
+          record_anchor = '''    private record Scope(\n'''
+          records = '''    public record SessionChangeReviewSummary(\n            UUID requestId,\n            UUID sessionId,\n            UUID courseId,\n            String courseNo,\n            int sequenceNo,\n            Instant scheduledStartAt,\n            Instant scheduledEndAt,\n            UUID requestedBy,\n            String requesterDisplayName,\n            Instant proposedStartAt,\n            Instant proposedEndAt,\n            String reason,\n            String status,\n            Instant createdAt) { }\n\n    public record CoachCancellationReviewSummary(\n            UUID requestId,\n            UUID sessionId,\n            UUID courseId,\n            String courseNo,\n            int sequenceNo,\n            Instant scheduledStartAt,\n            Instant scheduledEndAt,\n            UUID requestedBy,\n            String requesterDisplayName,\n            String reason,\n            String status,\n            Instant createdAt) { }\n\n'''
+          text = replace_once(text, record_anchor, records + record_anchor, 'review queue records')
+          query_path.write_text(text)
+
+          controller_path = Path('backend/src/main/java/com/pickleball/booking/course/api/CourseOperationsController.java')
+          text = controller_path.read_text()
+          import_anchor = '''import com.pickleball.booking.course.application.CourseOperationsQueryService.CourseSummary;\n'''
+          import_new = '''import com.pickleball.booking.course.application.CourseOperationsQueryService.CourseSummary;\nimport com.pickleball.booking.course.application.CourseOperationsQueryService.CoachCancellationReviewSummary;\nimport com.pickleball.booking.course.application.CourseOperationsQueryService.SessionChangeReviewSummary;\n'''
+          text = replace_once(text, import_anchor, import_new, 'controller query imports')
+          endpoint_anchor = '''    @PostMapping("/session-enrollments/{enrollmentId}/cancellation")\n'''
+          endpoints = '''    @GetMapping("/session-change-requests")\n    public ApiResponse<List<SessionChangeReviewSummary>> sessionChangeRequestsForReview(\n            Authentication authentication,\n            @RequestParam UUID organizationId,\n            HttpServletRequest httpRequest) {\n        return response(queries.sessionChangeRequestsForReview(principal(authentication), organizationId), httpRequest);\n    }\n\n    @GetMapping("/coach-cancellation-requests")\n    public ApiResponse<List<CoachCancellationReviewSummary>> coachCancellationRequestsForReview(\n            Authentication authentication,\n            @RequestParam UUID organizationId,\n            HttpServletRequest httpRequest) {\n        return response(queries.coachCancellationRequestsForReview(principal(authentication), organizationId), httpRequest);\n    }\n\n'''
+          text = replace_once(text, endpoint_anchor, endpoints + endpoint_anchor, 'controller review queue endpoints')
+          controller_path.write_text(text)
+
+          openapi_path = Path('backend/src/main/resources/openapi/openapi.yaml')
+          text = openapi_path.read_text()
+          coach_anchor = '''  /coach-cancellation-requests/{requestId}/review:\n'''
+          coach_path = '''  /coach-cancellation-requests:\n    get:\n      operationId: listCoachCancellationRequestsForReview\n      tags: [Course operations]\n      security: [{ bearerAuth: [] }]\n      parameters:\n        - { name: organizationId, in: query, required: true, description: 'COMMITTEE only; must be within the actor organization scope.', schema: { type: string, format: uuid } }\n      responses:\n        '200': { description: Pending coach cancellation requests for Committee review, content: { application/json: { schema: { $ref: '#/components/schemas/CoachCancellationReviewQueueEnvelope' } } } }\n        '400': { $ref: '#/components/responses/ValidationFailed' }\n        '401': { $ref: '#/components/responses/InvalidToken' }\n        '403': { $ref: '#/components/responses/Forbidden' }\n\n'''
+          text = replace_once(text, coach_anchor, coach_path + coach_anchor, 'OpenAPI coach review collection')
+          change_anchor = '''  /session-change-requests/{requestId}/review:\n'''
+          change_path = '''  /session-change-requests:\n    get:\n      operationId: listSessionChangeRequestsForReview\n      tags: [Course operations]\n      security: [{ bearerAuth: [] }]\n      parameters:\n        - { name: organizationId, in: query, required: true, description: 'COMMITTEE only; must be within the actor organization scope.', schema: { type: string, format: uuid } }\n      responses:\n        '200': { description: Pending RESCHEDULE requests for Committee review, content: { application/json: { schema: { $ref: '#/components/schemas/SessionChangeReviewQueueEnvelope' } } } }\n        '400': { $ref: '#/components/responses/ValidationFailed' }\n        '401': { $ref: '#/components/responses/InvalidToken' }\n        '403': { $ref: '#/components/responses/Forbidden' }\n\n'''
+          text = replace_once(text, change_anchor, change_path + change_anchor, 'OpenAPI change review collection')
+
+          schema_anchor = '''    CourseOperationReviewRequest:\n'''
+          schemas = '''    CoachCancellationReviewQueueItem:\n      type: object\n      required: [requestId, sessionId, courseId, courseNo, sequenceNo, scheduledStartAt, scheduledEndAt, requestedBy, requesterDisplayName, reason, status, createdAt]\n      properties:\n        requestId: { type: string, format: uuid }\n        sessionId: { type: string, format: uuid }\n        courseId: { type: string, format: uuid }\n        courseNo: { type: string }\n        sequenceNo: { type: integer, minimum: 1 }\n        scheduledStartAt: { type: string, format: date-time }\n        scheduledEndAt: { type: string, format: date-time }\n        requestedBy: { type: string, format: uuid }\n        requesterDisplayName: { type: string }\n        reason: { type: string }\n        status: { type: string, enum: [PENDING_REVIEW] }\n        createdAt: { type: string, format: date-time }\n\n    SessionChangeReviewQueueItem:\n      type: object\n      required: [requestId, sessionId, courseId, courseNo, sequenceNo, scheduledStartAt, scheduledEndAt, requestedBy, requesterDisplayName, proposedStartAt, proposedEndAt, reason, status, createdAt]\n      properties:\n        requestId: { type: string, format: uuid }\n        sessionId: { type: string, format: uuid }\n        courseId: { type: string, format: uuid }\n        courseNo: { type: string }\n        sequenceNo: { type: integer, minimum: 1 }\n        scheduledStartAt: { type: string, format: date-time }\n        scheduledEndAt: { type: string, format: date-time }\n        requestedBy: { type: string, format: uuid }\n        requesterDisplayName: { type: string }\n        proposedStartAt: { type: string, format: date-time }\n        proposedEndAt: { type: string, format: date-time }\n        reason: { type: string }\n        status: { type: string, enum: [PENDING] }\n        createdAt: { type: string, format: date-time }\n\n'''
+          text = replace_once(text, schema_anchor, schemas + schema_anchor, 'OpenAPI review queue schemas')
+          envelope_anchor = '''    CoachSessionCancellationReviewEnvelope:\n'''
+          envelopes = '''    CoachCancellationReviewQueueEnvelope:\n      type: object\n      required: [data, meta]\n      properties:\n        data: { type: array, items: { $ref: '#/components/schemas/CoachCancellationReviewQueueItem' } }\n        meta: { $ref: '#/components/schemas/Meta' }\n\n    SessionChangeReviewQueueEnvelope:\n      type: object\n      required: [data, meta]\n      properties:\n        data: { type: array, items: { $ref: '#/components/schemas/SessionChangeReviewQueueItem' } }\n        meta: { $ref: '#/components/schemas/Meta' }\n\n'''
+          text = replace_once(text, envelope_anchor, envelopes + envelope_anchor, 'OpenAPI review queue envelopes')
+          openapi_path.write_text(text)
+
+          test_path = Path('backend/src/test/java/com/pickleball/booking/course/api/Slice5HttpEndToEndIT.java')
+          text = test_path.read_text()
+          coach_test_anchor = '''        assertThat(jdbc.queryForObject(\n                "select status from course_sessions where id=?", String.class, fixture.sessionId()))\n                .isEqualTo("CANCEL_PENDING");\n\n        JsonNode forbidden = error(request('''
+          coach_test_new = '''        assertThat(jdbc.queryForObject(\n                "select status from course_sessions where id=?", String.class, fixture.sessionId()))\n                .isEqualTo("CANCEL_PENDING");\n\n        JsonNode queue = data(request(\n                "GET", "/api/v1/coach-cancellation-requests?organizationId=" + fixture.organizationId(),\n                committeeToken, null, null, 200));\n        assertThat(queue).hasSize(1);\n        assertThat(queue.get(0).get("requestId").asText()).isEqualTo(requestId.toString());\n        assertThat(queue.get(0).get("courseNo").asText()).isNotBlank();\n        assertThat(queue.get(0).get("requesterDisplayName").asText()).isEqualTo("Coach S5");\n\n        JsonNode queueForbidden = error(request(\n                "GET", "/api/v1/coach-cancellation-requests?organizationId=" + fixture.organizationId(),\n                studentToken, null, null, 403));\n        assertThat(queueForbidden.get("code").asText()).isEqualTo("AUTH_FORBIDDEN");\n\n        JsonNode queueOtherOrg = error(request(\n                "GET", "/api/v1/coach-cancellation-requests?organizationId=" + UUID.randomUUID(),\n                committeeToken, null, null, 403));\n        assertThat(queueOtherOrg.get("code").asText()).isEqualTo("ORG_SCOPE_DENIED");\n\n        JsonNode forbidden = error(request('''
+          text = replace_once(text, coach_test_anchor, coach_test_new, 'coach queue HTTP test')
+          coach_after_anchor = '''        assertThat(approved.get("sessionStatus").asText()).isEqualTo("CANCELLED");\n        assertThat(jdbc.queryForObject("""\n'''
+          coach_after_new = '''        assertThat(approved.get("sessionStatus").asText()).isEqualTo("CANCELLED");\n        JsonNode queueAfterReview = data(request(\n                "GET", "/api/v1/coach-cancellation-requests?organizationId=" + fixture.organizationId(),\n                committeeToken, null, null, 200));\n        assertThat(queueAfterReview).isEmpty();\n        assertThat(jdbc.queryForObject("""\n'''
+          text = replace_once(text, coach_after_anchor, coach_after_new, 'coach queue clears HTTP test')
+
+          change_test_anchor = '''        assertThat(created.get("status").asText()).isEqualTo("PENDING");\n        assertThat(sessionStart(fixture.sessionId())).isEqualTo(original);\n\n        JsonNode conflictKey = error(request('''
+          change_test_new = '''        assertThat(created.get("status").asText()).isEqualTo("PENDING");\n        assertThat(sessionStart(fixture.sessionId())).isEqualTo(original);\n\n        JsonNode changeQueue = data(request(\n                "GET", "/api/v1/session-change-requests?organizationId=" + fixture.organizationId(),\n                committeeToken, null, null, 200));\n        assertThat(changeQueue).hasSize(1);\n        assertThat(changeQueue.get(0).get("requestId").asText()).isEqualTo(changeRequestId.toString());\n        assertThat(changeQueue.get(0).get("scheduledStartAt").asText()).isEqualTo(original.toString());\n        assertThat(changeQueue.get(0).get("proposedStartAt").asText()).isEqualTo(proposed.toString());\n        assertThat(changeQueue.get(0).get("requesterDisplayName").asText()).isEqualTo("Student S5");\n\n        JsonNode conflictKey = error(request('''
+          text = replace_once(text, change_test_anchor, change_test_new, 'change queue HTTP test')
+          change_after_anchor = '''        assertThat(reviewed.get("scheduledStartAt").asText()).isEqualTo(proposed.toString());\n        assertThat(sessionStart(fixture.sessionId())).isEqualTo(proposed);\n\n        Instant direct = proposed.plusSeconds(7200);\n'''
+          change_after_new = '''        assertThat(reviewed.get("scheduledStartAt").asText()).isEqualTo(proposed.toString());\n        assertThat(sessionStart(fixture.sessionId())).isEqualTo(proposed);\n        JsonNode changeQueueAfterReview = data(request(\n                "GET", "/api/v1/session-change-requests?organizationId=" + fixture.organizationId(),\n                committeeToken, null, null, 200));\n        assertThat(changeQueueAfterReview).isEmpty();\n\n        Instant direct = proposed.plusSeconds(7200);\n'''
+          text = replace_once(text, change_after_anchor, change_after_new, 'change queue clears HTTP test')
+          test_path.write_text(text)
+          PY
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Regenerate TypeScript API client
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run api:generate
+
+      - name: Commit contract backfill and remove helper
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/slice5-s55-contract-backfill.yml
+          git add backend/src/main/java/com/pickleball/booking/course/application/CourseOperationsQueryService.java \
+                  backend/src/main/java/com/pickleball/booking/course/api/CourseOperationsController.java \
+                  backend/src/main/resources/openapi/openapi.yaml \
+                  backend/src/test/java/com/pickleball/booking/course/api/Slice5HttpEndToEndIT.java \
+                  frontend/packages/api-client/src/generated
+          git diff --cached --check
+          git commit -m "feat(slice5): expose committee operation review queues"
+          git push origin HEAD:feat/slice-5-course-operations-ui
