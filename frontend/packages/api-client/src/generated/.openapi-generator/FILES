@@ -13,6 +13,8 @@ docs/CoachApplicationListEnvelope.md
 docs/CoachApplicationRequest.md
 docs/CoachApplicationsApi.md
 docs/CoachAvailabilityApi.md
+docs/CoachCancellationReviewQueueEnvelope.md
+docs/CoachCancellationReviewQueueItem.md
 docs/CoachSessionCancellation.md
 docs/CoachSessionCancellationEnvelope.md
 docs/CoachSessionCancellationRequest.md
@@ -116,6 +118,8 @@ docs/RolesResponseEnvelope.md
 docs/SelectedAvailabilityRequest.md
 docs/SessionChangeRequest.md
 docs/SessionChangeRequestEnvelope.md
+docs/SessionChangeReviewQueueEnvelope.md
+docs/SessionChangeReviewQueueItem.md
 docs/SessionEnrollmentCancellation.md
 docs/SessionEnrollmentCancellationEnvelope.md
 docs/SessionEnrollmentCancellationRequest.md
@@ -144,6 +148,8 @@ src/models/CoachApplication.ts
 src/models/CoachApplicationEnvelope.ts
 src/models/CoachApplicationListEnvelope.ts
 src/models/CoachApplicationRequest.ts
+src/models/CoachCancellationReviewQueueEnvelope.ts
+src/models/CoachCancellationReviewQueueItem.ts
 src/models/CoachSessionCancellation.ts
 src/models/CoachSessionCancellationEnvelope.ts
 src/models/CoachSessionCancellationRequest.ts
@@ -240,6 +246,8 @@ src/models/RolesResponseEnvelope.ts
 src/models/SelectedAvailabilityRequest.ts
 src/models/SessionChangeRequest.ts
 src/models/SessionChangeRequestEnvelope.ts
+src/models/SessionChangeReviewQueueEnvelope.ts
+src/models/SessionChangeReviewQueueItem.ts
 src/models/SessionEnrollmentCancellation.ts
 src/models/SessionEnrollmentCancellationEnvelope.ts
 src/models/SessionEnrollmentCancellationRequest.ts

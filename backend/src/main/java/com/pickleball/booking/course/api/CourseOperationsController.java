@@ -7,6 +7,8 @@ import com.pickleball.booking.course.application.CourseOperationsQueryService;
 import com.pickleball.booking.course.application.CourseOperationsQueryService.CourseDetail;
 import com.pickleball.booking.course.application.CourseOperationsQueryService.CourseFilter;
 import com.pickleball.booking.course.application.CourseOperationsQueryService.CourseSummary;
+import com.pickleball.booking.course.application.CourseOperationsQueryService.CoachCancellationReviewSummary;
+import com.pickleball.booking.course.application.CourseOperationsQueryService.SessionChangeReviewSummary;
 import com.pickleball.booking.course.application.CourseOperationsQueryService.PageResult;
 import com.pickleball.booking.course.application.CourseOperationsQueryService.SessionSummary;
 import com.pickleball.booking.course.domain.CourseCancellationRequest;
@@ -90,6 +92,22 @@ public class CourseOperationsController {
             @PathVariable UUID sessionId,
             HttpServletRequest httpRequest) {
         return response(queries.session(principal(authentication), sessionId), httpRequest);
+    }
+
+    @GetMapping("/session-change-requests")
+    public ApiResponse<List<SessionChangeReviewSummary>> sessionChangeRequestsForReview(
+            Authentication authentication,
+            @RequestParam UUID organizationId,
+            HttpServletRequest httpRequest) {
+        return response(queries.sessionChangeRequestsForReview(principal(authentication), organizationId), httpRequest);
+    }
+
+    @GetMapping("/coach-cancellation-requests")
+    public ApiResponse<List<CoachCancellationReviewSummary>> coachCancellationRequestsForReview(
+            Authentication authentication,
+            @RequestParam UUID organizationId,
+            HttpServletRequest httpRequest) {
+        return response(queries.coachCancellationRequestsForReview(principal(authentication), organizationId), httpRequest);
     }
 
     @PostMapping("/session-enrollments/{enrollmentId}/cancellation")
