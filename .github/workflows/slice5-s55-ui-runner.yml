@@ -24,12 +24,13 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import textwrap
           source = Path('.github/workflows/slice5-s55-ui-builder.yml').read_text()
           marker = "          python3 - <<'PY'\n"
           start = source.index(marker) + len(marker)
           end = source.index("\n          PY", start)
-          exec(compile(textwrap.dedent(source[start:end]), 's5.5-ui-builder', 'exec'))
+          prepared = source[start:end]
+          code = "\n".join(line[10:] if line.startswith("          ") else line for line in prepared.splitlines())
+          exec(compile(code, 's5.5-ui-builder', 'exec'))
           PY
 
       - uses: actions/setup-node@v4
