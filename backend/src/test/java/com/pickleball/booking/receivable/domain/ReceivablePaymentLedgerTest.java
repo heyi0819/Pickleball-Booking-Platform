@@ -3,7 +3,6 @@ package com.pickleball.booking.receivable.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.pickleball.booking.shared.application.BusinessException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -51,12 +50,12 @@ class ReceivablePaymentLedgerTest {
         var open = ledger(
                 "1200.00", "0.00", "600.00", "0.00", "600.00", "PARTIALLY_PAID",
                 List.of(item(UUID.randomUUID(), "1200.00", "600.00", "0.00", "PARTIALLY_PAID")));
-        assertBusinessCode(() -> open.recordPayment(new BigDecimal("600.01")), "PAYMENT_AMOUNT_INVALID");
+        assertRuleCode(() -> open.recordPayment(new BigDecimal("600.01")), "PAYMENT_AMOUNT_INVALID");
 
         var cancelled = ledger(
                 "1200.00", "0.00", "0.00", "0.00", "1200.00", "CANCELLED",
                 List.of(item(UUID.randomUUID(), "1200.00", "0.00", "0.00", "OPEN")));
-        assertBusinessCode(() -> cancelled.recordPayment(new BigDecimal("100.00")), "STATE_TRANSITION_INVALID");
+        assertRuleCode(() -> cancelled.recordPayment(new BigDecimal("100.00")), "STATE_TRANSITION_INVALID");
     }
 
     @Test
@@ -65,7 +64,7 @@ class ReceivablePaymentLedgerTest {
                 "1200.00", "200.00", "0.00", "0.00", "1400.00", "OPEN",
                 List.of(item(UUID.randomUUID(), "1200.00", "0.00", "0.00", "OPEN")));
 
-        assertBusinessCode(() -> ledger.recordPayment(new BigDecimal("1300.00")), "PAYMENT_AMOUNT_INVALID");
+        assertRuleCode(() -> ledger.recordPayment(new BigDecimal("1300.00")), "PAYMENT_AMOUNT_INVALID");
     }
 
     private static ReceivablePaymentLedger ledger(
@@ -83,8 +82,10 @@ class ReceivablePaymentLedgerTest {
                 id, new BigDecimal(amount), new BigDecimal(paid), new BigDecimal(refunded), status);
     }
 
-    private static void assertBusinessCode(Runnable call, String code) {
+    private static void assertRuleCode(Runnable call, String code) {
         assertThatThrownBy(call::run)
-                .isInstanceOfSatisfying(BusinessException.class, ex -> assertThat(ex.code()).isEqualTo(code));
+                .isInstanceOfSatisfying(
+                        ReceivablePaymentRuleViolation.class,
+                        ex -> assertThat(ex.code()).isEqualTo(code));
     }
 }

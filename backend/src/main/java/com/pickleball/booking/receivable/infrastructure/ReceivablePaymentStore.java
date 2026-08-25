@@ -3,6 +3,7 @@ package com.pickleball.booking.receivable.infrastructure;
 import com.pickleball.booking.receivable.domain.PaymentMethod;
 import com.pickleball.booking.receivable.domain.ReceivablePaymentLedger;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -72,7 +73,8 @@ public class ReceivablePaymentStore {
                     payment_method, status, paid_at, recorded_by, idempotency_key, note)
                 values (?, ?, ?, ?, ?, 'TWD', ?, 'COMPLETED', ?, ?, ?, ?)
                 """, paymentId, ledger.organizationId(), paymentNo, ledger.payerUserId(),
-                application.amount(), method.name(), paidAt, actorUserId, idempotencyKey, blankToNull(note));
+                application.amount(), method.name(), Timestamp.from(paidAt), actorUserId,
+                idempotencyKey, blankToNull(note));
 
         for (ReceivablePaymentLedger.Allocation allocation : application.allocations()) {
             jdbc.update("""

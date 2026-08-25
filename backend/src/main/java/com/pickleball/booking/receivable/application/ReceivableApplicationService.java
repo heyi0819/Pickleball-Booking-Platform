@@ -5,6 +5,7 @@ import com.pickleball.booking.identity.application.IdentityService;
 import com.pickleball.booking.identity.domain.RoleCode;
 import com.pickleball.booking.receivable.domain.PaymentMethod;
 import com.pickleball.booking.receivable.domain.ReceivablePaymentLedger;
+import com.pickleball.booking.receivable.domain.ReceivablePaymentRuleViolation;
 import com.pickleball.booking.receivable.infrastructure.ReceivablePaymentStore;
 import com.pickleball.booking.shared.application.AuditOutboxService;
 import com.pickleball.booking.shared.application.BusinessException;
@@ -49,7 +50,12 @@ public class ReceivableApplicationService {
             throw new BusinessException("VALIDATION_FAILED", "Payment command is incomplete");
         }
         identity.requireActiveUser(actor.userId());
-        BigDecimal amount = ReceivablePaymentLedger.requirePositiveMoney(command.amount());
+        BigDecimal amount;
+        try {
+            amount = ReceivablePaymentLedger.requirePositiveMoney(command.amount());
+        } catch (ReceivablePaymentRuleViolation ex) {
+            throw business(ex);
+        }
         if (command.method() == null || command.paidAt() == null || command.payerUserId() == null) {
             throw new BusinessException("VALIDATION_FAILED", "Payment method, paidAt and payerUserId are required");
         }
@@ -84,7 +90,12 @@ public class ReceivableApplicationService {
         }
 
         Map<String, Object> before = receivableState(ledger);
-        ReceivablePaymentLedger.PaymentApplication applied = ledger.recordPayment(amount);
+        ReceivablePaymentLedger.PaymentApplication applied;
+        try {
+            applied = ledger.recordPayment(amount);
+        } catch (ReceivablePaymentRuleViolation ex) {
+            throw business(ex);
+        }
         UUID paymentId = store.insertPayment(
                 ledger, applied, command.method(), command.paidAt(), actor.userId(), idempotencyKey, command.note());
 
@@ -106,6 +117,10 @@ public class ReceivableApplicationService {
         return new PaymentResult(
                 paymentId, receivableId, applied.amount(), command.method(), applied.paymentStatus(),
                 applied.paidTotal(), applied.outstandingAmount());
+    }
+
+    private static BusinessException business(ReceivablePaymentRuleViolation ex) {
+        return new BusinessException(ex.code(), ex.getMessage());
     }
 
     private static Map<String, Object> receivableState(ReceivablePaymentLedger ledger) {

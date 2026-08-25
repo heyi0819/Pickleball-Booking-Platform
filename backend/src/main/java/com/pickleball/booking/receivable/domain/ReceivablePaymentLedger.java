@@ -1,6 +1,5 @@
 package com.pickleball.booking.receivable.domain;
 
-import com.pickleball.booking.shared.application.BusinessException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -50,10 +49,12 @@ public final class ReceivablePaymentLedger {
     public PaymentApplication recordPayment(BigDecimal rawAmount) {
         BigDecimal amount = requirePositiveMoney(rawAmount);
         if ("CANCELLED".equals(persistenceStatus)) {
-            throw new BusinessException("STATE_TRANSITION_INVALID", "Cancelled receivable cannot accept payments");
+            throw new ReceivablePaymentRuleViolation(
+                    "STATE_TRANSITION_INVALID", "Cancelled receivable cannot accept payments");
         }
         if (balanceAmount.signum() <= 0 || amount.compareTo(balanceAmount) > 0) {
-            throw new BusinessException("PAYMENT_AMOUNT_INVALID", "Payment exceeds receivable outstanding amount");
+            throw new ReceivablePaymentRuleViolation(
+                    "PAYMENT_AMOUNT_INVALID", "Payment exceeds receivable outstanding amount");
         }
 
         BigDecimal allocatable = items.stream()
@@ -61,7 +62,8 @@ public final class ReceivablePaymentLedger {
                 .map(Item::outstandingAmount)
                 .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
         if (amount.compareTo(allocatable) > 0) {
-            throw new BusinessException("PAYMENT_AMOUNT_INVALID", "Payment cannot be fully allocated to receivable items");
+            throw new ReceivablePaymentRuleViolation(
+                    "PAYMENT_AMOUNT_INVALID", "Payment cannot be fully allocated to receivable items");
         }
 
         BigDecimal remaining = amount;
@@ -109,17 +111,20 @@ public final class ReceivablePaymentLedger {
     public static BigDecimal requirePositiveMoney(BigDecimal value) {
         BigDecimal normalized = money(value);
         if (normalized.signum() <= 0) {
-            throw new BusinessException("PAYMENT_AMOUNT_INVALID", "Payment amount must be positive");
+            throw new ReceivablePaymentRuleViolation("PAYMENT_AMOUNT_INVALID", "Payment amount must be positive");
         }
         return normalized;
     }
 
     private static BigDecimal money(BigDecimal value) {
-        if (value == null) throw new BusinessException("PAYMENT_AMOUNT_INVALID", "Payment amount is required");
+        if (value == null) {
+            throw new ReceivablePaymentRuleViolation("PAYMENT_AMOUNT_INVALID", "Payment amount is required");
+        }
         try {
             return value.setScale(2, RoundingMode.UNNECESSARY);
         } catch (ArithmeticException ex) {
-            throw new BusinessException("PAYMENT_AMOUNT_INVALID", "Money values support at most two decimal places");
+            throw new ReceivablePaymentRuleViolation(
+                    "PAYMENT_AMOUNT_INVALID", "Money values support at most two decimal places");
         }
     }
 
