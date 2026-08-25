@@ -4,24 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pickleball.booking.coach.infrastructure.CoachProfileEntity;
 import com.pickleball.booking.coach.infrastructure.CoachProfileRepository;
-import com.pickleball.booking.identity.application.AuthenticatedPrincipal;
 import com.pickleball.booking.identity.application.PlatformTokenService;
 import com.pickleball.booking.identity.domain.RoleCode;
 import com.pickleball.booking.identity.infrastructure.PlatformUserEntity;
 import com.pickleball.booking.identity.infrastructure.PlatformUserRepository;
 import com.pickleball.booking.identity.infrastructure.RoleAssignmentEntity;
 import com.pickleball.booking.identity.infrastructure.RoleAssignmentRepository;
-import com.pickleball.booking.offering.application.CourseOfferingApplicationService;
-import com.pickleball.booking.offering.application.CourseOfferingApplicationService.PriceCommand;
 import com.pickleball.booking.organization.infrastructure.OrganizationEntity;
 import com.pickleball.booking.organization.infrastructure.OrganizationRepository;
-import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +53,6 @@ class Slice4HttpEndToEndIT {
     @Autowired PlatformUserRepository users;
     @Autowired RoleAssignmentRepository roles;
     @Autowired CoachProfileRepository coachProfiles;
-    @Autowired CourseOfferingApplicationService offeringService;
     @Autowired JdbcTemplate jdbc;
 
     @Test
@@ -77,7 +71,9 @@ class Slice4HttpEndToEndIT {
         assertThat(created.get("summary").get("status").asText()).isEqualTo("DRAFT");
         assertThat(created.get("sessionPlans")).hasSize(1);
 
-        confirmPrice(fixture.committeeId(), offeringId);
+        JsonNode confirmedPrice = confirmPrice(committeeToken, offeringId, "1200.00");
+        assertThat(confirmedPrice.get("status").asText()).isEqualTo("CONFIRMED");
+        assertThat(confirmedPrice.get("pricePerParticipant").asText()).isEqualTo("1200.00");
 
         String publishKey = "publish-" + UUID.randomUUID();
         JsonNode published = expectData(request(
@@ -126,6 +122,79 @@ class Slice4HttpEndToEndIT {
                 "GET", "/api/v1/me/course-offering-registrations", studentToken, null, null, 200));
         assertThat(mine.get("total").asLong()).isEqualTo(1);
         assertThat(mine.get("items").get(0).get("id").asText()).isEqualTo(registrationId.toString());
+    }
+
+    @Test
+    void pricingFingerprintReplayAndDraftRevisionProtectAgainstStalePrice() throws Exception {
+        Fixture fixture = fixture(4, true);
+        String committeeToken = token(fixture.committeeId());
+        String studentToken = token(fixture.studentOneId());
+        Instant now = Instant.now();
+        Instant registrationOpenAt = now.minusSeconds(60);
+        Instant registrationCloseAt = now.plusSeconds(3600);
+        Instant sessionStart = now.plusSeconds(7200);
+
+        JsonNode created = expectData(request(
+                "POST", "/api/v1/course-offerings", committeeToken, null,
+                draftBody(fixture, registrationOpenAt, registrationCloseAt, sessionStart), 201));
+        UUID offeringId = UUID.fromString(created.get("summary").get("id").asText());
+
+        JsonNode preview = pricingPreview(committeeToken, offeringId, "3200.00");
+        String firstFingerprint = preview.get("pricingFingerprint").asText();
+        assertThat(firstFingerprint).hasSize(64);
+        assertThat(preview.get("billingMode").asText()).isEqualTo("FULL_COURSE");
+        assertThat(preview.get("sessionCount").asInt()).isEqualTo(1);
+
+        String priceKey = "price-confirm-" + UUID.randomUUID();
+        String confirmationBody = pricingConfirmationBody("3200.00", firstFingerprint, "Initial committee price");
+        JsonNode first = expectData(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/pricing-confirmation",
+                committeeToken, priceKey, confirmationBody, 201));
+        JsonNode replay = expectData(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/pricing-confirmation",
+                committeeToken, priceKey, confirmationBody, 201));
+        UUID firstSnapshotId = UUID.fromString(first.get("priceSnapshotId").asText());
+        assertThat(replay.get("priceSnapshotId").asText()).isEqualTo(firstSnapshotId.toString());
+        assertThat(first.get("pricingFingerprint").asText()).isEqualTo(firstFingerprint);
+        assertThat(jdbc.queryForObject(
+                "select rule_trace ->> 'pricingFingerprint' from course_offering_price_snapshots where id=?",
+                String.class, firstSnapshotId)).isEqualTo(firstFingerprint);
+
+        JsonNode studentPricingForbidden = expectError(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/pricing-preview",
+                studentToken, null, pricingPreviewBody("3200.00"), 403));
+        assertThat(studentPricingForbidden.get("code").asText()).isEqualTo("AUTH_FORBIDDEN");
+
+        expectData(request(
+                "PATCH", "/api/v1/course-offerings/" + offeringId,
+                committeeToken, null,
+                updateDraftBody(fixture, registrationOpenAt, registrationCloseAt, sessionStart.plusSeconds(600)), 200));
+        assertThat(jdbc.queryForObject(
+                "select status from course_offering_price_snapshots where id=?", String.class, firstSnapshotId))
+                .isEqualTo("SUPERSEDED");
+
+        JsonNode publishWithoutFreshPrice = expectError(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/publication",
+                committeeToken, "publish-stale-" + UUID.randomUUID(), null, 422));
+        assertThat(publishWithoutFreshPrice.get("code").asText()).isEqualTo("OFFERING_NOT_READY");
+
+        JsonNode stale = expectError(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/pricing-confirmation",
+                committeeToken, "stale-price-" + UUID.randomUUID(), confirmationBody, 422));
+        assertThat(stale.get("code").asText()).isEqualTo("PRICE_CHANGED_RECALC_REQUIRED");
+
+        JsonNode refreshedPreview = pricingPreview(committeeToken, offeringId, "3200.00");
+        String refreshedFingerprint = refreshedPreview.get("pricingFingerprint").asText();
+        assertThat(refreshedFingerprint).isNotEqualTo(firstFingerprint);
+        JsonNode refreshed = expectData(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/pricing-confirmation",
+                committeeToken, "fresh-price-" + UUID.randomUUID(),
+                pricingConfirmationBody("3200.00", refreshedFingerprint, "Reconfirmed after schedule change"), 201));
+        assertThat(refreshed.get("priceSnapshotId").asText()).isNotEqualTo(firstSnapshotId.toString());
+        assertThat(jdbc.queryForObject("""
+                select count(*) from course_offering_price_snapshots
+                where course_offering_id=? and status='CONFIRMED'
+                """, Integer.class, offeringId)).isEqualTo(1);
     }
 
     @Test
@@ -187,7 +256,7 @@ class Slice4HttpEndToEndIT {
                 committeeToken, "not-ready-" + UUID.randomUUID(), null, 422));
         assertThat(readiness.get("code").asText()).isEqualTo("OFFERING_NOT_READY");
 
-        confirmPrice(fixture.committeeId(), offeringId);
+        confirmPrice(committeeToken, offeringId, "1200.00");
         request("POST", "/api/v1/course-offerings/" + offeringId + "/publication",
                 committeeToken, "publish-errors-" + UUID.randomUUID(), null, 200);
 
@@ -217,21 +286,51 @@ class Slice4HttpEndToEndIT {
 
     private UUID createReadyPublishedOffering(Fixture fixture) throws Exception {
         Instant now = Instant.now();
+        String committeeToken = token(fixture.committeeId());
         JsonNode created = expectData(request(
-                "POST", "/api/v1/course-offerings", token(fixture.committeeId()), null,
+                "POST", "/api/v1/course-offerings", committeeToken, null,
                 draftBody(fixture, now.minusSeconds(300), now.plusSeconds(3600), now.plusSeconds(7200)), 201));
         UUID offeringId = UUID.fromString(created.get("summary").get("id").asText());
-        confirmPrice(fixture.committeeId(), offeringId);
+        confirmPrice(committeeToken, offeringId, "1200.00");
         request("POST", "/api/v1/course-offerings/" + offeringId + "/publication",
-                token(fixture.committeeId()), "publish-ready-" + UUID.randomUUID(), null, 200);
+                committeeToken, "publish-ready-" + UUID.randomUUID(), null, 200);
         return offeringId;
     }
 
-    private void confirmPrice(UUID committeeId, UUID offeringId) {
-        var price = offeringService.createPriceDraft(
-                new AuthenticatedPrincipal(committeeId), offeringId,
-                new PriceCommand("TWD", new BigDecimal("1200.00"), Map.of("source", "slice4-http-fixture")));
-        offeringService.confirmPrice(new AuthenticatedPrincipal(committeeId), offeringId, price.id());
+    private JsonNode confirmPrice(String committeeToken, UUID offeringId, String amount) throws Exception {
+        JsonNode preview = pricingPreview(committeeToken, offeringId, amount);
+        String fingerprint = preview.get("pricingFingerprint").asText();
+        String key = "pricing-confirm-" + UUID.randomUUID();
+        String body = pricingConfirmationBody(amount, fingerprint, "Slice 4 HTTP acceptance");
+        JsonNode confirmed = expectData(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/pricing-confirmation",
+                committeeToken, key, body, 201));
+        JsonNode replay = expectData(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/pricing-confirmation",
+                committeeToken, key, body, 201));
+        assertThat(replay.get("priceSnapshotId").asText()).isEqualTo(confirmed.get("priceSnapshotId").asText());
+        return confirmed;
+    }
+
+    private JsonNode pricingPreview(String committeeToken, UUID offeringId, String amount) throws Exception {
+        return expectData(request(
+                "POST", "/api/v1/course-offerings/" + offeringId + "/pricing-preview",
+                committeeToken, null, pricingPreviewBody(amount), 200));
+    }
+
+    private String pricingPreviewBody(String amount) {
+        return "{\"currency\":\"TWD\",\"pricePerParticipant\":" + amount + "}";
+    }
+
+    private String pricingConfirmationBody(String amount, String fingerprint, String note) {
+        return """
+                {
+                  "acceptedPricePerParticipant":%s,
+                  "currency":"TWD",
+                  "pricingFingerprint":"%s",
+                  "confirmationNote":"%s"
+                }
+                """.formatted(amount, fingerprint, note);
     }
 
     private Fixture fixture(int maximumParticipants, boolean approvedCoach) {
@@ -291,6 +390,35 @@ class Slice4HttpEndToEndIT {
                 }
                 """.formatted(
                         fixture.organizationId(), fixture.coachProfileId(), fixture.maximumParticipants(),
+                        registrationOpenAt, registrationCloseAt,
+                        sessionStart, sessionStart.plusSeconds(3600), fixture.venueId());
+    }
+
+    private String updateDraftBody(
+            Fixture fixture, Instant registrationOpenAt, Instant registrationCloseAt, Instant sessionStart) {
+        return """
+                {
+                  "coachProfileId":"%s",
+                  "title":"Open Enrollment HTTP Course - revised",
+                  "description":"Slice 4 HTTP acceptance revised",
+                  "scheduleType":"SINGLE",
+                  "billingMode":"FULL_COURSE",
+                  "skillLevel":"INTERMEDIATE",
+                  "minimumParticipants":1,
+                  "maximumParticipants":%d,
+                  "registrationOpenAt":"%s",
+                  "registrationCloseAt":"%s",
+                  "sessionPlans":[{
+                    "sequenceNo":1,
+                    "startAt":"%s",
+                    "endAt":"%s",
+                    "venueId":"%s",
+                    "venueName":"Slice 4 HTTP Court",
+                    "venueAddress":"Taipei"
+                  }]
+                }
+                """.formatted(
+                        fixture.coachProfileId(), fixture.maximumParticipants(),
                         registrationOpenAt, registrationCloseAt,
                         sessionStart, sessionStart.plusSeconds(3600), fixture.venueId());
     }
