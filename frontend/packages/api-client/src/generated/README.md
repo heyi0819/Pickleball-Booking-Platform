@@ -85,6 +85,16 @@ All URIs are relative to */api/v1*
 *CourseOfferingsApi* | [**previewCourseOfferingPricing**](docs/CourseOfferingsApi.md#previewcourseofferingpricing) | **POST** /course-offerings/{offeringId}/pricing-preview |
 *CourseOfferingsApi* | [**publishCourseOffering**](docs/CourseOfferingsApi.md#publishcourseoffering) | **POST** /course-offerings/{offeringId}/publication |
 *CourseOfferingsApi* | [**updateCourseOffering**](docs/CourseOfferingsApi.md#updatecourseoffering) | **PATCH** /course-offerings/{offeringId} |
+*CourseOperationsApi* | [**cancelSessionEnrollment**](docs/CourseOperationsApi.md#cancelsessionenrollment) | **POST** /session-enrollments/{enrollmentId}/cancellation |
+*CourseOperationsApi* | [**createSessionChangeRequest**](docs/CourseOperationsApi.md#createsessionchangerequest) | **POST** /course-sessions/{sessionId}/change-requests |
+*CourseOperationsApi* | [**getCourse**](docs/CourseOperationsApi.md#getcourse) | **GET** /courses/{courseId} |
+*CourseOperationsApi* | [**getCourseSession**](docs/CourseOperationsApi.md#getcoursesession) | **GET** /course-sessions/{sessionId} |
+*CourseOperationsApi* | [**listCourseSessions**](docs/CourseOperationsApi.md#listcoursesessions) | **GET** /courses/{courseId}/sessions |
+*CourseOperationsApi* | [**listCourses**](docs/CourseOperationsApi.md#listcourses) | **GET** /courses |
+*CourseOperationsApi* | [**requestCoachSessionCancellation**](docs/CourseOperationsApi.md#requestcoachsessioncancellation) | **POST** /course-sessions/{sessionId}/coach-cancellation-requests |
+*CourseOperationsApi* | [**rescheduleCourseSession**](docs/CourseOperationsApi.md#reschedulecoursesession) | **POST** /course-sessions/{sessionId}/reschedule |
+*CourseOperationsApi* | [**reviewCoachSessionCancellation**](docs/CourseOperationsApi.md#reviewcoachsessioncancellation) | **POST** /coach-cancellation-requests/{requestId}/review |
+*CourseOperationsApi* | [**reviewSessionChangeRequest**](docs/CourseOperationsApi.md#reviewsessionchangerequest) | **POST** /session-change-requests/{requestId}/review |
 *CurrentUserApi* | [**getCurrentUser**](docs/CurrentUserApi.md#getcurrentuser) | **GET** /me |
 *CurrentUserApi* | [**getCurrentUserRoles**](docs/CurrentUserApi.md#getcurrentuserroles) | **GET** /me/roles |
 *CurrentUserApi* | [**updateCurrentUserProfile**](docs/CurrentUserApi.md#updatecurrentuserprofile) | **PATCH** /me/profile |
@@ -107,6 +117,13 @@ All URIs are relative to */api/v1*
 - [CoachApplicationEnvelope](docs/CoachApplicationEnvelope.md)
 - [CoachApplicationListEnvelope](docs/CoachApplicationListEnvelope.md)
 - [CoachApplicationRequest](docs/CoachApplicationRequest.md)
+- [CoachSessionCancellation](docs/CoachSessionCancellation.md)
+- [CoachSessionCancellationEnvelope](docs/CoachSessionCancellationEnvelope.md)
+- [CoachSessionCancellationRequest](docs/CoachSessionCancellationRequest.md)
+- [CoachSessionCancellationReview](docs/CoachSessionCancellationReview.md)
+- [CoachSessionCancellationReviewEnvelope](docs/CoachSessionCancellationReviewEnvelope.md)
+- [CourseDetail](docs/CourseDetail.md)
+- [CourseDetailEnvelope](docs/CourseDetailEnvelope.md)
 - [CourseMatch](docs/CourseMatch.md)
 - [CourseMatchCoachAssignmentRequest](docs/CourseMatchCoachAssignmentRequest.md)
 - [CourseMatchConfirmation](docs/CourseMatchConfirmation.md)
@@ -162,6 +179,14 @@ All URIs are relative to */api/v1*
 - [CourseOfferingStatus](docs/CourseOfferingStatus.md)
 - [CourseOfferingSummary](docs/CourseOfferingSummary.md)
 - [CourseOfferingUpdateRequest](docs/CourseOfferingUpdateRequest.md)
+- [CourseOperationReviewRequest](docs/CourseOperationReviewRequest.md)
+- [CoursePage](docs/CoursePage.md)
+- [CoursePageEnvelope](docs/CoursePageEnvelope.md)
+- [CourseSessionEnvelope](docs/CourseSessionEnvelope.md)
+- [CourseSessionListEnvelope](docs/CourseSessionListEnvelope.md)
+- [CourseSessionSummary](docs/CourseSessionSummary.md)
+- [CourseSummary](docs/CourseSummary.md)
+- [DirectSessionRescheduleRequest](docs/DirectSessionRescheduleRequest.md)
 - [ErrorBody](docs/ErrorBody.md)
 - [ErrorEnvelope](docs/ErrorEnvelope.md)
 - [LessonRequest](docs/LessonRequest.md)
@@ -186,7 +211,15 @@ All URIs are relative to */api/v1*
 - [RoleContext](docs/RoleContext.md)
 - [RolesResponseEnvelope](docs/RolesResponseEnvelope.md)
 - [SelectedAvailabilityRequest](docs/SelectedAvailabilityRequest.md)
+- [SessionChangeRequest](docs/SessionChangeRequest.md)
+- [SessionChangeRequestEnvelope](docs/SessionChangeRequestEnvelope.md)
+- [SessionEnrollmentCancellation](docs/SessionEnrollmentCancellation.md)
+- [SessionEnrollmentCancellationEnvelope](docs/SessionEnrollmentCancellationEnvelope.md)
+- [SessionEnrollmentCancellationRequest](docs/SessionEnrollmentCancellationRequest.md)
 - [SessionPreference](docs/SessionPreference.md)
+- [SessionRescheduleRequest](docs/SessionRescheduleRequest.md)
+- [SessionRescheduleResult](docs/SessionRescheduleResult.md)
+- [SessionRescheduleResultEnvelope](docs/SessionRescheduleResultEnvelope.md)
 
 ### Authorization
 
