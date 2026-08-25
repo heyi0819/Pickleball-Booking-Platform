@@ -53,7 +53,7 @@ jobs:
       - name: Install Playwright Chromium
         working-directory: frontend
         run: npx playwright install --with-deps chromium
-      - name: Slice 1 smoke E2E
+      - name: Frontend Playwright E2E
         working-directory: frontend
         run: npm run e2e
 
