@@ -7,6 +7,7 @@ import {
   CourseMatchesApi,
   CourseOfferingRegistrationsApi,
   CourseOfferingsApi,
+  CourseOperationsApi,
   CurrentUserApi,
   LessonRequestsApi,
   ResponseError,
@@ -14,6 +15,9 @@ import {
   type AvailabilityProposalRequest,
   type CoachApplication,
   type CoachApplicationRequest,
+  type CoachCancellationReviewQueueItem,
+  type CoachSessionCancellation,
+  type CoachSessionCancellationReview,
   type CourseMatch,
   type CourseMatchConfirmation,
   type CourseMatchCreateRequest,
@@ -25,6 +29,10 @@ import {
   type CourseMatchPricingConfirmationRequest,
   type CourseMatchPricingPreview,
   type CourseMatchSummary,
+  type CourseDetail,
+  type CourseOperationReviewRequest,
+  type CourseSessionSummary,
+  type CourseSummary,
   type CourseOfferingCancellationRequest,
   type CourseOfferingConfirmation,
   type CourseOfferingCreateRequest,
@@ -48,6 +56,10 @@ import {
   type ProfileUpdateRequest,
   type RoleCode,
   type RoleContext,
+  type SessionChangeRequest,
+  type SessionChangeReviewQueueItem,
+  type SessionEnrollmentCancellation,
+  type SessionRescheduleResult,
 } from "./generated/src";
 
 export type {
@@ -55,6 +67,9 @@ export type {
   AvailabilityProposalRequest,
   CoachApplication,
   CoachApplicationRequest,
+  CoachCancellationReviewQueueItem,
+  CoachSessionCancellation,
+  CoachSessionCancellationReview,
   CourseMatch,
   CourseMatchConfirmation,
   CourseMatchCreateRequest,
@@ -66,6 +81,10 @@ export type {
   CourseMatchPricingConfirmationRequest,
   CourseMatchPricingPreview,
   CourseMatchSummary,
+  CourseDetail,
+  CourseOperationReviewRequest,
+  CourseSessionSummary,
+  CourseSummary,
   CourseOfferingCancellationRequest,
   CourseOfferingConfirmation,
   CourseOfferingCreateRequest,
@@ -89,6 +108,10 @@ export type {
   ReviewRequest,
   RoleCode,
   RoleContext,
+  SessionChangeRequest,
+  SessionChangeReviewQueueItem,
+  SessionEnrollmentCancellation,
+  SessionRescheduleResult,
 };
 export type ApiClientOptions = { baseUrl: string };
 export type CourseOfferingQuery = {
@@ -101,6 +124,18 @@ export type CourseOfferingQuery = {
   page?: number;
   size?: number;
   sort?: string;
+};
+export type CourseOperationsQuery = {
+  organizationId?: string;
+  status?: "DRAFT" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  from?: Date;
+  to?: Date;
+  coachProfileId?: string;
+  studentUserId?: string;
+  courseType?: "PRIVATE" | "GROUP";
+  page?: number;
+  size?: number;
+  sort?: "createdAt,desc" | "createdAt,asc" | "courseNo,asc" | "courseNo,desc" | "nextSessionAt,asc" | "nextSessionAt,desc";
 };
 
 export class ApiClientError extends Error {
@@ -126,6 +161,7 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
   const courseMatchInvitations = (token: string) => new CourseMatchInvitationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const courseOfferings = (token: string) => new CourseOfferingsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const courseOfferingRegistrations = (token: string) => new CourseOfferingRegistrationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
+  const courseOperations = (token: string) => new CourseOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
     baseUrl,
     async loginWithLine(idToken: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken } })).data; } catch (caught) { return mapError(caught); } },
@@ -171,5 +207,16 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
     async myCourseOfferingRegistrations(token: string): Promise<MyCourseOfferingRegistration[]> { try { return (await courseOfferingRegistrations(token).listMyCourseOfferingRegistrations({ size: 100 })).data.items; } catch (caught) { return mapError(caught); } },
     async registerCourseOffering(token: string, offeringId: string, idempotencyKey: string): Promise<CourseOfferingRegistrationCommand> { try { return (await courseOfferingRegistrations(token).registerCourseOffering({ offeringId, idempotencyKey })).data; } catch (caught) { return mapError(caught); } },
     async cancelCourseOfferingRegistration(token: string, registrationId: string, idempotencyKey: string, request?: CourseOfferingCancellationRequest): Promise<CourseOfferingRegistrationCommand> { try { return (await courseOfferingRegistrations(token).cancelCourseOfferingRegistration({ registrationId, idempotencyKey, courseOfferingCancellationRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async listCourses(token: string, query: CourseOperationsQuery = {}): Promise<CourseSummary[]> { try { return (await courseOperations(token).listCourses({ ...query, size: query.size ?? 100 })).data.items; } catch (caught) { return mapError(caught); } },
+    async courseDetail(token: string, courseId: string): Promise<CourseDetail> { try { return (await courseOperations(token).getCourse({ courseId })).data; } catch (caught) { return mapError(caught); } },
+    async listCourseSessions(token: string, courseId: string): Promise<CourseSessionSummary[]> { try { return (await courseOperations(token).listCourseSessions({ courseId })).data; } catch (caught) { return mapError(caught); } },
+    async cancelSessionEnrollment(token: string, enrollmentId: string, reason?: string | null): Promise<SessionEnrollmentCancellation> { try { return (await courseOperations(token).cancelSessionEnrollment({ enrollmentId, sessionEnrollmentCancellationRequest: reason === undefined ? undefined : { reason } })).data; } catch (caught) { return mapError(caught); } },
+    async requestCoachSessionCancellation(token: string, sessionId: string, reason: string): Promise<CoachSessionCancellation> { try { return (await courseOperations(token).requestCoachSessionCancellation({ sessionId, coachSessionCancellationRequest: { reason } })).data; } catch (caught) { return mapError(caught); } },
+    async createSessionRescheduleRequest(token: string, sessionId: string, idempotencyKey: string, proposedStartAt: Date, proposedEndAt: Date, reason: string): Promise<SessionChangeRequest> { try { return (await courseOperations(token).createSessionChangeRequest({ sessionId, idempotencyKey, sessionRescheduleRequest: { requestType: "RESCHEDULE", proposedStartAt, proposedEndAt, reason } })).data; } catch (caught) { return mapError(caught); } },
+    async sessionChangeRequestsForReview(token: string, organizationId: string): Promise<SessionChangeReviewQueueItem[]> { try { return (await courseOperations(token).listSessionChangeRequestsForReview({ organizationId })).data; } catch (caught) { return mapError(caught); } },
+    async coachCancellationRequestsForReview(token: string, organizationId: string): Promise<CoachCancellationReviewQueueItem[]> { try { return (await courseOperations(token).listCoachCancellationRequestsForReview({ organizationId })).data; } catch (caught) { return mapError(caught); } },
+    async reviewSessionChangeRequest(token: string, requestId: string, idempotencyKey: string, request: CourseOperationReviewRequest): Promise<SessionRescheduleResult> { try { return (await courseOperations(token).reviewSessionChangeRequest({ requestId, idempotencyKey, courseOperationReviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async reviewCoachSessionCancellation(token: string, requestId: string, request: CourseOperationReviewRequest): Promise<CoachSessionCancellationReview> { try { return (await courseOperations(token).reviewCoachSessionCancellation({ requestId, courseOperationReviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async rescheduleCourseSession(token: string, sessionId: string, idempotencyKey: string, startAt: Date, endAt: Date, reason: string): Promise<SessionRescheduleResult> { try { return (await courseOperations(token).rescheduleCourseSession({ sessionId, idempotencyKey, directSessionRescheduleRequest: { startAt, endAt, reason } })).data; } catch (caught) { return mapError(caught); } },
   };
 }

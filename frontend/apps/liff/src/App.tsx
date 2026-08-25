@@ -14,6 +14,7 @@ import liff from "@line/liff";
 import { PageShell } from "@pickleball/ui";
 import { platformName } from "@pickleball/shared";
 import { useEffect, useState } from "react";
+import { CoachCourseOperations, CommitteeCourseOperations, StudentCourseOperations } from "./CourseOperations";
 
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
 const TOKEN_KEY = "platform.access-token";
@@ -61,7 +62,7 @@ export function App() {
     {state === "profile" && <form onSubmit={submitProfile}><h2>Complete your profile</h2><label>Name <input name="displayName" defaultValue={me?.displayName} required /></label><label>Phone <input name="phone" defaultValue={me?.phone ?? ""} /></label><label>Email <input name="email" type="email" defaultValue={me?.email ?? ""} /></label><input name="locale" defaultValue={me?.locale ?? "zh-TW"} hidden /><button>Save profile</button></form>}
     {state === "roles" && <><h2>Select your role</h2>{me?.roles.map((role) => <button key={`${role.roleCode}-${role.organizationId ?? "global"}`} onClick={() => { setSelectedRole(role); setState("home"); }}>{role.roleCode}</button>)}</>}
     {state === "no-roles" && <p>No active role is available. Please contact an administrator.</p>}
-    {state === "home" && <><h2>{selectedRole?.roleCode} entry</h2><p>{selectedRole?.organizationName ?? "Platform-wide access"}</p>{selectedRole?.roleCode === "STUDENT" && <><StudentOpenEnrollment token={token} /><StudentLessonDemand token={token} /></>}{selectedRole?.roleCode === "COACH" && <CoachSupply token={token} />}{selectedRole?.roleCode === "COMMITTEE" && selectedRole.organizationId && <CommitteeOpenEnrollment token={token} organizationId={selectedRole.organizationId} />}</>}
+    {state === "home" && <><h2>{selectedRole?.roleCode} entry</h2><p>{selectedRole?.organizationName ?? "Platform-wide access"}</p>{selectedRole?.roleCode === "STUDENT" && <><StudentCourseOperations token={token} /><StudentOpenEnrollment token={token} /><StudentLessonDemand token={token} /></>}{selectedRole?.roleCode === "COACH" && <><CoachCourseOperations token={token} /><CoachSupply token={token} /></>}{selectedRole?.roleCode === "COMMITTEE" && selectedRole.organizationId && <><CommitteeCourseOperations token={token} organizationId={selectedRole.organizationId} /><CommitteeOpenEnrollment token={token} organizationId={selectedRole.organizationId} /></>}</>}
   </PageShell>;
 }
 

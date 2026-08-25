@@ -12,7 +12,8 @@ const server = setupServer(
   http.patch("/api/v1/me/profile", () => { afterProfile = true; return HttpResponse.json({ data: member, meta: { requestId: "test" } }); }),
   http.get("/api/v1/me", () => HttpResponse.json({ data: afterProfile ? { ...member, profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }, { roleCode: "COACH", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] } : member, meta: { requestId: "test"} })),
   http.get("/api/v1/coach-availability-proposals/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
-  http.get("/api/v1/course-match-invitations/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } }))
+  http.get("/api/v1/course-match-invitations/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+  http.get("/api/v1/courses", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } }))
 );
 beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => vi.stubEnv("VITE_LIFF_ID", "test-liff")); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); afterProfile = false; vi.clearAllMocks(); vi.unstubAllEnvs(); }); afterAll(() => server.close());
 
@@ -70,4 +71,27 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     expect(await screen.findByText("已取消報名並釋放保留時段。")).toBeTruthy();
     await waitFor(() => expect(registrationStatus).toBe("CANCELLED"));
   });
+
+  it("lets a student cancel one formal-course session with secondary confirmation", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    let cancelled = false;
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { ...member, profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/course-offerings", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
+      http.get("/api/v1/me/course-offering-registrations", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
+      http.get("/api/v1/coach-availability-proposals/available", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+      http.get("/api/v1/lesson-requests/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+      http.get("/api/v1/courses", () => HttpResponse.json({ data: { items: [{ id: "c1", organizationId: "org", courseNo: "C-001", courseType: "GROUP", scheduleType: "SINGLE", billingMode: "PER_SESSION", skillLevel: null, expectedParticipantCount: 4, minimumParticipants: 2, maximumParticipants: 6, totalSessionCount: 1, status: "ACTIVE", nextSessionStartAt: "2026-09-15T02:00:00Z", activeMembershipCount: 4 }], page: 0, size: 100, total: 1 }, meta: { requestId: "test" } })),
+      http.get("/api/v1/courses/c1/sessions", () => HttpResponse.json({ data: [{ id: "s1", organizationId: "org", courseId: "c1", sequenceNo: 1, scheduledStartAt: "2026-09-15T02:00:00Z", scheduledEndAt: "2026-09-15T03:00:00Z", expectedParticipantCount: 4, guestParticipantCount: 0, actualParticipantCount: null, status: "SCHEDULED", cancellationSource: null, cancellationNote: null, completedAt: null, venueId: null, venueName: "Court A", venueAddress: "Taipei", venueStatus: "CONFIRMED", coachProfileId: "cp1", coachDisplayName: "Coach Lin", ownEnrollmentId: "e1", ownEnrollmentStatus: cancelled ? "CANCELLED" : "SCHEDULED" }], meta: { requestId: "test" } })),
+      http.post("/api/v1/session-enrollments/e1/cancellation", () => { cancelled = true; return HttpResponse.json({ data: { enrollmentId: "e1", status: "CANCELLED", cancelledAt: "2026-08-25T14:00:00Z", courseSessionStatus: "SCHEDULED" }, meta: { requestId: "test" } }); })
+    );
+    render(<App />);
+    expect(await screen.findByText(/C-001/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "取消本堂報名" }));
+    expect(await screen.findByRole("dialog", { name: "確認取消本堂報名" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "確認取消" }));
+    await waitFor(() => expect(cancelled).toBe(true));
+    expect(await screen.findByText("本堂報名已取消，其他堂次不受影響。")).toBeTruthy();
+  });
+
 });

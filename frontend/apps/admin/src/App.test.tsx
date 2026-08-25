@@ -10,7 +10,10 @@ const server = setupServer(
   http.get("/api/v1/coach-availability-proposals", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
   http.get("/api/v1/lesson-requests", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
   http.get("/api/v1/course-matches", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
-  http.get("/api/v1/course-offerings", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } }))
+  http.get("/api/v1/course-offerings", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
+  http.get("/api/v1/courses", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
+  http.get("/api/v1/session-change-requests", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+  http.get("/api/v1/coach-cancellation-requests", () => HttpResponse.json({ data: [], meta: { requestId: "test" } }))
 );
 beforeAll(() => server.listen({ onUnhandledRequest: "error" })); afterEach(() => { server.resetHandlers(); sessionStorage.clear(); }); afterAll(() => server.close());
 
@@ -18,7 +21,7 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
   it("allows committee users", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
-    render(<App />); expect(await screen.findByRole("heading", { name: "Authorized admin entry" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course matching" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Open enrollment" })).toBeTruthy();
+    render(<App />); expect(await screen.findByRole("heading", { name: "Authorized admin entry" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course matching" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Open enrollment" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course operations" })).toBeTruthy();
   });
 
   it("denies non-admin roles", async () => {
