@@ -16,7 +16,7 @@ const server = setupServer(
 );
 beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => vi.stubEnv("VITE_LIFF_ID", "test-liff")); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); afterProfile = false; vi.clearAllMocks(); vi.unstubAllEnvs(); }); afterAll(() => server.close());
 
-describe("LIFF authentication, role, and Slice 3 coach flow", () => {
+describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment", () => {
   it("logs in with LIFF, completes profile, and selects a role", async () => {
     render(<App />); expect(await screen.findByRole("heading", { name: "Complete your profile" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Updated member" } }); fireEvent.submit(screen.getByRole("button", { name: "Save profile" }).closest("form")!);
@@ -42,5 +42,32 @@ describe("LIFF authentication, role, and Slice 3 coach flow", () => {
     await waitFor(() => expect(accepted).toBe(true));
     expect(await screen.findByText("Match invitation accepted.")).toBeTruthy();
     await waitFor(() => expect(screen.queryByRole("button", { name: "Accept match" })).toBeNull());
+  });
+
+  it("lets a student inspect, register, and cancel an open enrollment offering", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    let registrationStatus: "NONE" | "ACTIVE" | "CANCELLED" = "NONE";
+    const summary = () => ({ id: "o1", organizationId: "org", title: "Beginner Group", status: "OPEN", coach: { coachProfileId: "cp1", userId: "coach-user", displayName: "Coach Lin" }, scheduleType: "SINGLE", firstSessionAt: "2026-09-10T02:00:00Z", registrationOpenAt: "2026-08-20T00:00:00Z", registrationCloseAt: "2026-09-09T00:00:00Z", minimumParticipants: 2, maximumParticipants: 6, registeredCount: registrationStatus === "ACTIVE" ? 3 : 2, remainingCapacity: registrationStatus === "ACTIVE" ? 3 : 4, billingMode: "FULL_COURSE", skillLevel: "BEGINNER", priceSnapshotId: "ps1", pricePerParticipant: 1200, currency: "TWD", registrationState: registrationStatus === "ACTIVE" ? "REGISTERED" : "OPEN", ownRegistrationId: registrationStatus === "ACTIVE" ? "r1" : null, ownRegistrationStatus: registrationStatus === "NONE" ? null : registrationStatus, version: 2 });
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { ...member, profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/coach-availability-proposals/available", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+      http.get("/api/v1/lesson-requests/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+      http.get("/api/v1/course-offerings", () => HttpResponse.json({ data: { items: [summary()], page: 0, size: 100, total: 1 }, meta: { requestId: "test" } })),
+      http.get("/api/v1/course-offerings/o1", () => HttpResponse.json({ data: { summary: summary(), description: "First group class", sessionPlans: [{ id: "os1", sequenceNo: 1, startAt: "2026-09-10T02:00:00Z", endAt: "2026-09-10T03:00:00Z", venueId: null, venueName: "Court A", venueAddress: "Taipei" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/me/course-offering-registrations", () => HttpResponse.json({ data: { items: registrationStatus === "NONE" ? [] : [{ id: "r1", offeringId: "o1", offeringTitle: "Beginner Group", offeringStatus: "OPEN", status: registrationStatus, registeredAt: "2026-08-25T03:00:00Z", cancelledAt: registrationStatus === "CANCELLED" ? "2026-08-25T04:00:00Z" : null, cancelReason: null, convertedCourseMembershipId: null, courseId: null }], page: 0, size: 100, total: registrationStatus === "NONE" ? 0 : 1 }, meta: { requestId: "test" } })),
+      http.post("/api/v1/course-offerings/o1/registrations", () => { registrationStatus = "ACTIVE"; return HttpResponse.json({ data: { id: "r1", offeringId: "o1", status: "ACTIVE", registeredAt: "2026-08-25T03:00:00Z", cancelledAt: null, cancelReason: null, convertedCourseMembershipId: null }, meta: { requestId: "test" } }, { status: 201 }); }),
+      http.post("/api/v1/course-offering-registrations/r1/cancellation", () => { registrationStatus = "CANCELLED"; return HttpResponse.json({ data: { id: "r1", offeringId: "o1", status: "CANCELLED", registeredAt: "2026-08-25T03:00:00Z", cancelledAt: "2026-08-25T04:00:00Z", cancelReason: null, convertedCourseMembershipId: null }, meta: { requestId: "test" } }); })
+    );
+    render(<App />);
+    expect(await screen.findByRole("heading", { name: "STUDENT entry" })).toBeTruthy();
+    expect(await screen.findByText(/Beginner Group/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "查看課程" }));
+    expect(await screen.findByRole("heading", { name: "Beginner Group", level: 4 })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "立即報名" }));
+    expect(await screen.findByText("報名成功，系統已保留你的課程時段。")).toBeTruthy();
+    await waitFor(() => expect(registrationStatus).toBe("ACTIVE"));
+    fireEvent.click(await screen.findByRole("button", { name: "取消報名" }));
+    expect(await screen.findByText("已取消報名並釋放保留時段。")).toBeTruthy();
+    await waitFor(() => expect(registrationStatus).toBe("CANCELLED"));
   });
 });
