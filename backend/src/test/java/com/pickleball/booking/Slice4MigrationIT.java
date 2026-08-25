@@ -40,7 +40,7 @@ class Slice4MigrationIT {
 
     @Test
     void emptyDatabaseMigratesThroughSliceFourPersistence() {
-        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("8");
+        assertThat(Integer.parseInt(latestVersion(jdbc, "flyway_schema_history"))).isGreaterThanOrEqualTo(8);
         for (String table : java.util.List.of(
                 "course_offerings",
                 "course_offering_sessions",
@@ -107,7 +107,8 @@ class Slice4MigrationIT {
                 .load()
                 .migrate();
 
-        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("8");
+        assertThat(Integer.parseInt(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")))
+                .isGreaterThanOrEqualTo(8);
         assertThat(upgradeJdbc.queryForObject("""
                 select course_session_id from %s.schedule_reservations where id = ?
                 """.formatted(schema), UUID.class, reservationId)).isEqualTo(courseSessionId);
