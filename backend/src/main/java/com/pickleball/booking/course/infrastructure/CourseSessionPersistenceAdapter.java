@@ -4,6 +4,7 @@ import com.pickleball.booking.course.domain.CourseSession;
 import com.pickleball.booking.course.domain.CourseSessionRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -45,10 +46,10 @@ public class CourseSessionPersistenceAdapter implements CourseSessionRepository 
                        updated_at = now(), version = version + 1
                  where id = ? and version = ?
                 """,
-                session.scheduledStartAt(), session.scheduledEndAt(), session.actualParticipantCount(),
-                session.status().name(),
+                Timestamp.from(session.scheduledStartAt()), Timestamp.from(session.scheduledEndAt()),
+                session.actualParticipantCount(), session.status().name(),
                 session.cancellationSource() == null ? null : session.cancellationSource().name(),
-                session.cancellationNote(), session.completedAt(), session.id(), session.version());
+                session.cancellationNote(), timestamp(session.completedAt()), session.id(), session.version());
         if (updated != 1) {
             throw new OptimisticLockingFailureException("CourseSession was concurrently modified: " + session.id());
         }
@@ -78,6 +79,10 @@ public class CourseSessionPersistenceAdapter implements CourseSessionRepository 
                 rs.getString("cancellation_note"),
                 nullableInstant(rs, "completed_at"),
                 rs.getLong("version"));
+    }
+
+    private static Timestamp timestamp(Instant value) {
+        return value == null ? null : Timestamp.from(value);
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

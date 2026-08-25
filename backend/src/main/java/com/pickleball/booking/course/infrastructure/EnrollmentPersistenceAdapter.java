@@ -4,6 +4,7 @@ import com.pickleball.booking.course.domain.Enrollment;
 import com.pickleball.booking.course.domain.EnrollmentRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -40,8 +41,8 @@ public class EnrollmentPersistenceAdapter implements EnrollmentRepository {
                        updated_at = now(), version = version + 1
                  where id = ? and version = ?
                 """,
-                enrollment.status().name(), enrollment.cancelledAt(), enrollment.attendanceMarkedAt(),
-                enrollment.id(), enrollment.version());
+                enrollment.status().name(), timestamp(enrollment.cancelledAt()),
+                timestamp(enrollment.attendanceMarkedAt()), enrollment.id(), enrollment.version());
         if (updated != 1) {
             throw new OptimisticLockingFailureException("Enrollment was concurrently modified: " + enrollment.id());
         }
@@ -64,6 +65,10 @@ public class EnrollmentPersistenceAdapter implements EnrollmentRepository {
                 nullableInstant(rs, "cancelled_at"),
                 nullableInstant(rs, "attendance_marked_at"),
                 rs.getLong("version"));
+    }
+
+    private static Timestamp timestamp(Instant value) {
+        return value == null ? null : Timestamp.from(value);
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

@@ -2,6 +2,7 @@ package com.pickleball.booking.course.infrastructure;
 
 import com.pickleball.booking.course.domain.MemberCancellationRecord;
 import com.pickleball.booking.course.domain.MemberCancellationRecordRepository;
+import java.sql.Timestamp;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -22,7 +23,7 @@ public class MemberCancellationRecordPersistenceAdapter implements MemberCancell
                 values (?, ?, ?, ?, ?, ?, ?)
                 """,
                 record.id(), record.organizationId(), record.memberId(), record.enrollmentId(),
-                record.courseSessionId(), record.reason(), record.cancelledAt());
+                record.courseSessionId(), record.reason(), Timestamp.from(record.cancelledAt()));
         return record;
     }
 }

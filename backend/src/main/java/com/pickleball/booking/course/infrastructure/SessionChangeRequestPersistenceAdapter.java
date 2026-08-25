@@ -4,6 +4,7 @@ import com.pickleball.booking.course.domain.SessionChangeRequest;
 import com.pickleball.booking.course.domain.SessionChangeRequestRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -47,9 +48,10 @@ public class SessionChangeRequestPersistenceAdapter implements SessionChangeRequ
                     decision_reason = excluded.decision_reason
                 """,
                 request.id(), request.organizationId(), request.courseSessionId(), request.type().name(),
-                request.requestedBy(), request.reason(), request.proposedStartAt(), request.proposedEndAt(),
-                request.proposedCoachProfileId(), request.proposedVenueId(), request.status().name(),
-                request.decidedBy(), request.decidedAt(), request.decisionReason(), request.createdAt());
+                request.requestedBy(), request.reason(), timestamp(request.proposedStartAt()),
+                timestamp(request.proposedEndAt()), request.proposedCoachProfileId(), request.proposedVenueId(),
+                request.status().name(), request.decidedBy(), timestamp(request.decidedAt()),
+                request.decisionReason(), Timestamp.from(request.createdAt()));
         return request;
     }
 
@@ -70,6 +72,10 @@ public class SessionChangeRequestPersistenceAdapter implements SessionChangeRequ
                 nullableInstant(rs, "decided_at"),
                 rs.getString("decision_reason"),
                 rs.getTimestamp("created_at").toInstant());
+    }
+
+    private static Timestamp timestamp(Instant value) {
+        return value == null ? null : Timestamp.from(value);
     }
 
     private static Instant nullableInstant(ResultSet rs, String column) throws SQLException {

@@ -4,6 +4,7 @@ import com.pickleball.booking.course.domain.CourseCancellationRequest;
 import com.pickleball.booking.course.domain.CourseCancellationRequestRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -46,7 +47,8 @@ public class CourseCancellationRequestPersistenceAdapter implements CourseCancel
                 """,
                 request.id(), request.organizationId(), request.courseSessionId(), request.requestedBy(),
                 request.requesterRole().name(), request.reason(), request.status().name(),
-                request.reviewedBy(), request.reviewedAt(), request.reviewNote(), request.createdAt());
+                request.reviewedBy(), timestamp(request.reviewedAt()), request.reviewNote(),
+                Timestamp.from(request.createdAt()));
         return request;
     }
 
@@ -63,6 +65,10 @@ public class CourseCancellationRequestPersistenceAdapter implements CourseCancel
                 nullableInstant(rs, "reviewed_at"),
                 rs.getString("review_note"),
                 rs.getTimestamp("created_at").toInstant());
+    }
+
+    private static Timestamp timestamp(Instant value) {
+        return value == null ? null : Timestamp.from(value);
     }
 
     private static Instant nullableInstant(ResultSet rs, String column) throws SQLException {
