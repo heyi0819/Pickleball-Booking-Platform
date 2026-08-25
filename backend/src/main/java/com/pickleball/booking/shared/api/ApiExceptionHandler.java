@@ -22,6 +22,7 @@ public class ApiExceptionHandler {
             "LESSON_REQUEST_NOT_APPROVED",
             "COACH_NOT_APPROVED",
             "MATCH_NOT_READY",
+            "OFFERING_NOT_READY",
             "PRICE_CHANGED_RECALC_REQUIRED",
             "PARTICIPANT_BELOW_MIN",
             "PARTICIPANT_ABOVE_MAX",
