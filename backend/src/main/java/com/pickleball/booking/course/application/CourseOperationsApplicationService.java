@@ -134,6 +134,7 @@ public class CourseOperationsApplicationService {
             String reviewNote,
             String requestId) {
         requireActor(actor);
+        requireReviewDecision(decision);
         CourseCancellationRequest request = lockedCancellationRequest(cancellationRequestId);
         requireCommittee(actor, request.organizationId());
         CourseSession session = lockedSession(request.courseSessionId());
@@ -180,6 +181,7 @@ public class CourseOperationsApplicationService {
         CourseSession session = lockedSession(sessionId);
         requireRescheduleRequester(actor, session);
         Instant now = Instant.now();
+        requireRescheduleRequestable(session, now);
         validateFutureRange(proposedStartAt, proposedEndAt, now);
 
         var idem = idempotency.begin(
@@ -203,7 +205,7 @@ public class CourseOperationsApplicationService {
         } catch (CourseOperationsDomainException ex) {
             throw business(ex);
         } catch (DataIntegrityViolationException ex) {
-            throw new BusinessException("STATE_TRANSITION_INVALID", "A pending reschedule request already exists");
+            throw new BusinessException("STATE_TRANSITION_INVALID", "Session change request could not be persisted");
         }
     }
 
@@ -216,6 +218,7 @@ public class CourseOperationsApplicationService {
             String idempotencyKey,
             String requestId) {
         requireActor(actor);
+        requireReviewDecision(decision);
         SessionChangeRequest request = lockedChangeRequest(changeRequestId);
         if (request.type() != SessionChangeRequest.Type.RESCHEDULE) {
             throw new BusinessException("STATE_TRANSITION_INVALID", "Only RESCHEDULE requests are supported by this command");
@@ -312,6 +315,7 @@ public class CourseOperationsApplicationService {
             AttendanceDecision attendance,
             String requestId) {
         requireActor(actor);
+        requireAttendanceDecision(attendance);
         Enrollment enrollment = lockedEnrollment(enrollmentId);
         CourseSession session = lockedSession(enrollment.courseSessionId());
         requireAttendanceActor(actor, session);
@@ -403,6 +407,30 @@ public class CourseOperationsApplicationService {
     private void requireCommittee(AuthenticatedPrincipal actor, UUID organizationId) {
         if (!identity.isAuthorizedForOrganization(actor, RoleCode.COMMITTEE, organizationId)) {
             throw new BusinessException("AUTH_FORBIDDEN", "Committee or platform administrator permission is required");
+        }
+    }
+
+    private static void requireRescheduleRequestable(CourseSession session, Instant now) {
+        if (!now.isBefore(session.scheduledStartAt())) {
+            throw new BusinessException(
+                    "SESSION_ALREADY_STARTED", "Session reschedule request is allowed only before the session starts");
+        }
+        if (session.status() != CourseSession.Status.SCHEDULED
+                && session.status() != CourseSession.Status.POSTPONED) {
+            throw new BusinessException(
+                    "STATE_TRANSITION_INVALID", "Only scheduled or postponed sessions can accept a reschedule request");
+        }
+    }
+
+    private static void requireReviewDecision(ReviewDecision decision) {
+        if (decision == null) {
+            throw new BusinessException("VALIDATION_FAILED", "decision is required");
+        }
+    }
+
+    private static void requireAttendanceDecision(AttendanceDecision attendance) {
+        if (attendance == null) {
+            throw new BusinessException("VALIDATION_FAILED", "attendance is required");
         }
     }
 
