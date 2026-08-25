@@ -72,8 +72,7 @@ public class CourseOfferingApplicationService {
         requireCommittee(actor, organizationId);
         Objects.requireNonNull(command, "command");
         validateCapacityStorage(command.minimumParticipants(), command.maximumParticipants());
-        CoachProfileEntity coach = approvedCoach(organizationId, command.coachProfileId());
-        requireActiveCoachRole(coach);
+        coachInOrganization(organizationId, command.coachProfileId());
         CourseOffering offering;
         try {
             offering = CourseOffering.createDraft(
@@ -93,8 +92,7 @@ public class CourseOfferingApplicationService {
         requireCommittee(actor, offering.organizationId());
         Objects.requireNonNull(command, "command");
         validateCapacityStorage(command.minimumParticipants(), command.maximumParticipants());
-        CoachProfileEntity coach = approvedCoach(offering.organizationId(), command.coachProfileId());
-        requireActiveCoachRole(coach);
+        coachInOrganization(offering.organizationId(), command.coachProfileId());
         try {
             offering.reviseDraft(draftSpec(command));
             offering.replaceSessionPlans(sessionPlans(command.sessions()));
@@ -289,7 +287,7 @@ public class CourseOfferingApplicationService {
             Map<UUID,UUID> enrollmentIds = insertEnrollments(membershipId, registration.userId(), offering.organizationId(), formalSessions);
             convertParticipantReservations(offering, registration.userId(), formalSessions);
             UUID receivableId = insertReceivable(
-                    courseId, offering, registration.userId(), formalPrices, enrollmentIds);
+                    courseId, offering, registration.userId(), price.currency(), formalPrices, enrollmentIds);
             receivableIds.add(receivableId);
             registration.markConverted(membershipId);
             registrations.save(registration);
@@ -309,10 +307,18 @@ public class CourseOfferingApplicationService {
                 .orElseThrow(() -> new BusinessException("RESOURCE_NOT_FOUND", "Course offering was not found"));
     }
 
-    private CoachProfileEntity approvedCoach(UUID organizationId, UUID coachProfileId) {
+    private CoachProfileEntity coachInOrganization(UUID organizationId, UUID coachProfileId) {
         CoachProfileEntity coach = coachProfiles.findById(coachProfileId)
                 .orElseThrow(() -> new BusinessException("RESOURCE_NOT_FOUND", "Coach profile was not found"));
-        if (!organizationId.equals(coach.getOrganizationId()) || coach.getApprovalStatus()!=CoachProfileApprovalStatus.APPROVED) {
+        if (!organizationId.equals(coach.getOrganizationId())) {
+            throw new BusinessException("ORG_SCOPE_DENIED", "Coach profile is outside the offering organization");
+        }
+        return coach;
+    }
+
+    private CoachProfileEntity approvedCoach(UUID organizationId, UUID coachProfileId) {
+        CoachProfileEntity coach = coachInOrganization(organizationId, coachProfileId);
+        if (coach.getApprovalStatus()!=CoachProfileApprovalStatus.APPROVED) {
             throw new BusinessException("COACH_NOT_APPROVED", "Offering coach must be approved in this organization");
         }
         return coach;
@@ -596,6 +602,7 @@ public class CourseOfferingApplicationService {
             UUID courseId,
             CourseOffering offering,
             UUID payerUserId,
+            String currency,
             List<FormalPrice> formalPrices,
             Map<UUID,UUID> enrollmentIds) {
         BigDecimal total=formalPrices.stream().map(FormalPrice::amount).reduce(BigDecimal.ZERO,BigDecimal::add).setScale(2,RoundingMode.HALF_UP);
@@ -605,9 +612,9 @@ public class CourseOfferingApplicationService {
                     id, organization_id, receivable_no, course_id, payer_user_id,
                     billing_mode, currency, total_amount, adjusted_amount,
                     paid_amount, refunded_amount, balance_amount, status)
-                values (?, ?, ?, ?, ?, ?, 'TWD', ?, 0, 0, 0, ?, 'OPEN')
+                values (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, 'OPEN')
                 """, receivableId, offering.organizationId(), businessNo("R", receivableId), courseId,
-                payerUserId, offering.spec().billingMode().name(), total, total);
+                payerUserId, offering.spec().billingMode().name(), currency, total, total);
         short sort=1;
         for (FormalPrice price : formalPrices) {
             jdbc.update("""
