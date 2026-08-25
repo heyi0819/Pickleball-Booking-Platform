@@ -419,7 +419,7 @@ async function example() {
   const api = new CourseOperationsApi(config);
 
   const body = {
-    // string (optional)
+    // string | COMMITTEE may filter only within own organization scope; PLATFORM_ADMIN may filter globally. STUDENT/COACH are forbidden from using this filter. (optional)
     organizationId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
     // 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' (optional)
     status: status_example,
@@ -429,7 +429,7 @@ async function example() {
     to: 2013-10-20T19:20:30+01:00,
     // string (optional)
     coachProfileId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
-    // string (optional)
+    // string | COMMITTEE/PLATFORM_ADMIN only. Non-admin Committee queries remain restricted to the actor organization scope. (optional)
     studentUserId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
     // 'PRIVATE' | 'GROUP' (optional)
     courseType: courseType_example,
@@ -458,12 +458,12 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **organizationId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **organizationId** | `string` | COMMITTEE may filter only within own organization scope; PLATFORM_ADMIN may filter globally. STUDENT/COACH are forbidden from using this filter. | [Optional] [Defaults to `undefined`] |
 | **status** | `DRAFT`, `ACTIVE`, `COMPLETED`, `CANCELLED` |  | [Optional] [Defaults to `undefined`] [Enum: DRAFT, ACTIVE, COMPLETED, CANCELLED] |
 | **from** | `Date` |  | [Optional] [Defaults to `undefined`] |
 | **to** | `Date` |  | [Optional] [Defaults to `undefined`] |
 | **coachProfileId** | `string` |  | [Optional] [Defaults to `undefined`] |
-| **studentUserId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **studentUserId** | `string` | COMMITTEE/PLATFORM_ADMIN only. Non-admin Committee queries remain restricted to the actor organization scope. | [Optional] [Defaults to `undefined`] |
 | **courseType** | `PRIVATE`, `GROUP` |  | [Optional] [Defaults to `undefined`] [Enum: PRIVATE, GROUP] |
 | **page** | `number` |  | [Optional] [Defaults to `0`] |
 | **size** | `number` |  | [Optional] [Defaults to `20`] |

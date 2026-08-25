@@ -83,6 +83,26 @@ class Slice5HttpEndToEndIT {
                 committeeToken, null, null, 200));
         assertThat(committeeFiltered.get("total").asLong()).isEqualTo(1);
 
+        JsonNode committeeOrganizationFiltered = data(request(
+                "GET", "/api/v1/courses?organizationId=" + fixture.organizationId(),
+                committeeToken, null, null, 200));
+        assertThat(committeeOrganizationFiltered.get("total").asLong()).isEqualTo(1);
+
+        JsonNode studentUserFilterForbidden = error(request(
+                "GET", "/api/v1/courses?studentUserId=" + fixture.studentId(),
+                studentToken, null, null, 403));
+        assertThat(studentUserFilterForbidden.get("code").asText()).isEqualTo("AUTH_FORBIDDEN");
+
+        JsonNode studentOrganizationFilterForbidden = error(request(
+                "GET", "/api/v1/courses?organizationId=" + fixture.organizationId(),
+                studentToken, null, null, 403));
+        assertThat(studentOrganizationFilterForbidden.get("code").asText()).isEqualTo("AUTH_FORBIDDEN");
+
+        JsonNode committeeOtherOrganizationDenied = error(request(
+                "GET", "/api/v1/courses?organizationId=" + UUID.randomUUID(),
+                committeeToken, null, null, 403));
+        assertThat(committeeOtherOrganizationDenied.get("code").asText()).isEqualTo("ORG_SCOPE_DENIED");
+
         JsonNode course = data(request(
                 "GET", "/api/v1/courses/" + fixture.courseId(), studentToken, null, null, 200));
         assertThat(course.get("status").asText()).isEqualTo("ACTIVE");

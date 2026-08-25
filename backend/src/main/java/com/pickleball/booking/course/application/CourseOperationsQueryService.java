@@ -33,6 +33,7 @@ public class CourseOperationsQueryService {
         requireActor(actor);
         CourseFilter normalized = normalize(filter);
         Scope scope = scope(actor);
+        authorizePrivilegedFilters(scope, normalized);
         var params = new MapSqlParameterSource()
                 .addValue("actorUserId", actor.userId())
                 .addValue("limit", normalized.size())
@@ -167,7 +168,24 @@ public class CourseOperationsQueryService {
                 """;
     }
 
+    private void authorizePrivilegedFilters(Scope scope, CourseFilter filter) {
+        boolean privilegedFilterRequested = filter.organizationId() != null || filter.studentUserId() != null;
+        if (!privilegedFilterRequested || scope.platformAdmin()) {
+            return;
+        }
+        if (scope.committeeOrganizations().isEmpty()) {
+            throw new BusinessException("AUTH_FORBIDDEN",
+                    "organizationId and studentUserId filters require Committee or Platform Admin privileges");
+        }
+        if (filter.organizationId() != null
+                && !scope.committeeOrganizations().contains(filter.organizationId())) {
+            throw new BusinessException("ORG_SCOPE_DENIED",
+                    "Requested organization is outside the Committee authorization scope");
+        }
+    }
+
     private String buildCourseWhere(Scope scope, CourseFilter filter, MapSqlParameterSource params) {
+        boolean privilegedFilter = filter.organizationId() != null || filter.studentUserId() != null;
         List<String> visibility = new ArrayList<>();
         if (scope.platformAdmin()) {
             visibility.add("1=1");
@@ -176,7 +194,7 @@ public class CourseOperationsQueryService {
                 params.addValue("committeeOrgIds", scope.committeeOrganizations());
                 visibility.add("c.organization_id in (:committeeOrgIds)");
             }
-            if (!scope.coachOrganizations().isEmpty()) {
+            if (!privilegedFilter && !scope.coachOrganizations().isEmpty()) {
                 params.addValue("coachOrgIds", scope.coachOrganizations());
                 visibility.add("""
                         (c.organization_id in (:coachOrgIds) and exists (
@@ -189,7 +207,7 @@ public class CourseOperationsQueryService {
                         ))
                         """);
             }
-            if (!scope.studentOrganizations().isEmpty()) {
+            if (!privilegedFilter && !scope.studentOrganizations().isEmpty()) {
                 params.addValue("studentOrgIds", scope.studentOrganizations());
                 visibility.add("""
                         (c.organization_id in (:studentOrgIds) and exists (

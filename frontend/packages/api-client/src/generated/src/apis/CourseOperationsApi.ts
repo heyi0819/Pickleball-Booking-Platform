@@ -199,12 +199,12 @@ export interface CourseOperationsApiInterface {
 
     /**
      *
-     * @param {string} [organizationId]
+     * @param {string} [organizationId] COMMITTEE may filter only within own organization scope; PLATFORM_ADMIN may filter globally. STUDENT/COACH are forbidden from using this filter.
      * @param {'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'} [status]
      * @param {Date} [from]
      * @param {Date} [to]
      * @param {string} [coachProfileId]
-     * @param {string} [studentUserId]
+     * @param {string} [studentUserId] COMMITTEE/PLATFORM_ADMIN only. Non-admin Committee queries remain restricted to the actor organization scope.
      * @param {'PRIVATE' | 'GROUP'} [courseType]
      * @param {number} [page]
      * @param {number} [size]
