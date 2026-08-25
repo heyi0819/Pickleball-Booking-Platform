@@ -74,15 +74,24 @@ public final class OfferingRegistration {
                     OfferingDomainError.REGISTRATION_ACTOR_FORBIDDEN,
                     "student can cancel only their own offering registration");
         }
-        status = OfferingRegistrationStatus.CANCELLED;
-        cancelledAt = now;
-        cancelReason = normalizeOptional(reason);
+        cancel(now, reason);
+    }
+
+    public void cancelForOffering(Instant now, String reason) {
+        requireActive();
+        cancel(Objects.requireNonNull(now, "now"), reason);
     }
 
     public void markConverted(UUID courseMembershipId) {
         requireActive();
         convertedCourseMembershipId = Objects.requireNonNull(courseMembershipId, "courseMembershipId");
         status = OfferingRegistrationStatus.CONVERTED;
+    }
+
+    private void cancel(Instant now, String reason) {
+        status = OfferingRegistrationStatus.CANCELLED;
+        cancelledAt = now;
+        cancelReason = normalizeOptional(reason);
     }
 
     private void requireActive() {
