@@ -71,6 +71,20 @@ All URIs are relative to */api/v1*
 *CourseMatchesApi* | [**listCourseMatches**](docs/CourseMatchesApi.md#listcoursematches) | **GET** /course-matches |
 *CourseMatchesApi* | [**previewCourseMatchPricing**](docs/CourseMatchesApi.md#previewcoursematchpricing) | **POST** /course-matches/{courseMatchId}/pricing-preview |
 *CourseMatchesApi* | [**updateCourseMatch**](docs/CourseMatchesApi.md#updatecoursematch) | **PATCH** /course-matches/{courseMatchId} |
+*CourseOfferingRegistrationsApi* | [**cancelCourseOfferingRegistration**](docs/CourseOfferingRegistrationsApi.md#cancelcourseofferingregistration) | **POST** /course-offering-registrations/{registrationId}/cancellation |
+*CourseOfferingRegistrationsApi* | [**listCourseOfferingRegistrations**](docs/CourseOfferingRegistrationsApi.md#listcourseofferingregistrations) | **GET** /course-offerings/{offeringId}/registrations |
+*CourseOfferingRegistrationsApi* | [**listMyCourseOfferingRegistrations**](docs/CourseOfferingRegistrationsApi.md#listmycourseofferingregistrations) | **GET** /me/course-offering-registrations |
+*CourseOfferingRegistrationsApi* | [**registerCourseOffering**](docs/CourseOfferingRegistrationsApi.md#registercourseoffering) | **POST** /course-offerings/{offeringId}/registrations |
+*CourseOfferingsApi* | [**cancelCourseOffering**](docs/CourseOfferingsApi.md#cancelcourseoffering) | **POST** /course-offerings/{offeringId}/cancellation |
+*CourseOfferingsApi* | [**closeCourseOffering**](docs/CourseOfferingsApi.md#closecourseoffering) | **POST** /course-offerings/{offeringId}/closure |
+*CourseOfferingsApi* | [**confirmCourseOffering**](docs/CourseOfferingsApi.md#confirmcourseoffering) | **POST** /course-offerings/{offeringId}/confirmation |
+*CourseOfferingsApi* | [**confirmCourseOfferingPricing**](docs/CourseOfferingsApi.md#confirmcourseofferingpricing) | **POST** /course-offerings/{offeringId}/pricing-confirmation |
+*CourseOfferingsApi* | [**createCourseOffering**](docs/CourseOfferingsApi.md#createcourseoffering) | **POST** /course-offerings |
+*CourseOfferingsApi* | [**getCourseOffering**](docs/CourseOfferingsApi.md#getcourseoffering) | **GET** /course-offerings/{offeringId} |
+*CourseOfferingsApi* | [**listCourseOfferings**](docs/CourseOfferingsApi.md#listcourseofferings) | **GET** /course-offerings |
+*CourseOfferingsApi* | [**previewCourseOfferingPricing**](docs/CourseOfferingsApi.md#previewcourseofferingpricing) | **POST** /course-offerings/{offeringId}/pricing-preview |
+*CourseOfferingsApi* | [**publishCourseOffering**](docs/CourseOfferingsApi.md#publishcourseoffering) | **POST** /course-offerings/{offeringId}/publication |
+*CourseOfferingsApi* | [**updateCourseOffering**](docs/CourseOfferingsApi.md#updatecourseoffering) | **PATCH** /course-offerings/{offeringId} |
 *CurrentUserApi* | [**getCurrentUser**](docs/CurrentUserApi.md#getcurrentuser) | **GET** /me |
 *CurrentUserApi* | [**getCurrentUserRoles**](docs/CurrentUserApi.md#getcurrentuserroles) | **GET** /me/roles |
 *CurrentUserApi* | [**updateCurrentUserProfile**](docs/CurrentUserApi.md#updatecurrentuserprofile) | **PATCH** /me/profile |
@@ -119,6 +133,35 @@ All URIs are relative to */api/v1*
 - [CourseMatchSessionPlanRequest](docs/CourseMatchSessionPlanRequest.md)
 - [CourseMatchSummary](docs/CourseMatchSummary.md)
 - [CourseMatchSummaryListEnvelope](docs/CourseMatchSummaryListEnvelope.md)
+- [CourseOfferingBillingMode](docs/CourseOfferingBillingMode.md)
+- [CourseOfferingCancellationRequest](docs/CourseOfferingCancellationRequest.md)
+- [CourseOfferingCoachSummary](docs/CourseOfferingCoachSummary.md)
+- [CourseOfferingConfirmation](docs/CourseOfferingConfirmation.md)
+- [CourseOfferingConfirmationEnvelope](docs/CourseOfferingConfirmationEnvelope.md)
+- [CourseOfferingConfirmationRequest](docs/CourseOfferingConfirmationRequest.md)
+- [CourseOfferingCreateRequest](docs/CourseOfferingCreateRequest.md)
+- [CourseOfferingDetail](docs/CourseOfferingDetail.md)
+- [CourseOfferingDetailEnvelope](docs/CourseOfferingDetailEnvelope.md)
+- [CourseOfferingPage](docs/CourseOfferingPage.md)
+- [CourseOfferingPageEnvelope](docs/CourseOfferingPageEnvelope.md)
+- [CourseOfferingPriceSnapshot](docs/CourseOfferingPriceSnapshot.md)
+- [CourseOfferingPriceSnapshotEnvelope](docs/CourseOfferingPriceSnapshotEnvelope.md)
+- [CourseOfferingPricingConfirmationRequest](docs/CourseOfferingPricingConfirmationRequest.md)
+- [CourseOfferingPricingPreview](docs/CourseOfferingPricingPreview.md)
+- [CourseOfferingPricingPreviewEnvelope](docs/CourseOfferingPricingPreviewEnvelope.md)
+- [CourseOfferingPricingPreviewRequest](docs/CourseOfferingPricingPreviewRequest.md)
+- [CourseOfferingRegistration](docs/CourseOfferingRegistration.md)
+- [CourseOfferingRegistrationCommand](docs/CourseOfferingRegistrationCommand.md)
+- [CourseOfferingRegistrationCommandEnvelope](docs/CourseOfferingRegistrationCommandEnvelope.md)
+- [CourseOfferingRegistrationPage](docs/CourseOfferingRegistrationPage.md)
+- [CourseOfferingRegistrationPageEnvelope](docs/CourseOfferingRegistrationPageEnvelope.md)
+- [CourseOfferingRegistrationStatus](docs/CourseOfferingRegistrationStatus.md)
+- [CourseOfferingScheduleType](docs/CourseOfferingScheduleType.md)
+- [CourseOfferingSessionPlan](docs/CourseOfferingSessionPlan.md)
+- [CourseOfferingSessionPlanRequest](docs/CourseOfferingSessionPlanRequest.md)
+- [CourseOfferingStatus](docs/CourseOfferingStatus.md)
+- [CourseOfferingSummary](docs/CourseOfferingSummary.md)
+- [CourseOfferingUpdateRequest](docs/CourseOfferingUpdateRequest.md)
 - [ErrorBody](docs/ErrorBody.md)
 - [ErrorEnvelope](docs/ErrorEnvelope.md)
 - [LessonRequest](docs/LessonRequest.md)
@@ -134,6 +177,9 @@ All URIs are relative to */api/v1*
 - [Me](docs/Me.md)
 - [MeResponseEnvelope](docs/MeResponseEnvelope.md)
 - [Meta](docs/Meta.md)
+- [MyCourseOfferingRegistration](docs/MyCourseOfferingRegistration.md)
+- [MyCourseOfferingRegistrationPage](docs/MyCourseOfferingRegistrationPage.md)
+- [MyCourseOfferingRegistrationPageEnvelope](docs/MyCourseOfferingRegistrationPageEnvelope.md)
 - [ProfileUpdateRequest](docs/ProfileUpdateRequest.md)
 - [ReviewRequest](docs/ReviewRequest.md)
 - [RoleCode](docs/RoleCode.md)
