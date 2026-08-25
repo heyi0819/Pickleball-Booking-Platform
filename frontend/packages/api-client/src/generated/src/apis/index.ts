@@ -7,5 +7,6 @@ export * from './CourseMatchInvitationsApi';
 export * from './CourseMatchesApi';
 export * from './CourseOfferingRegistrationsApi';
 export * from './CourseOfferingsApi';
+export * from './CourseOperationsApi';
 export * from './CurrentUserApi';
 export * from './LessonRequestsApi';
