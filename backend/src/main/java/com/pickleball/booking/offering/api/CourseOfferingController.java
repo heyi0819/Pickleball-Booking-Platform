@@ -80,7 +80,7 @@ public class CourseOfferingController {
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<OfferingDetail> create(
             Authentication authentication,
-            @Valid @RequestBody DraftRequest request,
+            @Valid @RequestBody CreateDraftRequest request,
             HttpServletRequest httpRequest) {
         var actor = principal(authentication);
         var offering = core.createDraft(actor, request.organizationId(), draftCommand(request));
@@ -91,7 +91,7 @@ public class CourseOfferingController {
     public ApiResponse<OfferingDetail> revise(
             Authentication authentication,
             @PathVariable UUID offeringId,
-            @Valid @RequestBody DraftRequest request,
+            @Valid @RequestBody UpdateDraftRequest request,
             HttpServletRequest httpRequest) {
         var actor = principal(authentication);
         var offering = core.reviseDraft(actor, offeringId, draftCommand(request));
@@ -142,10 +142,10 @@ public class CourseOfferingController {
             Authentication authentication,
             @PathVariable UUID offeringId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @Valid @RequestBody CancellationRequest request,
+            @Valid @RequestBody(required = false) CancellationRequest request,
             HttpServletRequest httpRequest) {
         var actor = principal(authentication);
-        commands.cancelOffering(actor, offeringId, idempotencyKey, request.reason());
+        commands.cancelOffering(actor, offeringId, idempotencyKey, request == null ? null : request.reason());
         return response(queries.detail(actor, offeringId), httpRequest);
     }
 
@@ -176,10 +176,10 @@ public class CourseOfferingController {
             Authentication authentication,
             @PathVariable UUID registrationId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @Valid @RequestBody CancellationRequest request,
+            @Valid @RequestBody(required = false) CancellationRequest request,
             HttpServletRequest httpRequest) {
         var registration = commands.cancelRegistration(
-                principal(authentication), registrationId, idempotencyKey, request.reason());
+                principal(authentication), registrationId, idempotencyKey, request == null ? null : request.reason());
         return response(registrationView(registration), httpRequest);
     }
 
@@ -192,14 +192,39 @@ public class CourseOfferingController {
         return response(queries.mine(principal(authentication), page, size), httpRequest);
     }
 
-    private CourseOfferingApplicationService.DraftCommand draftCommand(DraftRequest request) {
+    private CourseOfferingApplicationService.DraftCommand draftCommand(CreateDraftRequest request) {
+        return draftCommand(
+                request.coachProfileId(), request.title(), request.description(), request.scheduleType(),
+                request.billingMode(), request.skillLevel(), request.minimumParticipants(), request.maximumParticipants(),
+                request.registrationOpenAt(), request.registrationCloseAt(), request.sessionPlans());
+    }
+
+    private CourseOfferingApplicationService.DraftCommand draftCommand(UpdateDraftRequest request) {
+        return draftCommand(
+                request.coachProfileId(), request.title(), request.description(), request.scheduleType(),
+                request.billingMode(), request.skillLevel(), request.minimumParticipants(), request.maximumParticipants(),
+                request.registrationOpenAt(), request.registrationCloseAt(), request.sessionPlans());
+    }
+
+    private CourseOfferingApplicationService.DraftCommand draftCommand(
+            UUID coachProfileId,
+            String title,
+            String description,
+            String scheduleType,
+            String billingMode,
+            String skillLevel,
+            int minimumParticipants,
+            int maximumParticipants,
+            Instant registrationOpenAt,
+            Instant registrationCloseAt,
+            List<SessionPlanRequest> sessionPlans) {
         return new CourseOfferingApplicationService.DraftCommand(
-                request.coachProfileId(), request.title(), request.description(),
-                OfferingScheduleType.valueOf(request.scheduleType()),
-                OfferingBillingMode.valueOf(request.billingMode()),
-                request.skillLevel(), request.minimumParticipants(), request.maximumParticipants(),
-                request.registrationOpenAt(), request.registrationCloseAt(),
-                request.sessionPlans().stream().map(session -> new CourseOfferingApplicationService.SessionCommand(
+                coachProfileId, title, description,
+                OfferingScheduleType.valueOf(scheduleType),
+                OfferingBillingMode.valueOf(billingMode),
+                skillLevel, minimumParticipants, maximumParticipants,
+                registrationOpenAt, registrationCloseAt,
+                sessionPlans.stream().map(session -> new CourseOfferingApplicationService.SessionCommand(
                         session.sequenceNo(), session.startAt(), session.endAt(), session.venueId(),
                         session.venueName(), session.venueAddress())).toList());
     }
@@ -219,14 +244,27 @@ public class CourseOfferingController {
         return ApiResponse.of(data, (String) request.getAttribute("requestId"));
     }
 
-    public record DraftRequest(
+    public record CreateDraftRequest(
             @NotNull UUID organizationId,
-            @Pattern(regexp = "GROUP") String lessonType,
+            @NotBlank @Pattern(regexp = "GROUP") String lessonType,
             @NotNull UUID coachProfileId,
             @NotBlank @Size(max = 200) String title,
             @Size(max = 10000) String description,
-            @Pattern(regexp = "SINGLE|RECURRING") String scheduleType,
-            @Pattern(regexp = "FULL_COURSE|PER_SESSION") String billingMode,
+            @NotBlank @Pattern(regexp = "SINGLE|RECURRING") String scheduleType,
+            @NotBlank @Pattern(regexp = "FULL_COURSE|PER_SESSION") String billingMode,
+            @Size(max = 30) String skillLevel,
+            @Positive int minimumParticipants,
+            @Positive int maximumParticipants,
+            @NotNull Instant registrationOpenAt,
+            @NotNull Instant registrationCloseAt,
+            @NotEmpty List<@Valid SessionPlanRequest> sessionPlans) { }
+
+    public record UpdateDraftRequest(
+            @NotNull UUID coachProfileId,
+            @NotBlank @Size(max = 200) String title,
+            @Size(max = 10000) String description,
+            @NotBlank @Pattern(regexp = "SINGLE|RECURRING") String scheduleType,
+            @NotBlank @Pattern(regexp = "FULL_COURSE|PER_SESSION") String billingMode,
             @Size(max = 30) String skillLevel,
             @Positive int minimumParticipants,
             @Positive int maximumParticipants,
