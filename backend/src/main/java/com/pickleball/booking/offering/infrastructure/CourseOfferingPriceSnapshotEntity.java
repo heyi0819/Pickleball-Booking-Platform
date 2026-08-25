@@ -19,7 +19,7 @@ public class CourseOfferingPriceSnapshotEntity {
     @Column(name="course_offering_id",nullable=false) private UUID courseOfferingId;
     @Column(name="version_no",nullable=false) private int versionNo;
     @Enumerated(EnumType.STRING) @Column(nullable=false,length=20) private OfferingPriceSnapshotStatus status;
-    @Column(nullable=false,length=3) private String currency;
+    @JdbcTypeCode(SqlTypes.CHAR) @Column(nullable=false,columnDefinition="char(3)") private String currency;
     @Column(name="price_per_participant",nullable=false,precision=12,scale=2) private BigDecimal pricePerParticipant;
     @JdbcTypeCode(SqlTypes.JSON) @Column(name="rule_trace",nullable=false,columnDefinition="jsonb") private Map<String,Object> ruleTrace;
     @Column(name="confirmed_by") private UUID confirmedBy;
