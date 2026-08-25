@@ -25,45 +25,15 @@ jobs:
         run: npm ci
       - name: Apply Slice 4 OpenAPI contract
         run: node frontend/scripts/apply-slice4-openapi.mjs
-      - name: Normalize regex schemas for YAML parser
+      - name: Inspect generated OpenAPI boundary
+        shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          path = Path("backend/src/main/resources/openapi/openapi.yaml")
-          text = path.read_text(encoding="utf-8")
-
-          currency_pattern = re.compile(
-              r"(?m)^([ \t]*)currency:\s*\{\s*type:\s*string,\s*pattern:\s*'\^\[A-Za-z\]\{3\}\$'\s*\}\s*$"
-          )
-          fingerprint_pattern = re.compile(
-              r"(?m)^([ \t]*)pricingFingerprint:\s*\{\s*type:\s*string,\s*pattern:\s*'\^\[0-9a-fA-F\]\{64\}\$'\s*\}\s*$"
-          )
-
-          def currency_replacement(match):
-              indent = match.group(1)
-              return (
-                  f'{indent}currency:\n'
-                  f'{indent}  type: string\n'
-                  f'{indent}  pattern: "^[A-Za-z]{{3}}$"'
-              )
-
-          def fingerprint_replacement(match):
-              indent = match.group(1)
-              return (
-                  f'{indent}pricingFingerprint:\n'
-                  f'{indent}  type: string\n'
-                  f'{indent}  pattern: "^[0-9a-fA-F]{{64}}$"'
-              )
-
-          text, currency_count = currency_pattern.subn(currency_replacement, text)
-          text, fingerprint_count = fingerprint_pattern.subn(fingerprint_replacement, text)
-          print(f"Normalized currency schemas: {currency_count}; fingerprint schemas: {fingerprint_count}")
-          if currency_count < 2 or fingerprint_count != 1:
-              raise SystemExit("Slice 4 regex schema normalization count was unexpected")
-          path.write_text(text, encoding="utf-8")
-          PY
+          echo "== marker lines =="
+          grep -nE 'CourseOfferingPricingPreviewRequest|CourseOfferingPricingConfirmationRequest|CourseOfferingConfirmationEnvelope|ProfileUpdateRequest|pattern:' backend/src/main/resources/openapi/openapi.yaml || true
+          echo "== lines 720-780 =="
+          nl -ba backend/src/main/resources/openapi/openapi.yaml | sed -n '720,780p'
+          echo "== line count =="
+          wc -l backend/src/main/resources/openapi/openapi.yaml
       - name: Generate TypeScript API client
         working-directory: frontend
         run: npm run api:generate
