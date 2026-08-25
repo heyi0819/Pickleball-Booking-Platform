@@ -23,6 +23,21 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
+      - name: Fix one-time helper replacement semantics
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("frontend/scripts/apply-slice4-openapi.mjs")
+          text = path.read_text(encoding="utf-8")
+          old_components = 'text = text.replace("\\ncomponents:\\n", `${paths}\\ncomponents:\\n`);'
+          new_components = 'text = text.replace("\\ncomponents:\\n", () => `${paths}\\ncomponents:\\n`);'
+          old_schemas = 'text = text.replace("  schemas:\\n", `  schemas:\\n${schemas}`);'
+          new_schemas = 'text = text.replace("  schemas:\\n", () => `  schemas:\\n${schemas}`);'
+          if old_components not in text or old_schemas not in text:
+              raise SystemExit("Expected helper replacement expressions were not found")
+          text = text.replace(old_components, new_components).replace(old_schemas, new_schemas)
+          path.write_text(text, encoding="utf-8")
+          PY
       - name: Apply Slice 4 OpenAPI contract
         run: node frontend/scripts/apply-slice4-openapi.mjs
       - name: Inspect generated OpenAPI boundary
@@ -30,8 +45,8 @@ jobs:
         run: |
           echo "== marker lines =="
           grep -nE 'CourseOfferingPricingPreviewRequest|CourseOfferingPricingConfirmationRequest|CourseOfferingConfirmationEnvelope|ProfileUpdateRequest|pattern:' backend/src/main/resources/openapi/openapi.yaml || true
-          echo "== lines 720-780 =="
-          nl -ba backend/src/main/resources/openapi/openapi.yaml | sed -n '720,780p'
+          echo "== lines 720-765 =="
+          nl -ba backend/src/main/resources/openapi/openapi.yaml | sed -n '720,765p'
           echo "== line count =="
           wc -l backend/src/main/resources/openapi/openapi.yaml
       - name: Generate TypeScript API client
