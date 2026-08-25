@@ -720,6 +720,19 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
 
+  /coach-cancellation-requests:
+    get:
+      operationId: listCoachCancellationRequestsForReview
+      tags: [Course operations]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, description: 'COMMITTEE only; must be within the actor organization scope.', schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Pending coach cancellation requests for Committee review, content: { application/json: { schema: { $ref: '#/components/schemas/CoachCancellationReviewQueueEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /coach-cancellation-requests/{requestId}/review:
     post:
       operationId: reviewCoachSessionCancellation
@@ -757,6 +770,19 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /session-change-requests:
+    get:
+      operationId: listSessionChangeRequestsForReview
+      tags: [Course operations]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, description: 'COMMITTEE only; must be within the actor organization scope.', schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Pending RESCHEDULE requests for Committee review, content: { application/json: { schema: { $ref: '#/components/schemas/SessionChangeReviewQueueEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /session-change-requests/{requestId}/review:
     post:
@@ -1220,6 +1246,42 @@ components:
         createdAt: { type: string, format: date-time }
         reviewedAt: { type: [string, 'null'], format: date-time }
 
+    CoachCancellationReviewQueueItem:
+      type: object
+      required: [requestId, sessionId, courseId, courseNo, sequenceNo, scheduledStartAt, scheduledEndAt, requestedBy, requesterDisplayName, reason, status, createdAt]
+      properties:
+        requestId: { type: string, format: uuid }
+        sessionId: { type: string, format: uuid }
+        courseId: { type: string, format: uuid }
+        courseNo: { type: string }
+        sequenceNo: { type: integer, minimum: 1 }
+        scheduledStartAt: { type: string, format: date-time }
+        scheduledEndAt: { type: string, format: date-time }
+        requestedBy: { type: string, format: uuid }
+        requesterDisplayName: { type: string }
+        reason: { type: string }
+        status: { type: string, enum: [PENDING_REVIEW] }
+        createdAt: { type: string, format: date-time }
+
+    SessionChangeReviewQueueItem:
+      type: object
+      required: [requestId, sessionId, courseId, courseNo, sequenceNo, scheduledStartAt, scheduledEndAt, requestedBy, requesterDisplayName, proposedStartAt, proposedEndAt, reason, status, createdAt]
+      properties:
+        requestId: { type: string, format: uuid }
+        sessionId: { type: string, format: uuid }
+        courseId: { type: string, format: uuid }
+        courseNo: { type: string }
+        sequenceNo: { type: integer, minimum: 1 }
+        scheduledStartAt: { type: string, format: date-time }
+        scheduledEndAt: { type: string, format: date-time }
+        requestedBy: { type: string, format: uuid }
+        requesterDisplayName: { type: string }
+        proposedStartAt: { type: string, format: date-time }
+        proposedEndAt: { type: string, format: date-time }
+        reason: { type: string }
+        status: { type: string, enum: [PENDING] }
+        createdAt: { type: string, format: date-time }
+
     CourseOperationReviewRequest:
       type: object
       required: [decision, reason]
@@ -1320,6 +1382,20 @@ components:
       required: [data, meta]
       properties:
         data: { $ref: '#/components/schemas/CoachSessionCancellation' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    CoachCancellationReviewQueueEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/CoachCancellationReviewQueueItem' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    SessionChangeReviewQueueEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/SessionChangeReviewQueueItem' } }
         meta: { $ref: '#/components/schemas/Meta' }
 
     CoachSessionCancellationReviewEnvelope:

@@ -131,6 +131,47 @@ public class CourseOperationsQueryService {
         return rows.getFirst();
     }
 
+    @Transactional(readOnly = true)
+    public List<SessionChangeReviewSummary> sessionChangeRequestsForReview(
+            AuthenticatedPrincipal actor, UUID organizationId) {
+        requireActor(actor);
+        requireCommitteeScope(actor, organizationId);
+        var params = new MapSqlParameterSource().addValue("organizationId", organizationId);
+        return jdbc.query("""
+                select r.id as request_id, r.course_session_id, s.course_id, c.course_no, s.sequence_no,
+                       s.scheduled_start_at, s.scheduled_end_at, r.requested_by, u.display_name as requester_display_name,
+                       r.proposed_start_at, r.proposed_end_at, r.reason, r.status, r.created_at
+                  from session_change_requests r
+                  join course_sessions s on s.id=r.course_session_id
+                  join courses c on c.id=s.course_id
+                  join users u on u.id=r.requested_by
+                 where r.organization_id=:organizationId
+                   and r.request_type='RESCHEDULE'
+                   and r.status='PENDING'
+                 order by r.created_at asc, r.id
+                """, params, SESSION_CHANGE_REVIEW_MAPPER);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CoachCancellationReviewSummary> coachCancellationRequestsForReview(
+            AuthenticatedPrincipal actor, UUID organizationId) {
+        requireActor(actor);
+        requireCommitteeScope(actor, organizationId);
+        var params = new MapSqlParameterSource().addValue("organizationId", organizationId);
+        return jdbc.query("""
+                select r.id as request_id, r.course_session_id, s.course_id, c.course_no, s.sequence_no,
+                       s.scheduled_start_at, s.scheduled_end_at, r.requested_by, u.display_name as requester_display_name,
+                       r.reason, r.status, r.created_at
+                  from course_cancellation_requests r
+                  join course_sessions s on s.id=r.course_session_id
+                  join courses c on c.id=s.course_id
+                  join users u on u.id=r.requested_by
+                 where r.organization_id=:organizationId
+                   and r.status='PENDING_REVIEW'
+                 order by r.created_at asc, r.id
+                """, params, COACH_CANCELLATION_REVIEW_MAPPER);
+    }
+
     private String sessionSelect() {
         return """
                 select s.id, s.organization_id, s.course_id, s.sequence_no,
@@ -181,6 +222,19 @@ public class CourseOperationsQueryService {
                 && !scope.committeeOrganizations().contains(filter.organizationId())) {
             throw new BusinessException("ORG_SCOPE_DENIED",
                     "Requested organization is outside the Committee authorization scope");
+        }
+    }
+
+    private void requireCommitteeScope(AuthenticatedPrincipal actor, UUID organizationId) {
+        if (organizationId == null) {
+            throw new IllegalArgumentException("organizationId is required");
+        }
+        Scope actorScope = scope(actor);
+        if (actorScope.committeeOrganizations().isEmpty()) {
+            throw new BusinessException("AUTH_FORBIDDEN", "Committee role is required for Course Operations review queues");
+        }
+        if (!actorScope.committeeOrganizations().contains(organizationId)) {
+            throw new BusinessException("ORG_SCOPE_DENIED", "Requested organization is outside the Committee authorization scope");
         }
     }
 
@@ -354,6 +408,23 @@ public class CourseOperationsQueryService {
             rs.getString("venue_status"), uuid(rs, "coach_profile_id"), rs.getString("coach_display_name"),
             uuid(rs, "own_enrollment_id"), rs.getString("own_enrollment_status"));
 
+    private static final RowMapper<SessionChangeReviewSummary> SESSION_CHANGE_REVIEW_MAPPER = (rs, rowNum) ->
+            new SessionChangeReviewSummary(
+                    uuid(rs, "request_id"), uuid(rs, "course_session_id"), uuid(rs, "course_id"),
+                    rs.getString("course_no"), rs.getInt("sequence_no"),
+                    instant(rs, "scheduled_start_at"), instant(rs, "scheduled_end_at"),
+                    uuid(rs, "requested_by"), rs.getString("requester_display_name"),
+                    instant(rs, "proposed_start_at"), instant(rs, "proposed_end_at"),
+                    rs.getString("reason"), rs.getString("status"), instant(rs, "created_at"));
+
+    private static final RowMapper<CoachCancellationReviewSummary> COACH_CANCELLATION_REVIEW_MAPPER = (rs, rowNum) ->
+            new CoachCancellationReviewSummary(
+                    uuid(rs, "request_id"), uuid(rs, "course_session_id"), uuid(rs, "course_id"),
+                    rs.getString("course_no"), rs.getInt("sequence_no"),
+                    instant(rs, "scheduled_start_at"), instant(rs, "scheduled_end_at"),
+                    uuid(rs, "requested_by"), rs.getString("requester_display_name"),
+                    rs.getString("reason"), rs.getString("status"), instant(rs, "created_at"));
+
     public record CourseFilter(
             UUID organizationId,
             String status,
@@ -435,6 +506,36 @@ public class CourseOperationsQueryService {
             String coachDisplayName,
             UUID ownEnrollmentId,
             String ownEnrollmentStatus) { }
+
+    public record SessionChangeReviewSummary(
+            UUID requestId,
+            UUID sessionId,
+            UUID courseId,
+            String courseNo,
+            int sequenceNo,
+            Instant scheduledStartAt,
+            Instant scheduledEndAt,
+            UUID requestedBy,
+            String requesterDisplayName,
+            Instant proposedStartAt,
+            Instant proposedEndAt,
+            String reason,
+            String status,
+            Instant createdAt) { }
+
+    public record CoachCancellationReviewSummary(
+            UUID requestId,
+            UUID sessionId,
+            UUID courseId,
+            String courseNo,
+            int sequenceNo,
+            Instant scheduledStartAt,
+            Instant scheduledEndAt,
+            UUID requestedBy,
+            String requesterDisplayName,
+            String reason,
+            String status,
+            Instant createdAt) { }
 
     private record Scope(
             boolean platformAdmin,

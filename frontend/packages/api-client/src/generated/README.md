@@ -89,8 +89,10 @@ All URIs are relative to */api/v1*
 *CourseOperationsApi* | [**createSessionChangeRequest**](docs/CourseOperationsApi.md#createsessionchangerequest) | **POST** /course-sessions/{sessionId}/change-requests |
 *CourseOperationsApi* | [**getCourse**](docs/CourseOperationsApi.md#getcourse) | **GET** /courses/{courseId} |
 *CourseOperationsApi* | [**getCourseSession**](docs/CourseOperationsApi.md#getcoursesession) | **GET** /course-sessions/{sessionId} |
+*CourseOperationsApi* | [**listCoachCancellationRequestsForReview**](docs/CourseOperationsApi.md#listcoachcancellationrequestsforreview) | **GET** /coach-cancellation-requests |
 *CourseOperationsApi* | [**listCourseSessions**](docs/CourseOperationsApi.md#listcoursesessions) | **GET** /courses/{courseId}/sessions |
 *CourseOperationsApi* | [**listCourses**](docs/CourseOperationsApi.md#listcourses) | **GET** /courses |
+*CourseOperationsApi* | [**listSessionChangeRequestsForReview**](docs/CourseOperationsApi.md#listsessionchangerequestsforreview) | **GET** /session-change-requests |
 *CourseOperationsApi* | [**requestCoachSessionCancellation**](docs/CourseOperationsApi.md#requestcoachsessioncancellation) | **POST** /course-sessions/{sessionId}/coach-cancellation-requests |
 *CourseOperationsApi* | [**rescheduleCourseSession**](docs/CourseOperationsApi.md#reschedulecoursesession) | **POST** /course-sessions/{sessionId}/reschedule |
 *CourseOperationsApi* | [**reviewCoachSessionCancellation**](docs/CourseOperationsApi.md#reviewcoachsessioncancellation) | **POST** /coach-cancellation-requests/{requestId}/review |
@@ -117,6 +119,8 @@ All URIs are relative to */api/v1*
 - [CoachApplicationEnvelope](docs/CoachApplicationEnvelope.md)
 - [CoachApplicationListEnvelope](docs/CoachApplicationListEnvelope.md)
 - [CoachApplicationRequest](docs/CoachApplicationRequest.md)
+- [CoachCancellationReviewQueueEnvelope](docs/CoachCancellationReviewQueueEnvelope.md)
+- [CoachCancellationReviewQueueItem](docs/CoachCancellationReviewQueueItem.md)
 - [CoachSessionCancellation](docs/CoachSessionCancellation.md)
 - [CoachSessionCancellationEnvelope](docs/CoachSessionCancellationEnvelope.md)
 - [CoachSessionCancellationRequest](docs/CoachSessionCancellationRequest.md)
@@ -213,6 +217,8 @@ All URIs are relative to */api/v1*
 - [SelectedAvailabilityRequest](docs/SelectedAvailabilityRequest.md)
 - [SessionChangeRequest](docs/SessionChangeRequest.md)
 - [SessionChangeRequestEnvelope](docs/SessionChangeRequestEnvelope.md)
+- [SessionChangeReviewQueueEnvelope](docs/SessionChangeReviewQueueEnvelope.md)
+- [SessionChangeReviewQueueItem](docs/SessionChangeReviewQueueItem.md)
 - [SessionEnrollmentCancellation](docs/SessionEnrollmentCancellation.md)
 - [SessionEnrollmentCancellationEnvelope](docs/SessionEnrollmentCancellationEnvelope.md)
 - [SessionEnrollmentCancellationRequest](docs/SessionEnrollmentCancellationRequest.md)

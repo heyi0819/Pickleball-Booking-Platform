@@ -69,6 +69,7 @@ test("student LIFF browses, registers, refreshes capacity, and cancels open enro
     if (method === "GET" && path === "/api/v1/me") return route.fulfill({ json: studentMe });
     if (method === "GET" && path === "/api/v1/coach-availability-proposals/available") return fulfill(route, []);
     if (method === "GET" && path === "/api/v1/lesson-requests/mine") return fulfill(route, []);
+    if (method === "GET" && path === "/api/v1/courses") return fulfill(route, { items: [], page: 0, size: 100, total: 0 });
     if (method === "GET" && path === "/api/v1/course-offerings") return fulfill(route, { items: [summary()], page: 0, size: 100, total: 1 });
     if (method === "GET" && path === "/api/v1/course-offerings/o1") return fulfill(route, {
       summary: summary(),
@@ -174,6 +175,9 @@ test("committee Admin creates, prices, publishes, closes, and forms an open enro
     if (method === "GET" && path === "/api/v1/coach-availability-proposals") return fulfill(route, []);
     if (method === "GET" && path === "/api/v1/lesson-requests") return fulfill(route, []);
     if (method === "GET" && path === "/api/v1/course-matches") return fulfill(route, []);
+    if (method === "GET" && path === "/api/v1/courses") return fulfill(route, { items: [], page: 0, size: 100, total: 0 });
+    if (method === "GET" && path === "/api/v1/session-change-requests") return fulfill(route, []);
+    if (method === "GET" && path === "/api/v1/coach-cancellation-requests") return fulfill(route, []);
     if (method === "GET" && path === "/api/v1/course-offerings") return fulfill(route, { items: created ? [summary()] : [], page: 0, size: 100, total: created ? 1 : 0 });
     if (method === "POST" && path === "/api/v1/course-offerings") {
       created = true;

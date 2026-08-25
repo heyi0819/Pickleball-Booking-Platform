@@ -8,8 +8,10 @@ All URIs are relative to */api/v1*
 | [**createSessionChangeRequest**](CourseOperationsApi.md#createsessionchangerequest) | **POST** /course-sessions/{sessionId}/change-requests |  |
 | [**getCourse**](CourseOperationsApi.md#getcourse) | **GET** /courses/{courseId} |  |
 | [**getCourseSession**](CourseOperationsApi.md#getcoursesession) | **GET** /course-sessions/{sessionId} |  |
+| [**listCoachCancellationRequestsForReview**](CourseOperationsApi.md#listcoachcancellationrequestsforreview) | **GET** /coach-cancellation-requests |  |
 | [**listCourseSessions**](CourseOperationsApi.md#listcoursesessions) | **GET** /courses/{courseId}/sessions |  |
 | [**listCourses**](CourseOperationsApi.md#listcourses) | **GET** /courses |  |
+| [**listSessionChangeRequestsForReview**](CourseOperationsApi.md#listsessionchangerequestsforreview) | **GET** /session-change-requests |  |
 | [**requestCoachSessionCancellation**](CourseOperationsApi.md#requestcoachsessioncancellation) | **POST** /course-sessions/{sessionId}/coach-cancellation-requests |  |
 | [**rescheduleCourseSession**](CourseOperationsApi.md#reschedulecoursesession) | **POST** /course-sessions/{sessionId}/reschedule |  |
 | [**reviewCoachSessionCancellation**](CourseOperationsApi.md#reviewcoachsessioncancellation) | **POST** /coach-cancellation-requests/{requestId}/review |  |
@@ -322,6 +324,78 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## listCoachCancellationRequestsForReview
+
+> CoachCancellationReviewQueueEnvelope listCoachCancellationRequestsForReview(organizationId)
+
+
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CourseOperationsApi,
+} from '@pickleball/api-client-generated';
+import type { ListCoachCancellationRequestsForReviewRequest } from '@pickleball/api-client-generated';
+
+async function example() {
+  console.log("🚀 Testing @pickleball/api-client-generated SDK...");
+  const config = new Configuration({
+    // Configure HTTP bearer authorization: bearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new CourseOperationsApi(config);
+
+  const body = {
+    // string | COMMITTEE only; must be within the actor organization scope.
+    organizationId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+  } satisfies ListCoachCancellationRequestsForReviewRequest;
+
+  try {
+    const data = await api.listCoachCancellationRequestsForReview(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **organizationId** | `string` | COMMITTEE only; must be within the actor organization scope. | [Defaults to `undefined`] |
+
+### Return type
+
+[**CoachCancellationReviewQueueEnvelope**](CoachCancellationReviewQueueEnvelope.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Pending coach cancellation requests for Committee review |  -  |
+| **400** | Invalid request |  -  |
+| **401** | Invalid or missing token |  -  |
+| **403** | Access forbidden |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## listCourseSessions
 
 > CourseSessionListEnvelope listCourseSessions(courseId)
@@ -487,6 +561,78 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Role-scoped formal courses |  -  |
+| **400** | Invalid request |  -  |
+| **401** | Invalid or missing token |  -  |
+| **403** | Access forbidden |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listSessionChangeRequestsForReview
+
+> SessionChangeReviewQueueEnvelope listSessionChangeRequestsForReview(organizationId)
+
+
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CourseOperationsApi,
+} from '@pickleball/api-client-generated';
+import type { ListSessionChangeRequestsForReviewRequest } from '@pickleball/api-client-generated';
+
+async function example() {
+  console.log("🚀 Testing @pickleball/api-client-generated SDK...");
+  const config = new Configuration({
+    // Configure HTTP bearer authorization: bearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new CourseOperationsApi(config);
+
+  const body = {
+    // string | COMMITTEE only; must be within the actor organization scope.
+    organizationId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+  } satisfies ListSessionChangeRequestsForReviewRequest;
+
+  try {
+    const data = await api.listSessionChangeRequestsForReview(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **organizationId** | `string` | COMMITTEE only; must be within the actor organization scope. | [Defaults to `undefined`] |
+
+### Return type
+
+[**SessionChangeReviewQueueEnvelope**](SessionChangeReviewQueueEnvelope.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Pending RESCHEDULE requests for Committee review |  -  |
 | **400** | Invalid request |  -  |
 | **401** | Invalid or missing token |  -  |
 | **403** | Access forbidden |  -  |

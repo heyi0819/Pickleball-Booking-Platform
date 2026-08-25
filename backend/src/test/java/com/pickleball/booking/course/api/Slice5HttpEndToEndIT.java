@@ -157,6 +157,24 @@ class Slice5HttpEndToEndIT {
                 "select status from course_sessions where id=?", String.class, fixture.sessionId()))
                 .isEqualTo("CANCEL_PENDING");
 
+        JsonNode queue = data(request(
+                "GET", "/api/v1/coach-cancellation-requests?organizationId=" + fixture.organizationId(),
+                committeeToken, null, null, 200));
+        assertThat(queue).hasSize(1);
+        assertThat(queue.get(0).get("requestId").asText()).isEqualTo(requestId.toString());
+        assertThat(queue.get(0).get("courseNo").asText()).isNotBlank();
+        assertThat(queue.get(0).get("requesterDisplayName").asText()).isEqualTo("Coach S5");
+
+        JsonNode queueForbidden = error(request(
+                "GET", "/api/v1/coach-cancellation-requests?organizationId=" + fixture.organizationId(),
+                studentToken, null, null, 403));
+        assertThat(queueForbidden.get("code").asText()).isEqualTo("AUTH_FORBIDDEN");
+
+        JsonNode queueOtherOrg = error(request(
+                "GET", "/api/v1/coach-cancellation-requests?organizationId=" + UUID.randomUUID(),
+                committeeToken, null, null, 403));
+        assertThat(queueOtherOrg.get("code").asText()).isEqualTo("ORG_SCOPE_DENIED");
+
         JsonNode forbidden = error(request(
                 "POST", "/api/v1/coach-cancellation-requests/" + requestId + "/review",
                 studentToken, null, "{\"decision\":\"APPROVE\",\"reason\":\"No\"}", 403));
@@ -167,6 +185,10 @@ class Slice5HttpEndToEndIT {
                 committeeToken, null, "{\"decision\":\"APPROVE\",\"reason\":\"Approved\"}", 200));
         assertThat(approved.get("status").asText()).isEqualTo("APPROVED");
         assertThat(approved.get("sessionStatus").asText()).isEqualTo("CANCELLED");
+        JsonNode queueAfterReview = data(request(
+                "GET", "/api/v1/coach-cancellation-requests?organizationId=" + fixture.organizationId(),
+                committeeToken, null, null, 200));
+        assertThat(queueAfterReview).isEmpty();
         assertThat(jdbc.queryForObject("""
                 select count(*) from schedule_reservations
                  where course_session_id=? and status in ('HELD','CONFIRMED')
@@ -199,6 +221,15 @@ class Slice5HttpEndToEndIT {
         assertThat(created.get("status").asText()).isEqualTo("PENDING");
         assertThat(sessionStart(fixture.sessionId())).isEqualTo(original);
 
+        JsonNode changeQueue = data(request(
+                "GET", "/api/v1/session-change-requests?organizationId=" + fixture.organizationId(),
+                committeeToken, null, null, 200));
+        assertThat(changeQueue).hasSize(1);
+        assertThat(changeQueue.get(0).get("requestId").asText()).isEqualTo(changeRequestId.toString());
+        assertThat(changeQueue.get(0).get("scheduledStartAt").asText()).isEqualTo(original.toString());
+        assertThat(changeQueue.get(0).get("proposedStartAt").asText()).isEqualTo(proposed.toString());
+        assertThat(changeQueue.get(0).get("requesterDisplayName").asText()).isEqualTo("Student S5");
+
         JsonNode conflictKey = error(request(
                 "POST", "/api/v1/course-sessions/" + fixture.sessionId() + "/change-requests",
                 studentToken, requestKey,
@@ -212,6 +243,10 @@ class Slice5HttpEndToEndIT {
         assertThat(reviewed.get("status").asText()).isEqualTo("APPROVED");
         assertThat(reviewed.get("scheduledStartAt").asText()).isEqualTo(proposed.toString());
         assertThat(sessionStart(fixture.sessionId())).isEqualTo(proposed);
+        JsonNode changeQueueAfterReview = data(request(
+                "GET", "/api/v1/session-change-requests?organizationId=" + fixture.organizationId(),
+                committeeToken, null, null, 200));
+        assertThat(changeQueueAfterReview).isEmpty();
 
         Instant direct = proposed.plusSeconds(7200);
         JsonNode directResult = data(request(

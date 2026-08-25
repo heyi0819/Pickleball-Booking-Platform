@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  CoachCancellationReviewQueueEnvelope,
   CoachSessionCancellationEnvelope,
   CoachSessionCancellationRequest,
   CoachSessionCancellationReviewEnvelope,
@@ -26,12 +27,15 @@ import type {
   DirectSessionRescheduleRequest,
   ErrorEnvelope,
   SessionChangeRequestEnvelope,
+  SessionChangeReviewQueueEnvelope,
   SessionEnrollmentCancellationEnvelope,
   SessionEnrollmentCancellationRequest,
   SessionRescheduleRequest,
   SessionRescheduleResultEnvelope,
 } from '../models/index';
 import {
+    CoachCancellationReviewQueueEnvelopeFromJSON,
+    CoachCancellationReviewQueueEnvelopeToJSON,
     CoachSessionCancellationEnvelopeFromJSON,
     CoachSessionCancellationEnvelopeToJSON,
     CoachSessionCancellationRequestFromJSON,
@@ -54,6 +58,8 @@ import {
     ErrorEnvelopeToJSON,
     SessionChangeRequestEnvelopeFromJSON,
     SessionChangeRequestEnvelopeToJSON,
+    SessionChangeReviewQueueEnvelopeFromJSON,
+    SessionChangeReviewQueueEnvelopeToJSON,
     SessionEnrollmentCancellationEnvelopeFromJSON,
     SessionEnrollmentCancellationEnvelopeToJSON,
     SessionEnrollmentCancellationRequestFromJSON,
@@ -83,6 +89,10 @@ export interface GetCourseSessionRequest {
     sessionId: string;
 }
 
+export interface ListCoachCancellationRequestsForReviewRequest {
+    organizationId: string;
+}
+
 export interface ListCourseSessionsRequest {
     courseId: string;
 }
@@ -98,6 +108,10 @@ export interface ListCoursesRequest {
     page?: number;
     size?: number;
     sort?: ListCoursesSortEnum;
+}
+
+export interface ListSessionChangeRequestsForReviewRequest {
+    organizationId: string;
 }
 
 export interface RequestCoachSessionCancellationRequest {
@@ -186,6 +200,19 @@ export interface CourseOperationsApiInterface {
 
     /**
      *
+     * @param {string} organizationId COMMITTEE only; must be within the actor organization scope.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CourseOperationsApiInterface
+     */
+    listCoachCancellationRequestsForReviewRaw(requestParameters: ListCoachCancellationRequestsForReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CoachCancellationReviewQueueEnvelope>>;
+
+    /**
+     */
+    listCoachCancellationRequestsForReview(requestParameters: ListCoachCancellationRequestsForReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CoachCancellationReviewQueueEnvelope>;
+
+    /**
+     *
      * @param {string} courseId
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -218,6 +245,19 @@ export interface CourseOperationsApiInterface {
     /**
      */
     listCourses(requestParameters: ListCoursesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CoursePageEnvelope>;
+
+    /**
+     *
+     * @param {string} organizationId COMMITTEE only; must be within the actor organization scope.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CourseOperationsApiInterface
+     */
+    listSessionChangeRequestsForReviewRaw(requestParameters: ListSessionChangeRequestsForReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SessionChangeReviewQueueEnvelope>>;
+
+    /**
+     */
+    listSessionChangeRequestsForReview(requestParameters: ListSessionChangeRequestsForReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionChangeReviewQueueEnvelope>;
 
     /**
      *
@@ -482,6 +522,52 @@ export class CourseOperationsApi extends runtime.BaseAPI implements CourseOperat
 
     /**
      */
+    async listCoachCancellationRequestsForReviewRaw(requestParameters: ListCoachCancellationRequestsForReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CoachCancellationReviewQueueEnvelope>> {
+        if (requestParameters['organizationId'] == null) {
+            throw new runtime.RequiredError(
+                'organizationId',
+                'Required parameter "organizationId" was null or undefined when calling listCoachCancellationRequestsForReview().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['organizationId'] != null) {
+            queryParameters['organizationId'] = requestParameters['organizationId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/coach-cancellation-requests`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CoachCancellationReviewQueueEnvelopeFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async listCoachCancellationRequestsForReview(requestParameters: ListCoachCancellationRequestsForReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CoachCancellationReviewQueueEnvelope> {
+        const response = await this.listCoachCancellationRequestsForReviewRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
     async listCourseSessionsRaw(requestParameters: ListCourseSessionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CourseSessionListEnvelope>> {
         if (requestParameters['courseId'] == null) {
             throw new runtime.RequiredError(
@@ -595,6 +681,52 @@ export class CourseOperationsApi extends runtime.BaseAPI implements CourseOperat
      */
     async listCourses(requestParameters: ListCoursesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CoursePageEnvelope> {
         const response = await this.listCoursesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async listSessionChangeRequestsForReviewRaw(requestParameters: ListSessionChangeRequestsForReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SessionChangeReviewQueueEnvelope>> {
+        if (requestParameters['organizationId'] == null) {
+            throw new runtime.RequiredError(
+                'organizationId',
+                'Required parameter "organizationId" was null or undefined when calling listSessionChangeRequestsForReview().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['organizationId'] != null) {
+            queryParameters['organizationId'] = requestParameters['organizationId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("bearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/session-change-requests`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SessionChangeReviewQueueEnvelopeFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async listSessionChangeRequestsForReview(requestParameters: ListSessionChangeRequestsForReviewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionChangeReviewQueueEnvelope> {
+        const response = await this.listSessionChangeRequestsForReviewRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
