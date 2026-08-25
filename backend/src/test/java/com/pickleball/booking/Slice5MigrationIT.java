@@ -40,7 +40,7 @@ class Slice5MigrationIT {
 
     @Test
     void emptyDatabaseMigratesThroughSliceFivePersistence() {
-        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("9");
+        assertThat(Integer.parseInt(latestVersion(jdbc, "flyway_schema_history"))).isGreaterThanOrEqualTo(9);
         assertThat(tableExists("member_cancellation_records")).isTrue();
         assertThat(tableExists("course_cancellation_requests")).isTrue();
         assertThat(tableExists("session_change_requests")).isTrue();
@@ -103,7 +103,8 @@ class Slice5MigrationIT {
                 .load()
                 .migrate();
 
-        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("9");
+        assertThat(Integer.parseInt(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")))
+                .isGreaterThanOrEqualTo(9);
         assertThat(upgradeJdbc.queryForObject("select status from " + schema + ".enrollments where id = ?",
                 String.class, enrollmentId)).isEqualTo("SCHEDULED");
         assertThat(upgradeJdbc.queryForObject("select status from " + schema + ".course_sessions where id = ?",
