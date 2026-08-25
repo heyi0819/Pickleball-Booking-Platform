@@ -1,4 +1,15 @@
-import { ApiClientError, createApiClient, type AvailabilityProposal, type CourseMatchInvitationSummary, type LessonRequest, type Me, type RoleContext } from "@pickleball/api-client";
+import {
+  ApiClientError,
+  createApiClient,
+  type AvailabilityProposal,
+  type CourseMatchInvitationSummary,
+  type CourseOfferingDetail,
+  type CourseOfferingSummary,
+  type LessonRequest,
+  type Me,
+  type MyCourseOfferingRegistration,
+  type RoleContext,
+} from "@pickleball/api-client";
 import liff from "@line/liff";
 import { PageShell } from "@pickleball/ui";
 import { platformName } from "@pickleball/shared";
@@ -43,15 +54,92 @@ export function App() {
     try { await api.updateProfile(token, { displayName: String(form.get("displayName")), phone: String(form.get("phone")) || null, email: String(form.get("email")) || null, locale: String(form.get("locale")) }); await loadMe(token); }
     catch { setError("Unable to update profile"); setState("error"); }
   }
+  const token = sessionStorage.getItem(TOKEN_KEY) ?? "";
   return <PageShell><h1>{platformName}</h1>
     {state === "loading" && <p>Signing in with LINE…</p>}
     {state === "error" && <><p role="alert">{error}</p><button onClick={() => { setState("loading"); void bootstrap(); }}>Retry</button></>}
     {state === "profile" && <form onSubmit={submitProfile}><h2>Complete your profile</h2><label>Name <input name="displayName" defaultValue={me?.displayName} required /></label><label>Phone <input name="phone" defaultValue={me?.phone ?? ""} /></label><label>Email <input name="email" type="email" defaultValue={me?.email ?? ""} /></label><input name="locale" defaultValue={me?.locale ?? "zh-TW"} hidden /><button>Save profile</button></form>}
     {state === "roles" && <><h2>Select your role</h2>{me?.roles.map((role) => <button key={`${role.roleCode}-${role.organizationId ?? "global"}`} onClick={() => { setSelectedRole(role); setState("home"); }}>{role.roleCode}</button>)}</>}
     {state === "no-roles" && <p>No active role is available. Please contact an administrator.</p>}
-    {state === "home" && <><h2>{selectedRole?.roleCode} entry</h2><p>{selectedRole?.organizationName ?? "Platform-wide access"}</p>{selectedRole?.roleCode === "STUDENT" && <StudentLessonDemand token={sessionStorage.getItem(TOKEN_KEY) ?? ""} />}{selectedRole?.roleCode === "COACH" && <CoachSupply token={sessionStorage.getItem(TOKEN_KEY) ?? ""} />}</>}
+    {state === "home" && <><h2>{selectedRole?.roleCode} entry</h2><p>{selectedRole?.organizationName ?? "Platform-wide access"}</p>{selectedRole?.roleCode === "STUDENT" && <><StudentOpenEnrollment token={token} /><StudentLessonDemand token={token} /></>}{selectedRole?.roleCode === "COACH" && <CoachSupply token={token} />}{selectedRole?.roleCode === "COMMITTEE" && selectedRole.organizationId && <CommitteeOpenEnrollment token={token} organizationId={selectedRole.organizationId} />}</>}
   </PageShell>;
 }
+
+function StudentOpenEnrollment({ token }: { token: string }) {
+  const [offerings, setOfferings] = useState<CourseOfferingSummary[]>([]);
+  const [registrations, setRegistrations] = useState<MyCourseOfferingRegistration[]>([]);
+  const [selected, setSelected] = useState<CourseOfferingDetail | null>(null);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const refresh = async () => {
+    const [openOfferings, mine] = await Promise.all([
+      api.listCourseOfferings(token, { status: "OPEN", size: 100, sort: "firstSessionAt,asc" }),
+      api.myCourseOfferingRegistrations(token),
+    ]);
+    setOfferings(openOfferings); setRegistrations(mine);
+  };
+  useEffect(() => { void refresh().catch(() => setMessage("無法載入公開課程，請稍後再試。")); }, [token]);
+  async function openDetail(id: string) { try { setSelected(await api.courseOfferingDetail(token, id)); } catch { setMessage("無法載入課程詳情。"); } }
+  async function register(offering: CourseOfferingSummary) {
+    setBusy(offering.id);
+    try {
+      await api.registerCourseOffering(token, offering.id, `offering-register-${offering.id}-${offering.version}`);
+      setMessage("報名成功，系統已保留你的課程時段。"); await refresh(); setSelected(await api.courseOfferingDetail(token, offering.id));
+    } catch (caught) { setMessage(studentOfferingError(caught)); await refresh().catch(() => undefined); }
+    finally { setBusy(null); }
+  }
+  async function cancel(registration: MyCourseOfferingRegistration) {
+    setBusy(registration.id);
+    try {
+      await api.cancelCourseOfferingRegistration(token, registration.id, `offering-registration-cancel-${registration.id}`);
+      setMessage("已取消報名並釋放保留時段。"); await refresh(); if (selected?.summary.id === registration.offeringId) setSelected(await api.courseOfferingDetail(token, registration.offeringId));
+    } catch (caught) { setMessage(caught instanceof ApiClientError ? `取消失敗：${caught.code}` : "無法取消報名。"); }
+    finally { setBusy(null); }
+  }
+  return <section aria-label="Open enrollment">
+    <h3>公開課程 / 開放報名</h3>{message && <p role="status">{message}</p>}
+    {offerings.length === 0 ? <p>目前沒有開放報名的公開課程。</p> : <ul>{offerings.map((offering) => <li key={offering.id}><strong>{offering.title}</strong> · {offering.coach.displayName} · {formatDate(offering.firstSessionAt)} · {formatPrice(offering)} · 剩餘 {offering.remainingCapacity} 名 · {registrationLabel(offering.registrationState)} <button onClick={() => void openDetail(offering.id)}>查看課程</button>{offering.registrationState === "OPEN" && <button disabled={busy === offering.id} onClick={() => void register(offering)}>立即報名</button>}</li>)}</ul>}
+    {selected && <section aria-label="Open enrollment detail"><h4>{selected.summary.title}</h4><p>{selected.description || "無課程說明"}</p><p>教練：{selected.summary.coach.displayName}</p><p>招生：{formatDate(selected.summary.registrationOpenAt)} ～ {formatDate(selected.summary.registrationCloseAt)}</p><p>人數：{selected.summary.registeredCount}/{selected.summary.maximumParticipants}（最低 {selected.summary.minimumParticipants}）</p><p>費用：{formatPrice(selected.summary)}</p><h5>課程堂次</h5><ul>{selected.sessionPlans.map((session) => <li key={session.id}>第 {session.sequenceNo} 堂：{formatDate(session.startAt)} ～ {formatDate(session.endAt)} · {session.venueName}</li>)}</ul><button onClick={() => setSelected(null)}>關閉詳情</button></section>}
+    <h3>我的公開課程報名</h3>{registrations.length === 0 ? <p>目前沒有公開課程報名紀錄。</p> : <ul>{registrations.map((registration) => <li key={registration.id}><strong>{registration.offeringTitle}</strong> · {registration.status} · {formatDate(registration.registeredAt)}{registration.courseId && <> · 已成班</>}{registration.status === "ACTIVE" && <button disabled={busy === registration.id} onClick={() => void cancel(registration)}>取消報名</button>}</li>)}</ul>}
+  </section>;
+}
+
+function CommitteeOpenEnrollment({ token, organizationId }: { token: string; organizationId: string }) {
+  const [offerings, setOfferings] = useState<CourseOfferingSummary[]>([]);
+  const [selected, setSelected] = useState<CourseOfferingDetail | null>(null);
+  const [registrationCount, setRegistrationCount] = useState(0);
+  const [pending, setPending] = useState<{ action: "confirm" | "cancel"; offeringId: string } | null>(null);
+  const [message, setMessage] = useState("");
+  const refresh = async () => setOfferings(await api.listCourseOfferings(token, { organizationId, size: 100, sort: "firstSessionAt,asc" }));
+  useEffect(() => { void refresh().catch(() => setMessage("無法載入公開招生管理。")); }, [token, organizationId]);
+  async function open(id: string) {
+    try { const [detail, registrations] = await Promise.all([api.courseOfferingDetail(token, id), api.listCourseOfferingRegistrations(token, id)]); setSelected(detail); setRegistrationCount(registrations.length); }
+    catch { setMessage("無法載入招生詳情。"); }
+  }
+  async function command(action: "publish" | "close" | "confirm" | "cancel", offering: CourseOfferingSummary) {
+    try {
+      if (action === "publish") await api.publishCourseOffering(token, offering.id, `liff-offering-publish-${offering.id}-${offering.version}`);
+      if (action === "close") await api.closeCourseOffering(token, offering.id, `liff-offering-close-${offering.id}-${offering.version}`);
+      if (action === "confirm") { const result = await api.confirmCourseOffering(token, offering.id, `liff-offering-confirm-${offering.id}-${offering.version}`); setMessage(`成班完成：${result.courseId}`); }
+      if (action === "cancel") await api.cancelCourseOffering(token, offering.id, `liff-offering-cancel-${offering.id}-${offering.version}`, { reason: "Cancelled via Committee LIFF" });
+      if (action !== "confirm") setMessage(action === "publish" ? "招生已發布。" : action === "close" ? "招生已關閉。" : "課程已取消。");
+      setPending(null); await refresh(); if (selected?.summary.id === offering.id) await open(offering.id);
+    } catch (caught) { setMessage(caught instanceof ApiClientError ? `操作失敗：${caught.code}` : "操作失敗，請稍後再試。"); setPending(null); }
+  }
+  return <section aria-label="Committee open enrollment"><h3>公開招生快速管理</h3>{message && <p role="status">{message}</p>}<p>建立、編輯 Session 與價格確認請使用 Web Admin；LIFF 提供招生監看與必要快速操作。</p>{offerings.length === 0 ? <p>目前沒有公開課程。</p> : <ul>{offerings.map((offering) => <li key={offering.id}><strong>{offering.title}</strong> · {offering.status} · {offering.registeredCount}/{offering.maximumParticipants} <button onClick={() => void open(offering.id)}>查看招生</button></li>)}</ul>}{selected && <section aria-label="Committee offering detail"><h4>{selected.summary.title}</h4><p>狀態：{selected.summary.status}</p><p>報名人數：{registrationCount}；最低 {selected.summary.minimumParticipants}；最高 {selected.summary.maximumParticipants}</p><p>價格：{formatPrice(selected.summary)}</p>{selected.summary.status === "DRAFT" && selected.summary.priceSnapshotId && <button onClick={() => void command("publish", selected.summary)}>發布招生</button>}{selected.summary.status === "OPEN" && <button onClick={() => void command("close", selected.summary)}>關閉招生</button>}{selected.summary.status === "CLOSED" && <button onClick={() => setPending({ action: "confirm", offeringId: selected.summary.id })}>成班</button>}{["DRAFT", "OPEN", "CLOSED"].includes(selected.summary.status) && <button onClick={() => setPending({ action: "cancel", offeringId: selected.summary.id })}>取消課程</button>}<button onClick={() => setSelected(null)}>關閉詳情</button></section>}{pending && selected?.summary.id === pending.offeringId && <section role="dialog" aria-label={pending.action === "confirm" ? "Confirm offering formation" : "Confirm offering cancellation"}><h4>{pending.action === "confirm" ? "確認成班" : "確認取消課程"}</h4><p>{pending.action === "confirm" ? "系統會再次驗證最低/最高人數，並原子建立正式課程與應收。" : "系統會取消 ACTIVE 報名並釋放保留時段。"}</p><button onClick={() => void command(pending.action, selected.summary)}>確認</button><button onClick={() => setPending(null)}>返回</button></section>}</section>;
+}
+
+function studentOfferingError(caught: unknown) {
+  if (!(caught instanceof ApiClientError)) return "報名失敗，請稍後再試。";
+  if (caught.code === "OFFERING_CAPACITY_FULL") return "課程名額已滿，已重新整理最新名額。";
+  if (caught.code === "OFFERING_ALREADY_REGISTERED") return "你已經報名這門課程。";
+  if (caught.code === "OFFERING_NOT_OPEN" || caught.code === "OFFERING_REGISTRATION_CLOSED") return "招生狀態已變更，請重新選擇課程。";
+  if (caught.code.includes("SCHEDULE") || caught.code.includes("CONFLICT")) return "你的時段與既有行程衝突，請選擇其他課程。";
+  return `報名失敗：${caught.code}`;
+}
+function formatDate(value?: Date | null) { return value ? value.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) : "時間待定"; }
+function formatPrice(offering: CourseOfferingSummary) { return offering.pricePerParticipant == null ? "價格待確認" : `${offering.currency ?? "TWD"} ${offering.pricePerParticipant}`; }
+function registrationLabel(state: CourseOfferingSummary["registrationState"]) { return state === "OPEN" ? "可報名" : state === "REGISTERED" ? "已報名" : state === "FULL" ? "已額滿" : state === "NOT_OPEN" ? "尚未開放" : "已截止"; }
 
 function StudentLessonDemand({ token }: { token: string }) {
   const [availability, setAvailability] = useState<AvailabilityProposal[]>([]);
