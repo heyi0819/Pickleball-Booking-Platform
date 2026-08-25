@@ -3,22 +3,27 @@ package com.pickleball.booking.offering.api;
 import com.pickleball.booking.identity.application.AuthenticatedPrincipal;
 import com.pickleball.booking.offering.application.CourseOfferingApiCommandService;
 import com.pickleball.booking.offering.application.CourseOfferingApplicationService;
+import com.pickleball.booking.offering.application.CourseOfferingPricingService;
 import com.pickleball.booking.offering.application.CourseOfferingQueryService;
 import com.pickleball.booking.offering.application.CourseOfferingQueryService.OfferingDetail;
 import com.pickleball.booking.offering.application.CourseOfferingQueryService.OfferingFilter;
 import com.pickleball.booking.offering.application.CourseOfferingQueryService.PageResult;
 import com.pickleball.booking.offering.application.CourseOfferingQueryService.RegistrationView;
+import com.pickleball.booking.offering.domain.CourseOfferingPriceSnapshot;
 import com.pickleball.booking.offering.domain.OfferingBillingMode;
 import com.pickleball.booking.offering.domain.OfferingScheduleType;
 import com.pickleball.booking.shared.api.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -40,14 +45,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class CourseOfferingController {
     private final CourseOfferingApplicationService core;
     private final CourseOfferingApiCommandService commands;
+    private final CourseOfferingPricingService pricing;
     private final CourseOfferingQueryService queries;
 
     public CourseOfferingController(
             CourseOfferingApplicationService core,
             CourseOfferingApiCommandService commands,
+            CourseOfferingPricingService pricing,
             CourseOfferingQueryService queries) {
         this.core = core;
         this.commands = commands;
+        this.pricing = pricing;
         this.queries = queries;
     }
 
@@ -94,8 +102,41 @@ public class CourseOfferingController {
             @Valid @RequestBody UpdateDraftRequest request,
             HttpServletRequest httpRequest) {
         var actor = principal(authentication);
-        var offering = core.reviseDraft(actor, offeringId, draftCommand(request));
+        var offering = pricing.reviseDraft(actor, offeringId, draftCommand(request));
         return response(queries.detail(actor, offering.id()), httpRequest);
+    }
+
+    @PostMapping("/course-offerings/{offeringId}/pricing-preview")
+    public ApiResponse<PricingPreviewView> pricingPreview(
+            Authentication authentication,
+            @PathVariable UUID offeringId,
+            @Valid @RequestBody PricingPreviewRequest request,
+            HttpServletRequest httpRequest) {
+        var preview = pricing.preview(
+                principal(authentication),
+                offeringId,
+                new CourseOfferingPricingService.PriceCandidate(request.currency(), request.pricePerParticipant()));
+        return response(new PricingPreviewView(
+                preview.offeringId(), preview.currency(), preview.pricePerParticipant().toPlainString(),
+                preview.billingMode(), preview.sessionCount(), preview.pricingFingerprint()), httpRequest);
+    }
+
+    @PostMapping("/course-offerings/{offeringId}/pricing-confirmation")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<PriceSnapshotView> pricingConfirmation(
+            Authentication authentication,
+            @PathVariable UUID offeringId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PricingConfirmationRequest request,
+            HttpServletRequest httpRequest) {
+        CourseOfferingPriceSnapshot snapshot = pricing.confirm(
+                principal(authentication),
+                offeringId,
+                idempotencyKey,
+                new CourseOfferingPricingService.ConfirmPricingCommand(
+                        request.acceptedPricePerParticipant(), request.currency(),
+                        request.pricingFingerprint(), request.confirmationNote()));
+        return response(priceSnapshotView(snapshot), httpRequest);
     }
 
     @PostMapping("/course-offerings/{offeringId}/publication")
@@ -236,6 +277,14 @@ public class CourseOfferingController {
                 registration.convertedCourseMembershipId());
     }
 
+    private PriceSnapshotView priceSnapshotView(CourseOfferingPriceSnapshot snapshot) {
+        Object fingerprint = snapshot.ruleTrace().get("pricingFingerprint");
+        return new PriceSnapshotView(
+                snapshot.id(), snapshot.courseOfferingId(), snapshot.status().name(), snapshot.currency(),
+                snapshot.pricePerParticipant().toPlainString(),
+                fingerprint == null ? null : fingerprint.toString(), snapshot.confirmedBy(), snapshot.confirmedAt());
+    }
+
     private AuthenticatedPrincipal principal(Authentication authentication) {
         return (AuthenticatedPrincipal) authentication.getPrincipal();
     }
@@ -279,6 +328,34 @@ public class CourseOfferingController {
             UUID venueId,
             @NotBlank @Size(max = 150) String venueName,
             @Size(max = 300) String venueAddress) { }
+
+    public record PricingPreviewRequest(
+            @NotBlank @Pattern(regexp = "[A-Za-z]{3}") String currency,
+            @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal pricePerParticipant) { }
+
+    public record PricingConfirmationRequest(
+            @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal acceptedPricePerParticipant,
+            @NotBlank @Pattern(regexp = "[A-Za-z]{3}") String currency,
+            @NotBlank @Pattern(regexp = "[0-9a-fA-F]{64}") String pricingFingerprint,
+            @Size(max = 5000) String confirmationNote) { }
+
+    public record PricingPreviewView(
+            UUID offeringId,
+            String currency,
+            String pricePerParticipant,
+            String billingMode,
+            int sessionCount,
+            String pricingFingerprint) { }
+
+    public record PriceSnapshotView(
+            UUID priceSnapshotId,
+            UUID offeringId,
+            String status,
+            String currency,
+            String pricePerParticipant,
+            String pricingFingerprint,
+            UUID confirmedBy,
+            Instant confirmedAt) { }
 
     public record CancellationRequest(@Size(max = 5000) String reason) { }
     public record ConfirmationRequest(boolean confirm) { }
