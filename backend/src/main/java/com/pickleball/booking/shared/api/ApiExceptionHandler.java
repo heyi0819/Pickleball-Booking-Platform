@@ -14,6 +14,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -26,7 +27,8 @@ public class ApiExceptionHandler {
             "PRICE_CHANGED_RECALC_REQUIRED",
             "PARTICIPANT_BELOW_MIN",
             "PARTICIPANT_ABOVE_MAX",
-            "BOOKING_TIME_NOT_FUTURE");
+            "BOOKING_TIME_NOT_FUTURE",
+            "SESSION_ALREADY_STARTED");
 
     @ExceptionHandler(LineCredentialInvalidException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -55,7 +57,8 @@ public class ApiExceptionHandler {
     @ExceptionHandler({
             IllegalArgumentException.class,
             MethodArgumentNotValidException.class,
-            MissingRequestHeaderException.class
+            MissingRequestHeaderException.class,
+            MethodArgumentTypeMismatchException.class
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     ErrorResponse validation(Exception exception, HttpServletRequest request) {
