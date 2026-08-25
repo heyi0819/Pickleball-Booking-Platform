@@ -126,6 +126,80 @@ class CourseOperationsApplicationServiceIT {
     }
 
     @Test
+    void rescheduleRequestRejectsStartedSessionWithoutCreatingRequest() {
+        FormalFixture fixture = formalFixture(1);
+        UUID sessionId = fixture.sessionIds().getFirst();
+        Instant pastStart = Instant.now().minusSeconds(7200);
+        Instant pastEnd = Instant.now().minusSeconds(3600);
+        jdbc.update("""
+                update course_sessions set scheduled_start_at=?, scheduled_end_at=? where id=?
+                """, Timestamp.from(pastStart), Timestamp.from(pastEnd), sessionId);
+        jdbc.update("""
+                update schedule_reservations
+                   set reserved_period=tstzrange(?::timestamptz, ?::timestamptz, '[)')
+                 where course_session_id=?
+                """, Timestamp.from(pastStart), Timestamp.from(pastEnd), sessionId);
+        Instant proposedStart = Instant.now().plusSeconds(7200);
+
+        Throwable failure = catchThrowable(() -> service.requestReschedule(
+                principal(fixture.studentId()), sessionId,
+                proposedStart, proposedStart.plusSeconds(3600), "Too late",
+                "started-request-" + UUID.randomUUID(), "trace-" + UUID.randomUUID()));
+
+        assertBusinessCode(failure, "SESSION_ALREADY_STARTED");
+        assertThat(changeRequestCount(sessionId)).isZero();
+    }
+
+    @Test
+    void rescheduleRequestRejectsInvalidSessionStateWithoutCreatingRequest() {
+        FormalFixture fixture = formalFixture(1);
+        UUID sessionId = fixture.sessionIds().getFirst();
+        jdbc.update("""
+                update course_sessions
+                   set status='CANCELLED', cancellation_source='COMMITTEE', cancellation_note='Test state'
+                 where id=?
+                """, sessionId);
+        Instant proposedStart = sessionStart(sessionId).plusSeconds(7200);
+
+        Throwable failure = catchThrowable(() -> service.requestReschedule(
+                principal(fixture.committeeId()), sessionId,
+                proposedStart, proposedStart.plusSeconds(3600), "Invalid state",
+                "invalid-state-request-" + UUID.randomUUID(), "trace-" + UUID.randomUUID()));
+
+        assertBusinessCode(failure, "STATE_TRANSITION_INVALID");
+        assertThat(changeRequestCount(sessionId)).isZero();
+    }
+
+    @Test
+    void nullReviewAndAttendanceDecisionsAreValidationFailuresWithoutMutation() {
+        FormalFixture cancellationFixture = formalFixture(1);
+        UUID cancellationSession = cancellationFixture.sessionIds().getFirst();
+        var cancellationRequest = service.requestCoachCancellation(
+                principal(cancellationFixture.coachUserId()), cancellationSession,
+                "Need review", "coach-null-review-" + UUID.randomUUID());
+
+        Throwable reviewFailure = catchThrowable(() -> service.reviewCoachCancellation(
+                principal(cancellationFixture.committeeId()), cancellationRequest.id(), null,
+                "Invalid null decision", "trace-" + UUID.randomUUID()));
+        assertBusinessCode(reviewFailure, "VALIDATION_FAILED");
+        assertThat(sessionStatus(cancellationSession)).isEqualTo("CANCEL_PENDING");
+        assertThat(jdbc.queryForObject(
+                "select status from course_cancellation_requests where id=?",
+                String.class, cancellationRequest.id())).isEqualTo("PENDING_REVIEW");
+
+        FormalFixture attendanceFixture = formalFixture(1);
+        UUID attendanceSession = attendanceFixture.sessionIds().getFirst();
+        UUID attendanceEnrollment = enrollmentId(attendanceSession, attendanceFixture.studentId());
+        Throwable attendanceFailure = catchThrowable(() -> service.markAttendance(
+                principal(attendanceFixture.coachUserId()), attendanceEnrollment, null,
+                "trace-" + UUID.randomUUID()));
+        assertBusinessCode(attendanceFailure, "VALIDATION_FAILED");
+        assertThat(jdbc.queryForObject(
+                "select status from enrollments where id=?", String.class, attendanceEnrollment))
+                .isEqualTo("SCHEDULED");
+    }
+
+    @Test
     void approvalConflictRollsBackSessionReservationAndRequestDecision() {
         FormalFixture fixture = formalFixture(2);
         UUID firstSession = fixture.sessionIds().get(0);
@@ -278,6 +352,12 @@ class CourseOperationsApplicationServiceIT {
                 select count(*) from schedule_reservations
                  where course_session_id=? and status in ('HELD','CONFIRMED')
                 """, Integer.class, sessionId);
+    }
+
+    private int changeRequestCount(UUID sessionId) {
+        return jdbc.queryForObject(
+                "select count(*) from session_change_requests where course_session_id=?",
+                Integer.class, sessionId);
     }
 
     private Instant sessionStart(UUID sessionId) {
