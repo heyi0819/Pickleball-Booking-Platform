@@ -1,9 +1,67 @@
 package com.pickleball.booking.shared.application;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate; import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+
 @Service
 public class AuditOutboxService {
- private final JdbcTemplate jdbc; public AuditOutboxService(JdbcTemplate jdbc){this.jdbc=jdbc;}
- public void record(UUID org,UUID actor,String action,String type,UUID id,String reason){jdbc.update("insert into audit_logs(organization_id,actor_user_id,actor_type,action,entity_type,entity_id,reason,created_at) values (?,?, 'USER', ?,?,?,?, now())",org,actor,action,type,id,reason);jdbc.update("insert into outbox_events(id,organization_id,aggregate_type,aggregate_id,event_type,payload,status,attempt_count,available_at,created_at) values (?,?,?,?,?,cast('{}' as jsonb),'PENDING',0,now(),now())",UUID.randomUUID(),org,type,id,action);}
+    private final JdbcTemplate jdbc;
+    private final ObjectMapper objectMapper;
+
+    public AuditOutboxService(JdbcTemplate jdbc, ObjectMapper objectMapper) {
+        this.jdbc = jdbc;
+        this.objectMapper = objectMapper;
+    }
+
+    public void record(UUID org, UUID actor, String action, String type, UUID id, String reason) {
+        record(org, actor, action, type, id, reason, null, null, null);
+    }
+
+    public void record(
+            UUID org,
+            UUID actor,
+            String action,
+            String type,
+            UUID id,
+            String reason,
+            Object before,
+            Object after,
+            String requestId) {
+        String beforeJson = json(before);
+        String afterJson = json(after);
+        jdbc.update("""
+                insert into audit_logs(
+                    organization_id, actor_user_id, actor_type, action, entity_type, entity_id,
+                    before_data, after_data, reason, request_id, created_at)
+                values (?, ?, 'USER', ?, ?, ?, cast(? as jsonb), cast(? as jsonb), ?, ?, now())
+                """, org, actor, action, type, id, beforeJson, afterJson, reason, requestId);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("action", action);
+        payload.put("entityType", type);
+        payload.put("entityId", id);
+        if (requestId != null) payload.put("requestId", requestId);
+        if (after != null) payload.put("after", after);
+
+        jdbc.update("""
+                insert into outbox_events(
+                    id, organization_id, aggregate_type, aggregate_id, event_type, payload,
+                    status, attempt_count, available_at, created_at)
+                values (?, ?, ?, ?, ?, cast(? as jsonb), 'PENDING', 0, now(), now())
+                """, UUID.randomUUID(), org, type, id, action, json(payload));
+    }
+
+    private String json(Object value) {
+        if (value == null) return null;
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JacksonException ex) {
+            throw new IllegalStateException("Unable to serialize audit/outbox payload", ex);
+        }
+    }
 }
