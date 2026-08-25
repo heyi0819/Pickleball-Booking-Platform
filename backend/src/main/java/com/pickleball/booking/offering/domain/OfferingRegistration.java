@@ -39,6 +39,33 @@ public final class OfferingRegistration {
         return new OfferingRegistration(id, organizationId, courseOfferingId, studentUserId, registeredAt);
     }
 
+    public static OfferingRegistration rehydrate(
+            UUID id,
+            UUID organizationId,
+            UUID courseOfferingId,
+            UUID userId,
+            Instant registeredAt,
+            OfferingRegistrationStatus status,
+            Instant cancelledAt,
+            String cancelReason,
+            UUID convertedCourseMembershipId) {
+        OfferingRegistration registration = new OfferingRegistration(
+                id, organizationId, courseOfferingId, userId, registeredAt);
+        registration.status = Objects.requireNonNull(status, "status");
+        registration.cancelledAt = cancelledAt;
+        registration.cancelReason = normalizeOptional(cancelReason);
+        registration.convertedCourseMembershipId = convertedCourseMembershipId;
+        if (status == OfferingRegistrationStatus.CANCELLED && cancelledAt == null) {
+            throw new OfferingDomainException(
+                    OfferingDomainError.INVALID_STATE, "cancelled registration lifecycle metadata is missing");
+        }
+        if (status == OfferingRegistrationStatus.CONVERTED && convertedCourseMembershipId == null) {
+            throw new OfferingDomainException(
+                    OfferingDomainError.INVALID_STATE, "converted registration membership lineage is missing");
+        }
+        return registration;
+    }
+
     public void cancelByStudent(UUID actorUserId, Instant now, String reason) {
         requireActive();
         Objects.requireNonNull(now, "now");
@@ -70,39 +97,13 @@ public final class OfferingRegistration {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    public UUID id() {
-        return id;
-    }
-
-    public UUID organizationId() {
-        return organizationId;
-    }
-
-    public UUID courseOfferingId() {
-        return courseOfferingId;
-    }
-
-    public UUID userId() {
-        return userId;
-    }
-
-    public Instant registeredAt() {
-        return registeredAt;
-    }
-
-    public OfferingRegistrationStatus status() {
-        return status;
-    }
-
-    public Instant cancelledAt() {
-        return cancelledAt;
-    }
-
-    public String cancelReason() {
-        return cancelReason;
-    }
-
-    public UUID convertedCourseMembershipId() {
-        return convertedCourseMembershipId;
-    }
+    public UUID id() { return id; }
+    public UUID organizationId() { return organizationId; }
+    public UUID courseOfferingId() { return courseOfferingId; }
+    public UUID userId() { return userId; }
+    public Instant registeredAt() { return registeredAt; }
+    public OfferingRegistrationStatus status() { return status; }
+    public Instant cancelledAt() { return cancelledAt; }
+    public String cancelReason() { return cancelReason; }
+    public UUID convertedCourseMembershipId() { return convertedCourseMembershipId; }
 }

@@ -49,6 +49,37 @@ public final class CourseOffering {
         return new CourseOffering(id, organizationId, createdBy, spec, sessionPlans);
     }
 
+    public static CourseOffering rehydrate(
+            UUID id,
+            UUID organizationId,
+            UUID createdBy,
+            CourseOfferingDraftSpec spec,
+            List<CourseOfferingSessionPlan> sessionPlans,
+            CourseOfferingStatus status,
+            UUID publishedBy,
+            Instant publishedAt,
+            UUID closedBy,
+            Instant closedAt,
+            UUID confirmedBy,
+            Instant confirmedAt,
+            UUID cancelledBy,
+            Instant cancelledAt,
+            String cancelReason) {
+        CourseOffering offering = new CourseOffering(id, organizationId, createdBy, spec, sessionPlans);
+        offering.status = Objects.requireNonNull(status, "status");
+        offering.publishedBy = publishedBy;
+        offering.publishedAt = publishedAt;
+        offering.closedBy = closedBy;
+        offering.closedAt = closedAt;
+        offering.confirmedBy = confirmedBy;
+        offering.confirmedAt = confirmedAt;
+        offering.cancelledBy = cancelledBy;
+        offering.cancelledAt = cancelledAt;
+        offering.cancelReason = normalizeOptional(cancelReason);
+        offering.validatePersistedLifecycle();
+        return offering;
+    }
+
     public void reviseDraft(CourseOfferingDraftSpec revisedSpec) {
         requireState(CourseOfferingStatus.DRAFT);
         this.spec = Objects.requireNonNull(revisedSpec, "revisedSpec");
@@ -147,6 +178,25 @@ public final class CourseOffering {
         }
     }
 
+    private void validatePersistedLifecycle() {
+        if ((status == CourseOfferingStatus.OPEN
+                        || status == CourseOfferingStatus.CLOSED
+                        || status == CourseOfferingStatus.CONFIRMED)
+                && (publishedBy == null || publishedAt == null)) {
+            throw invalidState("published lifecycle metadata is missing");
+        }
+        if ((status == CourseOfferingStatus.CLOSED || status == CourseOfferingStatus.CONFIRMED)
+                && (closedBy == null || closedAt == null)) {
+            throw invalidState("closed lifecycle metadata is missing");
+        }
+        if (status == CourseOfferingStatus.CONFIRMED && (confirmedBy == null || confirmedAt == null)) {
+            throw invalidState("confirmed lifecycle metadata is missing");
+        }
+        if (status == CourseOfferingStatus.CANCELLED && (cancelledBy == null || cancelledAt == null)) {
+            throw invalidState("cancelled lifecycle metadata is missing");
+        }
+    }
+
     private static List<CourseOfferingSessionPlan> validatedSessionPlans(List<CourseOfferingSessionPlan> plans) {
         List<CourseOfferingSessionPlan> copy = plans == null ? List.of() : List.copyOf(plans);
         Set<Integer> sequences = new HashSet<>();
@@ -181,63 +231,19 @@ public final class CourseOffering {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    public UUID id() {
-        return id;
-    }
-
-    public UUID organizationId() {
-        return organizationId;
-    }
-
-    public UUID createdBy() {
-        return createdBy;
-    }
-
-    public CourseOfferingDraftSpec spec() {
-        return spec;
-    }
-
-    public List<CourseOfferingSessionPlan> sessionPlans() {
-        return sessionPlans;
-    }
-
-    public CourseOfferingStatus status() {
-        return status;
-    }
-
-    public UUID publishedBy() {
-        return publishedBy;
-    }
-
-    public Instant publishedAt() {
-        return publishedAt;
-    }
-
-    public UUID closedBy() {
-        return closedBy;
-    }
-
-    public Instant closedAt() {
-        return closedAt;
-    }
-
-    public UUID confirmedBy() {
-        return confirmedBy;
-    }
-
-    public Instant confirmedAt() {
-        return confirmedAt;
-    }
-
-    public UUID cancelledBy() {
-        return cancelledBy;
-    }
-
-    public Instant cancelledAt() {
-        return cancelledAt;
-    }
-
-    public String cancelReason() {
-        return cancelReason;
-    }
+    public UUID id() { return id; }
+    public UUID organizationId() { return organizationId; }
+    public UUID createdBy() { return createdBy; }
+    public CourseOfferingDraftSpec spec() { return spec; }
+    public List<CourseOfferingSessionPlan> sessionPlans() { return sessionPlans; }
+    public CourseOfferingStatus status() { return status; }
+    public UUID publishedBy() { return publishedBy; }
+    public Instant publishedAt() { return publishedAt; }
+    public UUID closedBy() { return closedBy; }
+    public Instant closedAt() { return closedAt; }
+    public UUID confirmedBy() { return confirmedBy; }
+    public Instant confirmedAt() { return confirmedAt; }
+    public UUID cancelledBy() { return cancelledBy; }
+    public Instant cancelledAt() { return cancelledAt; }
+    public String cancelReason() { return cancelReason; }
 }
