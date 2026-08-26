@@ -34,14 +34,17 @@ jobs:
           npm ci
           npm run api:generate
 
+      - name: Add Slice 6 finance handwritten adapter
+        run: python scripts/s6_finance_adapter_sync.py
+
       - name: Commit synchronized contract
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add backend/src/main/resources/openapi/openapi.yaml frontend/packages/api-client/src/generated
+          git add backend/src/main/resources/openapi/openapi.yaml frontend/packages/api-client/src/generated frontend/packages/api-client/src/index.ts
           if git diff --cached --quiet; then
             echo 'No contract changes to commit.'
             exit 0
           fi
-          git commit -m 'feat(slice6): publish finance OpenAPI client contract'
+          git commit -m 'feat(slice6): expose finance client adapter'
           git push origin HEAD:feat/slice-6-finance-api
