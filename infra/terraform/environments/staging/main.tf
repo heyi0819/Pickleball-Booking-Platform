@@ -56,6 +56,10 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "SPRING_FLYWAY_ENABLED"
+        value = "false"
+      }
+      env {
         name  = "DATABASE_URL"
         value = local.database_url
       }
@@ -128,6 +132,10 @@ resource "google_cloud_run_v2_job" "migration" {
           }
         }
 
+        env {
+          name  = "SPRING_FLYWAY_ENABLED"
+          value = "true"
+        }
         env {
           name  = "DATABASE_URL"
           value = local.database_url
