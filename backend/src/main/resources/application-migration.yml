@@ -1,0 +1,9 @@
+spring:
+  main:
+    web-application-type: none
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    enabled-by-default: false
