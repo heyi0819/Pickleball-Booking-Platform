@@ -41,3 +41,19 @@ output "workload_identity_provider" {
 output "required_secret_ids" {
   value = sort(tolist(local.secret_ids))
 }
+
+output "firebase_liff_site_id" {
+  value = google_firebase_hosting_site.liff.site_id
+}
+
+output "firebase_liff_url" {
+  value = google_firebase_hosting_site.liff.default_url
+}
+
+output "firebase_admin_site_id" {
+  value = google_firebase_hosting_site.admin.site_id
+}
+
+output "firebase_admin_url" {
+  value = google_firebase_hosting_site.admin.default_url
+}
