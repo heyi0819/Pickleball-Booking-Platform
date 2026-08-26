@@ -113,10 +113,11 @@ class Slice6FinanceHttpEndToEndIT {
         assertThat(completed.get("processedBy").asText()).isEqualTo(fixture.committeeId().toString());
 
         JsonNode adminPayment = expectData(request(
-                "POST", "/api/v1/receivables/" + fixture.receivableId() + "/payments",
+                "POST", "/api/v1/receivables/" + fixture.adminReceivableId() + "/payments",
                 platformAdmin, "s6-admin-payment-" + UUID.randomUUID(),
                 paymentBody(fixture.payerId(), "100.00", "CASH", Instant.now().minusSeconds(5).toString()), 201));
         assertThat(adminPayment.get("paymentStatus").asText()).isEqualTo("PARTIALLY_PAID");
+        assertThat(adminPayment.get("outstandingAmount").asText()).isEqualTo("1100.00");
 
         assertThat(jdbc.queryForObject(
                 "select count(*) from refunds where id=?", Integer.class, refundId)).isEqualTo(1);
@@ -147,13 +148,6 @@ class Slice6FinanceHttpEndToEndIT {
         UUID committeeId = UUID.randomUUID();
         UUID foreignCommitteeId = UUID.randomUUID();
         UUID platformAdminId = UUID.randomUUID();
-        UUID courseId = UUID.randomUUID();
-        UUID sessionId = UUID.randomUUID();
-        UUID membershipId = UUID.randomUUID();
-        UUID enrollmentId = UUID.randomUUID();
-        UUID priceSnapshotId = UUID.randomUUID();
-        UUID receivableId = UUID.randomUUID();
-        UUID receivableItemId = UUID.randomUUID();
 
         jdbc.update("insert into organizations(id, code, name) values (?, ?, ?)",
                 organizationId, "s6-http-" + compact(organizationId), "Slice 6 HTTP Org");
@@ -168,13 +162,34 @@ class Slice6FinanceHttpEndToEndIT {
         role(foreignOrganizationId, foreignCommitteeId, "COMMITTEE", foreignCommitteeId);
         role(null, platformAdminId, "PLATFORM_ADMIN", platformAdminId);
 
+        UUID receivableId = seedReceivable(organizationId, payerId, committeeId, "primary");
+        UUID adminReceivableId = seedReceivable(organizationId, payerId, committeeId, "admin");
+        return new Fixture(
+                organizationId,
+                payerId,
+                committeeId,
+                foreignCommitteeId,
+                platformAdminId,
+                receivableId,
+                adminReceivableId);
+    }
+
+    private UUID seedReceivable(UUID organizationId, UUID payerId, UUID committeeId, String tag) {
+        UUID courseId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID membershipId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID priceSnapshotId = UUID.randomUUID();
+        UUID receivableId = UUID.randomUUID();
+        UUID receivableItemId = UUID.randomUUID();
+
         jdbc.update("""
                 insert into courses(
                     id, organization_id, course_no, created_by_user_id, course_type,
                     schedule_type, billing_mode, expected_participant_count,
                     guest_participant_count, total_session_count, status)
                 values (?, ?, ?, ?, 'GROUP', 'SINGLE', 'FULL_COURSE', 1, 0, 1, 'ACTIVE')
-                """, courseId, organizationId, "S6HTTP-" + compact(courseId), committeeId);
+                """, courseId, organizationId, "S6HTTP-" + tag + "-" + compact(courseId), committeeId);
         jdbc.update("""
                 insert into course_sessions(
                     id, organization_id, course_id, sequence_no, scheduled_start_at, scheduled_end_at,
@@ -198,15 +213,14 @@ class Slice6FinanceHttpEndToEndIT {
                     id, organization_id, receivable_no, course_id, payer_user_id,
                     billing_mode, total_amount, balance_amount, status)
                 values (?, ?, ?, ?, ?, 'FULL_COURSE', 1200.00, 1200.00, 'OPEN')
-                """, receivableId, organizationId, "AR-" + compact(receivableId), courseId, payerId);
+                """, receivableId, organizationId, "AR-" + tag + "-" + compact(receivableId), courseId, payerId);
         jdbc.update("""
                 insert into receivable_items(
                     id, receivable_id, course_session_id, enrollment_id, price_snapshot_id,
                     amount, paid_amount, refunded_amount, status)
                 values (?, ?, ?, ?, ?, 1200.00, 0, 0, 'OPEN')
                 """, receivableItemId, receivableId, sessionId, enrollmentId, priceSnapshotId);
-
-        return new Fixture(organizationId, payerId, committeeId, foreignCommitteeId, platformAdminId, receivableId);
+        return receivableId;
     }
 
     private void role(UUID organizationId, UUID userId, String role, UUID grantedBy) {
@@ -275,5 +289,6 @@ class Slice6FinanceHttpEndToEndIT {
             UUID committeeId,
             UUID foreignCommitteeId,
             UUID platformAdminId,
-            UUID receivableId) { }
+            UUID receivableId,
+            UUID adminReceivableId) { }
 }
