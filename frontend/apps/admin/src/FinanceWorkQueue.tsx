@@ -151,7 +151,7 @@ export function FinanceWorkQueue({ token }: { token: string }) {
 }
 
 function key(...parts: string[]) {
-  return `admin-${parts.map((part) => encodeURIComponent(part)).join("-")}`.slice(0, 240);
+  return `admin-${parts[0]}-${crypto.randomUUID()}`;
 }
 
 function confirmationText(command: PendingCommand) {
