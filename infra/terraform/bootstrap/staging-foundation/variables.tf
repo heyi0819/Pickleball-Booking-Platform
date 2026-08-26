@@ -55,3 +55,13 @@ variable "database_deletion_protection" {
   type        = bool
   default     = true
 }
+
+variable "firebase_liff_site_id" {
+  description = "Globally unique Firebase Hosting site ID for the LIFF/Mobile Web app."
+  type        = string
+}
+
+variable "firebase_admin_site_id" {
+  description = "Globally unique Firebase Hosting site ID for the Admin app."
+  type        = string
+}
