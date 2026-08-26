@@ -107,7 +107,7 @@ export function FinanceWorkQueue({ token }: { token: string }) {
     <form aria-label="Record payment" onSubmit={preparePayment}>
       <label>Receivable ID<input name="receivableId" required /></label>
       <label>Payer user ID<input name="payerUserId" required /></label>
-      <label>Amount<input name="amount" inputMode="decimal" pattern="[0-9]+(?:\\.[0-9]{1,2})?" required /></label>
+      <label>Amount<input name="amount" inputMode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" required /></label>
       <label>Method<select name="method" defaultValue="CASH"><option value="CASH">Cash</option><option value="BANK_TRANSFER">Bank transfer</option><option value="OTHER">Other</option></select></label>
       <label>Paid at<input name="paidAt" type="datetime-local" required /></label>
       <label>Note<input name="note" maxLength={5000} /></label>
@@ -118,7 +118,7 @@ export function FinanceWorkQueue({ token }: { token: string }) {
     <form aria-label="Request refund" onSubmit={prepareRefundRequest}>
       <label>Receivable ID<input name="receivableId" required /></label>
       <label>Payment ID<input name="paymentId" required /></label>
-      <label>Amount<input name="amount" inputMode="decimal" pattern="[0-9]+(?:\\.[0-9]{1,2})?" required /></label>
+      <label>Amount<input name="amount" inputMode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" required /></label>
       <label>Reason<textarea name="reason" required maxLength={5000} /></label>
       <button disabled={busy}>Review refund request</button>
     </form>
