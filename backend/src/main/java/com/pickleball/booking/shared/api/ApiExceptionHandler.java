@@ -18,8 +18,19 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    private static final Set<String> NOT_FOUND_CODES = Set.of(
+            "RESOURCE_NOT_FOUND",
+            "COURSE_OFFERING_NOT_FOUND",
+            "COURSE_NOT_FOUND",
+            "COURSE_SESSION_NOT_FOUND",
+            "SESSION_CHANGE_REQUEST_NOT_FOUND",
+            "COACH_CANCELLATION_REQUEST_NOT_FOUND",
+            "ENROLLMENT_NOT_FOUND",
+            "RECEIVABLE_NOT_FOUND",
+            "PAYMENT_NOT_FOUND",
+            "REFUND_NOT_FOUND");
+
     private static final Set<String> UNPROCESSABLE_CODES = Set.of(
-            "VALIDATION_FAILED",
             "LESSON_REQUEST_NOT_APPROVED",
             "COACH_NOT_APPROVED",
             "MATCH_NOT_READY",
@@ -28,7 +39,11 @@ public class ApiExceptionHandler {
             "PARTICIPANT_BELOW_MIN",
             "PARTICIPANT_ABOVE_MAX",
             "BOOKING_TIME_NOT_FUTURE",
-            "SESSION_ALREADY_STARTED");
+            "SESSION_ALREADY_STARTED",
+            "PAYMENT_AMOUNT_INVALID",
+            "REFUND_EXCEEDS_REFUNDABLE",
+            "PAYMENT_NOT_COMPLETED",
+            "REFUND_NOT_APPROVED");
 
     @ExceptionHandler(LineCredentialInvalidException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -46,10 +61,12 @@ public class ApiExceptionHandler {
     ResponseEntity<ErrorResponse> business(BusinessException exception, HttpServletRequest request) {
         HttpStatus status = switch (exception.code()) {
             case "AUTH_FORBIDDEN", "ORG_SCOPE_DENIED" -> HttpStatus.FORBIDDEN;
-            case "RESOURCE_NOT_FOUND" -> HttpStatus.NOT_FOUND;
-            default -> UNPROCESSABLE_CODES.contains(exception.code())
-                    ? HttpStatus.UNPROCESSABLE_ENTITY
-                    : HttpStatus.CONFLICT;
+            case "VALIDATION_FAILED" -> HttpStatus.BAD_REQUEST;
+            default -> NOT_FOUND_CODES.contains(exception.code())
+                    ? HttpStatus.NOT_FOUND
+                    : UNPROCESSABLE_CODES.contains(exception.code())
+                            ? HttpStatus.UNPROCESSABLE_ENTITY
+                            : HttpStatus.CONFLICT;
         };
         return ResponseEntity.status(status).body(error(exception.code(), exception.getMessage(), request));
     }
