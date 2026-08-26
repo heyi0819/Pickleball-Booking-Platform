@@ -6,12 +6,22 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 7.45"
     }
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = "~> 7.45"
+    }
   }
 }
 
 provider "google" {
   project = var.project_id
   region  = var.region
+}
+
+provider "google-beta" {
+  project               = var.project_id
+  region                = var.region
+  user_project_override = true
 }
 
 data "google_project" "current" {
@@ -21,6 +31,8 @@ data "google_project" "current" {
 locals {
   required_services = toset([
     "artifactregistry.googleapis.com",
+    "firebase.googleapis.com",
+    "firebasehosting.googleapis.com",
     "iamcredentials.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
@@ -45,8 +57,10 @@ locals {
   deployer_project_roles = toset([
     "roles/artifactregistry.writer",
     "roles/cloudsql.viewer",
+    "roles/firebasehosting.admin",
     "roles/run.admin",
     "roles/secretmanager.viewer",
+    "roles/serviceusage.apiKeysViewer",
     "roles/serviceusage.serviceUsageConsumer",
   ])
 }
@@ -125,6 +139,32 @@ resource "google_secret_manager_secret" "runtime" {
   }
 
   depends_on = [google_project_service.required]
+}
+
+resource "google_firebase_project" "staging" {
+  provider        = google-beta
+  project         = var.project_id
+  deletion_policy = "ABANDON"
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_firebase_hosting_site" "liff" {
+  provider        = google-beta
+  project         = var.project_id
+  site_id         = var.firebase_liff_site_id
+  deletion_policy = "DELETE"
+
+  depends_on = [google_firebase_project.staging]
+}
+
+resource "google_firebase_hosting_site" "admin" {
+  provider        = google-beta
+  project         = var.project_id
+  site_id         = var.firebase_admin_site_id
+  deletion_policy = "DELETE"
+
+  depends_on = [google_firebase_project.staging]
 }
 
 resource "google_service_account" "api" {
