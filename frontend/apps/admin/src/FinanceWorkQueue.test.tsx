@@ -9,11 +9,11 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function fillPayment() {
-  fireEvent.change(screen.getByLabelText("Receivable ID", { selector: "input" }), { target: { value: "11111111-1111-1111-1111-111111111111" } });
-  fireEvent.change(screen.getByLabelText("Payer user ID"), { target: { value: "22222222-2222-2222-2222-222222222222" } });
-  fireEvent.change(screen.getByLabelText("Amount", { selector: "input" }), { target: { value: "600.00" } });
-  fireEvent.change(screen.getByLabelText("Paid at"), { target: { value: "2026-08-26T10:00" } });
+function input(form: HTMLElement, name: string) {
+  return form.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+}
+function textarea(form: HTMLElement, name: string) {
+  return form.querySelector(`textarea[name="${name}"]`) as HTMLTextAreaElement;
 }
 
 describe("FinanceWorkQueue", () => {
@@ -24,7 +24,11 @@ describe("FinanceWorkQueue", () => {
       return HttpResponse.json({ data: { paymentId: "p1", receivableId: "11111111-1111-1111-1111-111111111111", amount: "600.00", method: "CASH", paymentStatus: "PARTIALLY_PAID", paidTotal: "600.00", outstandingAmount: "600.00" }, meta: { requestId: "test" } }, { status: 201 });
     }));
     render(<FinanceWorkQueue token="token" />);
-    fillPayment();
+    const paymentForm = screen.getByRole("form", { name: "Record payment" });
+    fireEvent.change(input(paymentForm, "receivableId"), { target: { value: "11111111-1111-1111-1111-111111111111" } });
+    fireEvent.change(input(paymentForm, "payerUserId"), { target: { value: "22222222-2222-2222-2222-222222222222" } });
+    fireEvent.change(input(paymentForm, "amount"), { target: { value: "600.00" } });
+    fireEvent.change(input(paymentForm, "paidAt"), { target: { value: "2026-08-26T10:00" } });
     fireEvent.click(screen.getByRole("button", { name: "Review payment" }));
     expect(await screen.findByRole("dialog", { name: "Confirm finance command" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Confirm command" }));
@@ -42,24 +46,24 @@ describe("FinanceWorkQueue", () => {
     render(<FinanceWorkQueue token="token" />);
 
     const refundForm = screen.getByRole("form", { name: "Request refund" });
-    fireEvent.change(refundForm.querySelector('input[name="receivableId"]')!, { target: { value: "11111111-1111-1111-1111-111111111111" } });
-    fireEvent.change(screen.getByLabelText("Payment ID"), { target: { value: "p1" } });
-    fireEvent.change(refundForm.querySelector('input[name="amount"]')!, { target: { value: "300.00" } });
-    fireEvent.change(refundForm.querySelector('textarea[name="reason"]')!, { target: { value: "student withdrawal" } });
+    fireEvent.change(input(refundForm, "receivableId"), { target: { value: "11111111-1111-1111-1111-111111111111" } });
+    fireEvent.change(input(refundForm, "paymentId"), { target: { value: "p1" } });
+    fireEvent.change(input(refundForm, "amount"), { target: { value: "300.00" } });
+    fireEvent.change(textarea(refundForm, "reason"), { target: { value: "student withdrawal" } });
     fireEvent.click(screen.getByRole("button", { name: "Review refund request" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirm command" }));
     expect(await screen.findByText(/Refund requested: r1/)).toBeTruthy();
 
     const reviewForm = screen.getByRole("form", { name: "Review refund" });
-    fireEvent.change(reviewForm.querySelector('input[name="refundId"]')!, { target: { value: "r1" } });
-    fireEvent.change(reviewForm.querySelector('textarea[name="reason"]')!, { target: { value: "approved" } });
+    fireEvent.change(input(reviewForm, "refundId"), { target: { value: "r1" } });
+    fireEvent.change(textarea(reviewForm, "reason"), { target: { value: "approved" } });
     fireEvent.click(screen.getByRole("button", { name: "Review decision" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirm command" }));
     expect(await screen.findByText(/Refund review saved: r1 \(APPROVED\)/)).toBeTruthy();
 
     const executionForm = screen.getByRole("form", { name: "Execute refund" });
-    fireEvent.change(executionForm.querySelector('input[name="refundId"]')!, { target: { value: "r1" } });
-    fireEvent.change(screen.getByLabelText("Refunded at"), { target: { value: "2026-08-26T10:30" } });
+    fireEvent.change(input(executionForm, "refundId"), { target: { value: "r1" } });
+    fireEvent.change(input(executionForm, "refundedAt"), { target: { value: "2026-08-26T10:30" } });
     fireEvent.click(screen.getByRole("button", { name: "Review refund execution" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirm command" }));
     await waitFor(() => expect(screen.getByText(/Refund execution saved: r1 \(COMPLETED\)/)).toBeTruthy());
