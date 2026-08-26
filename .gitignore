@@ -16,6 +16,19 @@ frontend/**/node_modules/
 frontend/**/dist/
 frontend/**/*.tsbuildinfo
 
+# Terraform / deployment local state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+backend.hcl
+.firebaserc
+staging-release-metadata.json
+
+# GitHub OIDC generated credentials
+gha-creds-*.json
+
 # Test output
 coverage/
 playwright-report/
