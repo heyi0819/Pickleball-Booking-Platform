@@ -118,7 +118,17 @@ jobs:
             exit 1
           fi
           image_digest="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/backend@${digest}"
+          migration_version="$(find backend/src/main/resources/db/migration \
+            -maxdepth 1 -type f -name 'V*__*.sql' -printf '%f\n' \
+            | sed -E 's/^V([^_]+)__.*/\1/' \
+            | sort -V \
+            | tail -n 1)"
+          if [[ -z "$migration_version" ]]; then
+            echo "Unable to resolve Flyway migration version from the fixed commit." >&2
+            exit 1
+          fi
           echo "image_digest=${image_digest}" >> "$GITHUB_OUTPUT"
+          echo "migration_version=${migration_version}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -140,6 +150,9 @@ jobs:
           TF_VAR_project_id: ${{ env.PROJECT_ID }}
           TF_VAR_region: ${{ env.REGION }}
           TF_VAR_runtime_image: ${{ steps.image.outputs.image_digest }}
+          TF_VAR_cloud_sql_instance_name: ${{ env.CLOUD_SQL_INSTANCE }}
+          TF_VAR_database_name: ${{ env.DATABASE_NAME }}
+          TF_VAR_database_username: ${{ env.DATABASE_USERNAME }}
           TF_VAR_api_service_account_email: pickleball-stg-api@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
           TF_VAR_migration_service_account_email: pickleball-stg-migration@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
           TF_VAR_line_login_channel_id: ${{ env.STAGING_LINE_LOGIN_CHANNEL_ID }}
@@ -161,6 +174,9 @@ jobs:
           TF_VAR_project_id: ${{ env.PROJECT_ID }}
           TF_VAR_region: ${{ env.REGION }}
           TF_VAR_runtime_image: ${{ steps.image.outputs.image_digest }}
+          TF_VAR_cloud_sql_instance_name: ${{ env.CLOUD_SQL_INSTANCE }}
+          TF_VAR_database_name: ${{ env.DATABASE_NAME }}
+          TF_VAR_database_username: ${{ env.DATABASE_USERNAME }}
           TF_VAR_api_service_account_email: pickleball-stg-api@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
           TF_VAR_migration_service_account_email: pickleball-stg-migration@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
           TF_VAR_line_login_channel_id: ${{ env.STAGING_LINE_LOGIN_CHANNEL_ID }}
@@ -208,11 +224,13 @@ jobs:
         env:
           API_URL: ${{ steps.runtime.outputs.api_url }}
           IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
+          MIGRATION_VERSION: ${{ steps.image.outputs.migration_version }}
         run: |
           cat > staging-release-metadata.json <<EOF
           {
             "gitSha": "${DEPLOY_SHA}",
             "imageDigest": "${IMAGE_DIGEST}",
+            "migrationVersion": "${MIGRATION_VERSION}",
             "region": "${REGION}",
             "apiUrl": "${API_URL}",
             "liffUrl": "https://${STAGING_LIFF_SITE_ID}.web.app",
