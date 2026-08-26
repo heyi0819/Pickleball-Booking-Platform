@@ -9,6 +9,7 @@ import {
   CourseOfferingsApi,
   CourseOperationsApi,
   CurrentUserApi,
+  FinanceApi,
   LessonRequestsApi,
   ResponseError,
   type AvailabilityProposal,
@@ -47,6 +48,14 @@ import {
   type CourseOfferingStatus,
   type CourseOfferingSummary,
   type CourseOfferingUpdateRequest,
+  type FinancePaymentRequest,
+  type FinancePaymentResponse,
+  type FinanceRefundExecutionRequest,
+  type FinanceRefundExecutionResponse,
+  type FinanceRefundRequest,
+  type FinanceRefundRequestResponse,
+  type FinanceRefundReviewRequest,
+  type FinanceRefundReviewResponse,
   type LessonRequest,
   type LessonRequestCreateRequest,
   type ReviewRequest,
@@ -99,6 +108,14 @@ export type {
   CourseOfferingStatus,
   CourseOfferingSummary,
   CourseOfferingUpdateRequest,
+  FinancePaymentRequest,
+  FinancePaymentResponse,
+  FinanceRefundExecutionRequest,
+  FinanceRefundExecutionResponse,
+  FinanceRefundRequest,
+  FinanceRefundRequestResponse,
+  FinanceRefundReviewRequest,
+  FinanceRefundReviewResponse,
   LessonRequest,
   LessonRequestCreateRequest,
   LoginData as Login,
@@ -162,6 +179,7 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
   const courseOfferings = (token: string) => new CourseOfferingsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const courseOfferingRegistrations = (token: string) => new CourseOfferingRegistrationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const courseOperations = (token: string) => new CourseOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
+  const finance = (token: string) => new FinanceApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
     baseUrl,
     async loginWithLine(idToken: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken } })).data; } catch (caught) { return mapError(caught); } },
@@ -218,5 +236,9 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
     async reviewSessionChangeRequest(token: string, requestId: string, idempotencyKey: string, request: CourseOperationReviewRequest): Promise<SessionRescheduleResult> { try { return (await courseOperations(token).reviewSessionChangeRequest({ requestId, idempotencyKey, courseOperationReviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
     async reviewCoachSessionCancellation(token: string, requestId: string, request: CourseOperationReviewRequest): Promise<CoachSessionCancellationReview> { try { return (await courseOperations(token).reviewCoachSessionCancellation({ requestId, courseOperationReviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
     async rescheduleCourseSession(token: string, sessionId: string, idempotencyKey: string, startAt: Date, endAt: Date, reason: string): Promise<SessionRescheduleResult> { try { return (await courseOperations(token).rescheduleCourseSession({ sessionId, idempotencyKey, directSessionRescheduleRequest: { startAt, endAt, reason } })).data; } catch (caught) { return mapError(caught); } },
+    async recordReceivablePayment(token: string, receivableId: string, idempotencyKey: string, request: FinancePaymentRequest): Promise<FinancePaymentResponse> { try { return (await finance(token).recordReceivablePayment({ receivableId, idempotencyKey, financePaymentRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async requestReceivableRefund(token: string, receivableId: string, idempotencyKey: string, request: FinanceRefundRequest): Promise<FinanceRefundRequestResponse> { try { return (await finance(token).requestReceivableRefund({ receivableId, idempotencyKey, financeRefundRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async reviewRefund(token: string, refundId: string, idempotencyKey: string, request: FinanceRefundReviewRequest): Promise<FinanceRefundReviewResponse> { try { return (await finance(token).reviewRefund({ refundId, idempotencyKey, financeRefundReviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async executeRefund(token: string, refundId: string, idempotencyKey: string, request: FinanceRefundExecutionRequest): Promise<FinanceRefundExecutionResponse> { try { return (await finance(token).executeRefund({ refundId, idempotencyKey, financeRefundExecutionRequest: request })).data; } catch (caught) { return mapError(caught); } },
   };
 }
