@@ -100,6 +100,10 @@ All URIs are relative to */api/v1*
 *CurrentUserApi* | [**getCurrentUser**](docs/CurrentUserApi.md#getcurrentuser) | **GET** /me |
 *CurrentUserApi* | [**getCurrentUserRoles**](docs/CurrentUserApi.md#getcurrentuserroles) | **GET** /me/roles |
 *CurrentUserApi* | [**updateCurrentUserProfile**](docs/CurrentUserApi.md#updatecurrentuserprofile) | **PATCH** /me/profile |
+*FinanceApi* | [**executeRefund**](docs/FinanceApi.md#executerefund) | **POST** /refunds/{refundId}/execution |
+*FinanceApi* | [**recordReceivablePayment**](docs/FinanceApi.md#recordreceivablepayment) | **POST** /receivables/{receivableId}/payments |
+*FinanceApi* | [**requestReceivableRefund**](docs/FinanceApi.md#requestreceivablerefund) | **POST** /receivables/{receivableId}/refunds |
+*FinanceApi* | [**reviewRefund**](docs/FinanceApi.md#reviewrefund) | **POST** /refunds/{refundId}/review |
 *LessonRequestsApi* | [**createLessonRequest**](docs/LessonRequestsApi.md#createlessonrequest) | **POST** /lesson-requests |
 *LessonRequestsApi* | [**getLessonRequest**](docs/LessonRequestsApi.md#getlessonrequest) | **GET** /lesson-requests/{id} |
 *LessonRequestsApi* | [**listLessonRequestsForReview**](docs/LessonRequestsApi.md#listlessonrequestsforreview) | **GET** /lesson-requests |
@@ -193,6 +197,20 @@ All URIs are relative to */api/v1*
 - [DirectSessionRescheduleRequest](docs/DirectSessionRescheduleRequest.md)
 - [ErrorBody](docs/ErrorBody.md)
 - [ErrorEnvelope](docs/ErrorEnvelope.md)
+- [FinancePaymentEnvelope](docs/FinancePaymentEnvelope.md)
+- [FinancePaymentMethod](docs/FinancePaymentMethod.md)
+- [FinancePaymentRequest](docs/FinancePaymentRequest.md)
+- [FinancePaymentResponse](docs/FinancePaymentResponse.md)
+- [FinanceRefundExecutionEnvelope](docs/FinanceRefundExecutionEnvelope.md)
+- [FinanceRefundExecutionRequest](docs/FinanceRefundExecutionRequest.md)
+- [FinanceRefundExecutionResponse](docs/FinanceRefundExecutionResponse.md)
+- [FinanceRefundRequest](docs/FinanceRefundRequest.md)
+- [FinanceRefundRequestEnvelope](docs/FinanceRefundRequestEnvelope.md)
+- [FinanceRefundRequestResponse](docs/FinanceRefundRequestResponse.md)
+- [FinanceRefundReviewDecision](docs/FinanceRefundReviewDecision.md)
+- [FinanceRefundReviewEnvelope](docs/FinanceRefundReviewEnvelope.md)
+- [FinanceRefundReviewRequest](docs/FinanceRefundReviewRequest.md)
+- [FinanceRefundReviewResponse](docs/FinanceRefundReviewResponse.md)
 - [LessonRequest](docs/LessonRequest.md)
 - [LessonRequestCreateRequest](docs/LessonRequestCreateRequest.md)
 - [LessonRequestDetail](docs/LessonRequestDetail.md)

@@ -9,4 +9,5 @@ export * from './CourseOfferingRegistrationsApi';
 export * from './CourseOfferingsApi';
 export * from './CourseOperationsApi';
 export * from './CurrentUserApi';
+export * from './FinanceApi';
 export * from './LessonRequestsApi';
