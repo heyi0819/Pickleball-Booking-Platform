@@ -124,6 +124,9 @@ public class FinanceController {
     }
 
     private static AuthenticatedPrincipal principal(Authentication authentication) {
+        if (authentication.getPrincipal() instanceof AuthenticatedPrincipal principal) {
+            return principal;
+        }
         return new AuthenticatedPrincipal(UUID.fromString(authentication.getName()));
     }
 
