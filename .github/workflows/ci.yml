@@ -70,3 +70,29 @@ jobs:
       - name: Verify Flyway migrations using PostgreSQL Testcontainers
         working-directory: backend
         run: bash ./mvnw -Dtest=PostgresMigrationIT,Slice3MigrationIT,Slice4MigrationIT,Slice5MigrationIT,Slice6MigrationIT test
+
+  devops:
+    name: Container and Terraform validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend production image
+        run: docker build --file backend/Dockerfile backend
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.9
+      - name: Terraform formatting
+        run: terraform fmt -check -recursive infra/terraform
+      - name: Validate staging foundation
+        working-directory: infra/terraform/bootstrap/staging-foundation
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+      - name: Validate staging runtime
+        working-directory: infra/terraform/environments/staging
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+      - name: Validate Firebase Hosting configuration
+        run: node -e "JSON.parse(require('fs').readFileSync('firebase.json', 'utf8'))"
