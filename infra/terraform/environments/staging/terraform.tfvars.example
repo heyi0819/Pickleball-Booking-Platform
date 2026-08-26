@@ -1,0 +1,19 @@
+project_id = "your-pickleball-staging-project"
+region     = "asia-east1"
+
+# Deployment workflow supplies an immutable digest, e.g.
+# asia-east1-docker.pkg.dev/PROJECT/pickleball/backend@sha256:...
+runtime_image = "asia-east1-docker.pkg.dev/PROJECT/pickleball/backend@sha256:REPLACE_ME"
+
+cloud_sql_instance_name = "pickleball-stg-pg18"
+database_name           = "pickleball_booking"
+database_username       = "pickleball_app"
+
+api_service_account_email       = "pickleball-stg-api@PROJECT.iam.gserviceaccount.com"
+migration_service_account_email = "pickleball-stg-migration@PROJECT.iam.gserviceaccount.com"
+
+line_login_channel_id       = ""
+default_organization_code   = "MVP-DEFAULT"
+default_organization_name   = "Pickleball MVP Staging"
+api_min_instances           = 0
+api_max_instances           = 3
