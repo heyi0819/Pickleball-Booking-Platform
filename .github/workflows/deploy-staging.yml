@@ -1,0 +1,259 @@
+name: Deploy GCP Staging (Optional Paid Reference)
+
+on:
+  workflow_dispatch:
+    inputs:
+      enable_paid_gcp:
+        description: "Explicit paid-cloud gate. Select ENABLE_PAID_GCP only after approving possible GCP charges."
+        required: true
+        default: "NO"
+        type: choice
+        options:
+          - "NO"
+          - "ENABLE_PAID_GCP"
+
+concurrency:
+  group: paid-gcp-staging-deployment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-east1
+  ARTIFACT_REPOSITORY: pickleball
+  CLOUD_SQL_INSTANCE: pickleball-stg-pg18
+  DATABASE_NAME: pickleball_booking
+  DATABASE_USERNAME: pickleball_app
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  deploy:
+    name: Explicitly approved paid GCP staging deployment
+    if: ${{ github.ref == 'refs/heads/main' && inputs.enable_paid_gcp == 'ENABLE_PAID_GCP' }}
+    runs-on: ubuntu-latest
+    environment: staging
+
+    env:
+      PROJECT_ID: ${{ vars.GCP_STAGING_PROJECT_ID }}
+      WIF_PROVIDER: ${{ vars.GCP_STAGING_WIF_PROVIDER }}
+      DEPLOYER_SERVICE_ACCOUNT: ${{ vars.GCP_STAGING_DEPLOYER_SA }}
+      TF_STATE_BUCKET: ${{ vars.GCP_STAGING_TF_STATE_BUCKET }}
+      STAGING_LIFF_SITE_ID: ${{ vars.STAGING_LIFF_SITE_ID }}
+      STAGING_ADMIN_SITE_ID: ${{ vars.STAGING_ADMIN_SITE_ID }}
+      STAGING_LIFF_ID: ${{ vars.STAGING_LIFF_ID }}
+      STAGING_LINE_LOGIN_CHANNEL_ID: ${{ vars.STAGING_LINE_LOGIN_CHANNEL_ID }}
+      DEPLOY_SHA: ${{ github.sha }}
+
+    steps:
+      - name: Reconfirm explicit paid-cloud gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.enable_paid_gcp }}" != "ENABLE_PAID_GCP" ]]; then
+            echo "Paid GCP deployment was not explicitly enabled." >&2
+            exit 1
+          fi
+          echo "Paid GCP staging was explicitly enabled for this manual run."
+
+      - name: Validate staging configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            PROJECT_ID
+            WIF_PROVIDER
+            DEPLOYER_SERVICE_ACCOUNT
+            TF_STATE_BUCKET
+            STAGING_LIFF_SITE_ID
+            STAGING_ADMIN_SITE_ID
+            STAGING_LIFF_ID
+            STAGING_LINE_LOGIN_CHANNEL_ID
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing required GitHub staging variable: ${name}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Checkout fixed commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - id: auth
+        name: Authenticate to Google Cloud with WIF
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Verify runtime secret versions exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          for secret in pickleball-stg-db-password pickleball-stg-jwt-signing-secret; do
+            version="$(gcloud secrets versions list "$secret" \
+              --project="$PROJECT_ID" \
+              --filter='state=ENABLED' \
+              --limit=1 \
+              --format='value(name)')"
+            if [[ -z "$version" ]]; then
+              echo "Secret ${secret} has no enabled version." >&2
+              exit 1
+            fi
+          done
+
+      - name: Configure Artifact Registry Docker auth
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - id: image
+        name: Build and push immutable backend image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/backend:${DEPLOY_SHA}"
+          docker build --file backend/Dockerfile --tag "$image_tag" backend
+          docker push "$image_tag"
+          digest="$(gcloud artifacts docker images describe "$image_tag" \
+            --project="$PROJECT_ID" \
+            --format='value(image_summary.digest)')"
+          if [[ -z "$digest" ]]; then
+            echo "Unable to resolve pushed image digest." >&2
+            exit 1
+          fi
+          image_digest="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/backend@${digest}"
+          migration_version="$(find backend/src/main/resources/db/migration \
+            -maxdepth 1 -type f -name 'V*__*.sql' -printf '%f\n' \
+            | sed -E 's/^V([^_]+)__.*/\1/' \
+            | sort -V \
+            | tail -n 1)"
+          if [[ -z "$migration_version" ]]; then
+            echo "Unable to resolve Flyway migration version from the fixed commit." >&2
+            exit 1
+          fi
+          echo "image_digest=${image_digest}" >> "$GITHUB_OUTPUT"
+          echo "migration_version=${migration_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.9
+          terraform_wrapper: false
+
+      - name: Initialize staging runtime state
+        working-directory: infra/terraform/environments/staging
+        shell: bash
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="prefix=runtime/staging"
+
+      - name: Update migration job to the new image
+        working-directory: infra/terraform/environments/staging
+        env:
+          TF_VAR_project_id: ${{ env.PROJECT_ID }}
+          TF_VAR_region: ${{ env.REGION }}
+          TF_VAR_runtime_image: ${{ steps.image.outputs.image_digest }}
+          TF_VAR_cloud_sql_instance_name: ${{ env.CLOUD_SQL_INSTANCE }}
+          TF_VAR_database_name: ${{ env.DATABASE_NAME }}
+          TF_VAR_database_username: ${{ env.DATABASE_USERNAME }}
+          TF_VAR_api_service_account_email: pickleball-stg-api@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+          TF_VAR_migration_service_account_email: pickleball-stg-migration@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+          TF_VAR_line_login_channel_id: ${{ env.STAGING_LINE_LOGIN_CHANNEL_ID }}
+        run: terraform apply -input=false -auto-approve -target=google_cloud_run_v2_job.migration
+
+      - name: Run forward migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud run jobs execute pickleball-stg-db-migrate \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --wait
+
+      - id: runtime
+        name: Deploy staging API with the same image digest
+        working-directory: infra/terraform/environments/staging
+        env:
+          TF_VAR_project_id: ${{ env.PROJECT_ID }}
+          TF_VAR_region: ${{ env.REGION }}
+          TF_VAR_runtime_image: ${{ steps.image.outputs.image_digest }}
+          TF_VAR_cloud_sql_instance_name: ${{ env.CLOUD_SQL_INSTANCE }}
+          TF_VAR_database_name: ${{ env.DATABASE_NAME }}
+          TF_VAR_database_username: ${{ env.DATABASE_USERNAME }}
+          TF_VAR_api_service_account_email: pickleball-stg-api@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+          TF_VAR_migration_service_account_email: pickleball-stg-migration@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+          TF_VAR_line_login_channel_id: ${{ env.STAGING_LINE_LOGIN_CHANNEL_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform apply -input=false -auto-approve
+          echo "api_url=$(terraform output -raw api_url)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend assets
+        working-directory: frontend
+        env:
+          VITE_LIFF_ID: ${{ env.STAGING_LIFF_ID }}
+        run: |
+          npm ci
+          npm run api:check
+          npm run build
+
+      - name: Bind Firebase Hosting targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes firebase-tools@15.28.1 target:apply hosting liff "$STAGING_LIFF_SITE_ID" --project "$PROJECT_ID"
+          npx --yes firebase-tools@15.28.1 target:apply hosting admin "$STAGING_ADMIN_SITE_ID" --project "$PROJECT_ID"
+
+      - name: Deploy Firebase Hosting
+        run: npx --yes firebase-tools@15.28.1 deploy --only hosting:liff,hosting:admin --project "$PROJECT_ID" --non-interactive
+
+      - name: Run staging smoke
+        env:
+          STAGING_API_URL: ${{ steps.runtime.outputs.api_url }}
+          STAGING_LIFF_URL: https://${{ env.STAGING_LIFF_SITE_ID }}.web.app
+          STAGING_ADMIN_URL: https://${{ env.STAGING_ADMIN_SITE_ID }}.web.app
+        run: bash scripts/staging-smoke.sh
+
+      - name: Write release candidate metadata
+        shell: bash
+        env:
+          API_URL: ${{ steps.runtime.outputs.api_url }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
+          MIGRATION_VERSION: ${{ steps.image.outputs.migration_version }}
+        run: |
+          cat > staging-release-metadata.json <<EOF
+          {
+            "deploymentMode": "optional-paid-gcp",
+            "gitSha": "${DEPLOY_SHA}",
+            "imageDigest": "${IMAGE_DIGEST}",
+            "migrationVersion": "${MIGRATION_VERSION}",
+            "region": "${REGION}",
+            "apiUrl": "${API_URL}",
+            "liffUrl": "https://${STAGING_LIFF_SITE_ID}.web.app",
+            "adminUrl": "https://${STAGING_ADMIN_SITE_ID}.web.app",
+            "migrationJob": "pickleball-stg-db-migrate"
+          }
+          EOF
+
+      - name: Upload release candidate metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: optional-paid-gcp-staging-${{ env.DEPLOY_SHA }}
+          path: staging-release-metadata.json
+          if-no-files-found: error

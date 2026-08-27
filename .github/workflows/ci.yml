@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -70,3 +71,60 @@ jobs:
       - name: Verify Flyway migrations using PostgreSQL Testcontainers
         working-directory: backend
         run: bash ./mvnw -Dtest=PostgresMigrationIT,Slice3MigrationIT,Slice4MigrationIT,Slice5MigrationIT,Slice6MigrationIT test
+
+  devops:
+    name: Container and optional GCP reference validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend production image
+        run: docker build --file backend/Dockerfile backend
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.9
+      - name: Terraform formatting
+        run: terraform fmt -check -recursive infra/terraform
+      - name: Validate optional GCP staging foundation
+        working-directory: infra/terraform/bootstrap/staging-foundation
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+      - name: Validate optional GCP staging runtime
+        working-directory: infra/terraform/environments/staging
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+      - name: Validate optional Firebase Hosting configuration
+        run: node -e "JSON.parse(require('fs').readFileSync('firebase.json', 'utf8'))"
+
+  zero-cost-production-like:
+    name: Zero-cost production-like smoke
+    needs: [backend, frontend, migration, devops]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build production frontend bundles
+        working-directory: frontend
+        env:
+          VITE_LIFF_ID: zero-cost-prototype-liff
+          VITE_API_BASE_URL: http://127.0.0.1:18080/api/v1
+        run: |
+          npm ci
+          npm run api:check
+          npm run build
+          test -f apps/liff/dist/index.html
+          test -f apps/admin/dist/index.html
+      - name: Run ephemeral PostgreSQL + migration + API smoke
+        run: bash scripts/zero-cost-production-like.sh
+      - name: Upload zero-cost release candidate metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: zero-cost-release-${{ github.sha }}
+          path: zero-cost-release-metadata.json
+          if-no-files-found: error

@@ -1,0 +1,2 @@
+bucket = "your-globally-unique-pickleball-stg-tfstate"
+prefix = "runtime/staging"

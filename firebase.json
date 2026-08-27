@@ -1,0 +1,52 @@
+{
+  "hosting": [
+    {
+      "target": "liff",
+      "public": "frontend/apps/liff/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            { "key": "X-Content-Type-Options", "value": "nosniff" },
+            { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+          ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "run": {
+            "serviceId": "pickleball-stg-api",
+            "region": "asia-east1"
+          }
+        },
+        { "source": "**", "destination": "/index.html" }
+      ]
+    },
+    {
+      "target": "admin",
+      "public": "frontend/apps/admin/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            { "key": "X-Content-Type-Options", "value": "nosniff" },
+            { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+          ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "run": {
+            "serviceId": "pickleball-stg-api",
+            "region": "asia-east1"
+          }
+        },
+        { "source": "**", "destination": "/index.html" }
+      ]
+    }
+  ]
+}

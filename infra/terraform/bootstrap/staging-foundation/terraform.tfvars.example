@@ -1,0 +1,16 @@
+project_id                  = "your-pickleball-staging-project"
+region                      = "asia-east1"
+terraform_state_bucket_name = "your-globally-unique-pickleball-stg-tfstate"
+
+github_repository = "heyi0819/Pickleball-Booking-Platform"
+github_branch     = "main"
+
+artifact_repository_id      = "pickleball"
+cloud_sql_instance_name      = "pickleball-stg-pg18"
+database_name                = "pickleball_booking"
+database_tier                = "db-f1-micro"
+database_deletion_protection = true
+
+# Firebase Hosting site IDs are globally unique and become *.web.app hostnames.
+firebase_liff_site_id  = "your-unique-pickleball-stg-liff"
+firebase_admin_site_id = "your-unique-pickleball-stg-admin"
