@@ -35,14 +35,13 @@ class Slice6MigrationIT {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.target", () -> "10");
         registry.add("security.jwt.signing-secret",
                 () -> "test-only-signing-secret-with-at-least-thirty-two-characters");
     }
 
     @Test
     void emptyDatabaseMigratesThroughSliceSixPersistence() {
-        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("10");
+        assertThat(Integer.parseInt(latestVersion(jdbc, "flyway_schema_history"))).isGreaterThanOrEqualTo(10);
         assertThat(tableExists("receivables")).isTrue();
         assertThat(tableExists("receivable_items")).isTrue();
         assertThat(tableExists("receivable_adjustments")).isTrue();
