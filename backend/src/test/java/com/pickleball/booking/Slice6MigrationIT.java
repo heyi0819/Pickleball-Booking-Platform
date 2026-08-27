@@ -35,6 +35,7 @@ class Slice6MigrationIT {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.flyway.target", () -> "10");
         registry.add("security.jwt.signing-secret",
                 () -> "test-only-signing-secret-with-at-least-thirty-two-characters");
     }
@@ -95,6 +96,7 @@ class Slice6MigrationIT {
                 .dataSource(upgradeDataSource)
                 .schemas(schema)
                 .locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("10"))
                 .load()
                 .migrate();
 
