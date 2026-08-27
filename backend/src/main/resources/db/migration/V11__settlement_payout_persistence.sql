@@ -118,7 +118,7 @@ CREATE TABLE payout_batches (
     status varchar(20) NOT NULL DEFAULT 'DRAFT',
     payout_date date,
     method varchar(20),
-    currency char(3) NOT NULL DEFAULT 'TWD',
+    currency varchar(3) NOT NULL DEFAULT 'TWD',
     total_amount numeric(12,2) NOT NULL DEFAULT 0,
     item_count integer NOT NULL DEFAULT 0,
     created_by uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
