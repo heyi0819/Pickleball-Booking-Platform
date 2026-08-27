@@ -100,6 +100,7 @@ export function FinanceWorkQueue({ token }: { token: string }) {
   return <section aria-label="Finance operations">
     <h2>Finance operations</h2>
     <p>Slice 6 closure workspace. Use known receivable, payment and refund IDs; Finance queue/read-side APIs are not invented here.</p>
+    <p>Cash is the MVP default. Bank transfer means a transaction completed outside the platform and recorded here afterward; this screen does not initiate bank transfers.</p>
     {message && <p role="status">{message}</p>}
     {lastRefundId && <p>Last refund ID: <code>{lastRefundId}</code></p>}
 
@@ -108,7 +109,7 @@ export function FinanceWorkQueue({ token }: { token: string }) {
       <label>Receivable ID<input name="receivableId" required /></label>
       <label>Payer user ID<input name="payerUserId" required /></label>
       <label>Amount<input name="amount" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" required /></label>
-      <label>Method<select name="method" defaultValue="CASH"><option value="CASH">Cash</option><option value="BANK_TRANSFER">Bank transfer</option><option value="OTHER">Other</option></select></label>
+      <label>Method<select name="method" defaultValue="CASH"><option value="CASH">Cash</option><option value="BANK_TRANSFER">Bank transfer (record only)</option><option value="OTHER">Other</option></select></label>
       <label>Paid at<input name="paidAt" type="datetime-local" required /></label>
       <label>Note<input name="note" maxLength={5000} /></label>
       <button disabled={busy}>Review payment</button>
@@ -134,7 +135,7 @@ export function FinanceWorkQueue({ token }: { token: string }) {
     <h3>Execute approved refund</h3>
     <form aria-label="Execute refund" onSubmit={prepareRefundExecution}>
       <label>Refund ID<input name="refundId" defaultValue={lastRefundId} required /></label>
-      <label>Method<select name="method" defaultValue="BANK_TRANSFER"><option value="CASH">Cash</option><option value="BANK_TRANSFER">Bank transfer</option><option value="OTHER">Other</option></select></label>
+      <label>Method<select name="method" defaultValue="CASH"><option value="CASH">Cash</option><option value="BANK_TRANSFER">Bank transfer (record only)</option><option value="OTHER">Other</option></select></label>
       <label>Refunded at<input name="refundedAt" type="datetime-local" required /></label>
       <label>Reference<input name="reference" maxLength={100} /></label>
       <button disabled={busy}>Review refund execution</button>
