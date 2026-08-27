@@ -25,6 +25,7 @@ terraform.tfvars
 backend.hcl
 .firebaserc
 staging-release-metadata.json
+zero-cost-release-metadata.json
 
 # GitHub OIDC generated credentials
 gha-creds-*.json
