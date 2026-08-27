@@ -1,14 +1,19 @@
-name: Deploy Staging
+name: Deploy GCP Staging (Optional Paid Reference)
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      enable_paid_gcp:
+        description: "Explicit paid-cloud gate. Select ENABLE_PAID_GCP only after approving possible GCP charges."
+        required: true
+        default: "NO"
+        type: choice
+        options:
+          - "NO"
+          - "ENABLE_PAID_GCP"
 
 concurrency:
-  group: staging-deployment
+  group: paid-gcp-staging-deployment
   cancel-in-progress: false
 
 permissions:
@@ -25,12 +30,8 @@ env:
 
 jobs:
   deploy:
-    name: Build once, migrate, deploy and smoke
-    if: >-
-      ${{
-        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-        (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
-      }}
+    name: Explicitly approved paid GCP staging deployment
+    if: ${{ github.ref == 'refs/heads/main' && inputs.enable_paid_gcp == 'ENABLE_PAID_GCP' }}
     runs-on: ubuntu-latest
     environment: staging
 
@@ -43,9 +44,19 @@ jobs:
       STAGING_ADMIN_SITE_ID: ${{ vars.STAGING_ADMIN_SITE_ID }}
       STAGING_LIFF_ID: ${{ vars.STAGING_LIFF_ID }}
       STAGING_LINE_LOGIN_CHANNEL_ID: ${{ vars.STAGING_LINE_LOGIN_CHANNEL_ID }}
-      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      DEPLOY_SHA: ${{ github.sha }}
 
     steps:
+      - name: Reconfirm explicit paid-cloud gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.enable_paid_gcp }}" != "ENABLE_PAID_GCP" ]]; then
+            echo "Paid GCP deployment was not explicitly enabled." >&2
+            exit 1
+          fi
+          echo "Paid GCP staging was explicitly enabled for this manual run."
+
       - name: Validate staging configuration
         shell: bash
         run: |
@@ -228,6 +239,7 @@ jobs:
         run: |
           cat > staging-release-metadata.json <<EOF
           {
+            "deploymentMode": "optional-paid-gcp",
             "gitSha": "${DEPLOY_SHA}",
             "imageDigest": "${IMAGE_DIGEST}",
             "migrationVersion": "${MIGRATION_VERSION}",
@@ -242,6 +254,6 @@ jobs:
       - name: Upload release candidate metadata
         uses: actions/upload-artifact@v4
         with:
-          name: staging-release-${{ env.DEPLOY_SHA }}
+          name: optional-paid-gcp-staging-${{ env.DEPLOY_SHA }}
           path: staging-release-metadata.json
           if-no-files-found: error
