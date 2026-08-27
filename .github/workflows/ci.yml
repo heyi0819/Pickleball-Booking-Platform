@@ -19,6 +19,9 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - name: Compile backend test sources
+        working-directory: backend
+        run: bash ./mvnw -DskipTests test-compile
       - name: Build and test
         working-directory: backend
         run: bash ./mvnw test
@@ -68,9 +71,17 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Verify Flyway migrations using PostgreSQL Testcontainers
+      - name: Slice 7 migration acceptance
         working-directory: backend
-        run: bash ./mvnw -Dtest=PostgresMigrationIT,Slice3MigrationIT,Slice4MigrationIT,Slice5MigrationIT,Slice6MigrationIT,Slice7MigrationIT test
+        run: bash ./mvnw -Dtest=Slice7MigrationIT test
+      - name: Slice 6 migration regression
+        if: always()
+        working-directory: backend
+        run: bash ./mvnw -Dtest=Slice6MigrationIT test
+      - name: Prior migration regression suite
+        if: always()
+        working-directory: backend
+        run: bash ./mvnw -Dtest=PostgresMigrationIT,Slice3MigrationIT,Slice4MigrationIT,Slice5MigrationIT test
 
   devops:
     name: Container and optional GCP reference validation
