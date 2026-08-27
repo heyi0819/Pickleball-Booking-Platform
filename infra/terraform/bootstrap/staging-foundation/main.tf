@@ -142,9 +142,8 @@ resource "google_secret_manager_secret" "runtime" {
 }
 
 resource "google_firebase_project" "staging" {
-  provider        = google-beta
-  project         = var.project_id
-  deletion_policy = "ABANDON"
+  provider = google-beta
+  project  = var.project_id
 
   depends_on = [google_project_service.required]
 }
