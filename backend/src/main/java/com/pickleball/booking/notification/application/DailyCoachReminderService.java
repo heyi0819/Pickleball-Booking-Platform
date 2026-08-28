@@ -9,6 +9,7 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ public class DailyCoachReminderService {
     private final ZoneId zoneId;
     private final Clock clock;
 
+    @Autowired
     public DailyCoachReminderService(
             NotificationProjectionRepository repository,
             @Value("${app.workers.coach-reminder-zone:Asia/Taipei}") String zone) {
