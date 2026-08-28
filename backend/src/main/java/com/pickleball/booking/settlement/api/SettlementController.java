@@ -98,7 +98,8 @@ public class SettlementController {
                         row.coachProfileId(),
                         amount(row.payableAmount()),
                         amount(row.paidAmount()),
-                        row.payoutStatus())).toList(),
+                        row.payoutStatus(),
+                        row.version())).toList(),
                 result.version());
     }
 
@@ -161,5 +162,6 @@ public class SettlementController {
             UUID coachProfileId,
             String payableAmount,
             String paidAmount,
-            String payoutStatus) {}
+            String payoutStatus,
+            long version) {}
 }
