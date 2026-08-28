@@ -41,7 +41,7 @@ class Slice7MigrationIT {
 
     @Test
     void emptyDatabaseMigratesThroughSliceSevenPersistence() {
-        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("11");
+        assertThat(migrationApplied(jdbc, "flyway_schema_history", "11")).isTrue();
         assertThat(tableExists("session_settlements")).isTrue();
         assertThat(tableExists("settlement_adjustments")).isTrue();
         assertThat(tableExists("coach_settlements")).isTrue();
@@ -96,7 +96,7 @@ class Slice7MigrationIT {
                 .load()
                 .migrate();
 
-        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("11");
+        assertThat(migrationApplied(upgradeJdbc, schema + ".flyway_schema_history", "11")).isTrue();
         assertThat(upgradeJdbc.queryForObject(
                 "select total_amount from " + schema + ".receivables where id = ?",
                 BigDecimal.class, receivableId)).isEqualByComparingTo("1800.00");
@@ -315,10 +315,11 @@ class Slice7MigrationIT {
                 """, Boolean.class, schema, tableName));
     }
 
-    private static String latestVersion(JdbcTemplate template, String historyTable) {
-        return template.queryForObject(
-                "select version from " + historyTable + " where success=true order by installed_rank desc limit 1",
-                String.class);
+    private static boolean migrationApplied(JdbcTemplate template, String historyTable, String version) {
+        Integer count = template.queryForObject(
+                "select count(*) from " + historyTable + " where success=true and version=?",
+                Integer.class, version);
+        return count != null && count == 1;
     }
 
     private static String compact(UUID value) {
