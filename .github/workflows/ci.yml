@@ -98,11 +98,16 @@ jobs:
       - name: Validate optional Firebase Hosting configuration
         run: node -e "JSON.parse(require('fs').readFileSync('firebase.json', 'utf8'))"
 
-  slice7-contract-artifact:
-    name: Slice 7 contract artifact
+  slice7-contract-sync:
+    name: Slice 7 contract sync
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feat/slice-7-settlement-payout
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -110,19 +115,24 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Patch Slice 7 OpenAPI contract
         run: python3 .github/scripts/slice7_openapi_sync.py
-      - name: Generate API client
+      - name: Generate and verify API client
         working-directory: frontend
         run: |
           npm ci
           npm run api:generate
-      - name: Upload synchronized contract
-        uses: actions/upload-artifact@v4
-        with:
-          name: slice7-contract-${{ github.sha }}
-          path: |
-            backend/src/main/resources/openapi/openapi.yaml
+          npm run api:check
+      - name: Commit synchronized contract and remove scaffolding
+        run: |
+          git show 96422b570b0987accec3af35e11e6a06b32138ae:.github/workflows/ci.yml > .github/workflows/ci.yml
+          rm .github/scripts/slice7_openapi_sync.py
+          git add .github/workflows/ci.yml .github/scripts/slice7_openapi_sync.py \
+            backend/src/main/resources/openapi/openapi.yaml \
             frontend/packages/api-client/src/generated
-          if-no-files-found: error
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(slice7): sync OpenAPI generated client"
+          git push origin HEAD:feat/slice-7-settlement-payout
 
   zero-cost-production-like:
     name: Zero-cost production-like smoke
