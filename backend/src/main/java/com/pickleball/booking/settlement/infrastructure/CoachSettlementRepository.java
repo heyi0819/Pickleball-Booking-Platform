@@ -25,6 +25,7 @@ public interface CoachSettlementRepository extends JpaRepository<CoachSettlement
               join session_settlements ss on ss.id = cs.session_settlement_id
               join coach_profiles cp on cp.id = cs.coach_profile_id
              where cp.user_id = :userId
+               and cp.deleted_at is null
              order by cs.created_at desc, cs.id desc
             """, nativeQuery = true)
     List<MyCoachSettlementRow> findOwnedByUserId(@Param("userId") UUID userId);
