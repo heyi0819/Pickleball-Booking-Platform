@@ -70,7 +70,7 @@ jobs:
           cache: maven
       - name: Verify Flyway migrations using PostgreSQL Testcontainers
         working-directory: backend
-        run: bash ./mvnw -Dtest=PostgresMigrationIT,Slice3MigrationIT,Slice4MigrationIT,Slice5MigrationIT,Slice6MigrationIT,Slice7MigrationIT test
+        run: bash ./mvnw -Dtest=PostgresMigrationIT,Slice3MigrationIT,Slice4MigrationIT,Slice5MigrationIT,Slice6MigrationIT,Slice7MigrationIT,SettlementApplicationServiceIT,PayoutApplicationServiceIT test
 
   devops:
     name: Container and optional GCP reference validation
