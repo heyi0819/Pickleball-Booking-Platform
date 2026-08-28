@@ -98,6 +98,32 @@ jobs:
       - name: Validate optional Firebase Hosting configuration
         run: node -e "JSON.parse(require('fs').readFileSync('firebase.json', 'utf8'))"
 
+  slice7-contract-artifact:
+    name: Slice 7 contract artifact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Patch Slice 7 OpenAPI contract
+        run: python3 .github/scripts/slice7_openapi_sync.py
+      - name: Generate API client
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run api:generate
+      - name: Upload synchronized contract
+        uses: actions/upload-artifact@v4
+        with:
+          name: slice7-contract-${{ github.sha }}
+          path: |
+            backend/src/main/resources/openapi/openapi.yaml
+            frontend/packages/api-client/src/generated
+          if-no-files-found: error
+
   zero-cost-production-like:
     name: Zero-cost production-like smoke
     needs: [backend, frontend, migration, devops]
