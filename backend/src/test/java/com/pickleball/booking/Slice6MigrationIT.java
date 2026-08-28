@@ -41,7 +41,7 @@ class Slice6MigrationIT {
 
     @Test
     void emptyDatabaseMigratesThroughSliceSixPersistence() {
-        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("10");
+        assertThat(Integer.parseInt(latestVersion(jdbc, "flyway_schema_history"))).isGreaterThanOrEqualTo(10);
         assertThat(tableExists("receivables")).isTrue();
         assertThat(tableExists("receivable_items")).isTrue();
         assertThat(tableExists("receivable_adjustments")).isTrue();
@@ -95,6 +95,7 @@ class Slice6MigrationIT {
                 .dataSource(upgradeDataSource)
                 .schemas(schema)
                 .locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("10"))
                 .load()
                 .migrate();
 
