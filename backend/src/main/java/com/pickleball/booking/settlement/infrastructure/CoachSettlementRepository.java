@@ -15,12 +15,12 @@ public interface CoachSettlementRepository extends JpaRepository<CoachSettlement
     List<CoachSettlementEntity> findByCoachProfileIdOrderByCreatedAtDesc(UUID coachProfileId);
 
     @Query(value = """
-            select cs.id as coachSettlementId,
-                   cs.organization_id as organizationId,
-                   ss.course_session_id as courseSessionId,
-                   cs.payable_amount as payableAmount,
-                   cs.paid_amount as paidAmount,
-                   cs.payout_status as payoutStatus
+            select cs.id as "coachSettlementId",
+                   cs.organization_id as "organizationId",
+                   ss.course_session_id as "courseSessionId",
+                   cs.payable_amount as "payableAmount",
+                   cs.paid_amount as "paidAmount",
+                   cs.payout_status as "payoutStatus"
               from coach_settlements cs
               join session_settlements ss on ss.id = cs.session_settlement_id
               join coach_profiles cp on cp.id = cs.coach_profile_id
