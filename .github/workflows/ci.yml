@@ -22,6 +22,17 @@ jobs:
       - name: Build and test
         working-directory: backend
         run: bash ./mvnw test
+      - name: Verify notification repository PostgreSQL integration evidence
+        working-directory: backend
+        run: |
+          REPORT="target/surefire-reports/TEST-com.pickleball.booking.notification.infrastructure.NotificationProjectionRepositoryIT.xml"
+          test -f "$REPORT"
+          grep -q 'tests="1"' "$REPORT"
+          grep -q 'failures="0"' "$REPORT"
+          grep -q 'errors="0"' "$REPORT"
+          grep -q 'skipped="0"' "$REPORT"
+          echo "NotificationProjectionRepositoryIT Surefire evidence:"
+          grep '<testsuite ' "$REPORT"
 
   frontend:
     name: Frontend checks

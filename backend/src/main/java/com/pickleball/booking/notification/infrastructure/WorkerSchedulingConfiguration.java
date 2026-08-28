@@ -1,5 +1,6 @@
 package com.pickleball.booking.notification.infrastructure;
 
+import com.pickleball.booking.notification.application.DailyCoachReminderService;
 import com.pickleball.booking.notification.application.NotificationWorkerService;
 import com.pickleball.booking.notification.application.OutboxWorkerService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,12 +14,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class WorkerSchedulingConfiguration {
     private final OutboxWorkerService outboxWorkerService;
     private final NotificationWorkerService notificationWorkerService;
+    private final DailyCoachReminderService dailyCoachReminderService;
 
     public WorkerSchedulingConfiguration(
             OutboxWorkerService outboxWorkerService,
-            NotificationWorkerService notificationWorkerService) {
+            NotificationWorkerService notificationWorkerService,
+            DailyCoachReminderService dailyCoachReminderService) {
         this.outboxWorkerService = outboxWorkerService;
         this.notificationWorkerService = notificationWorkerService;
+        this.dailyCoachReminderService = dailyCoachReminderService;
     }
 
     @Scheduled(fixedDelayString = "${app.workers.outbox-delay-ms:5000}")
@@ -29,5 +33,12 @@ public class WorkerSchedulingConfiguration {
     @Scheduled(fixedDelayString = "${app.workers.notification-delay-ms:5000}")
     public void runNotifications() {
         notificationWorkerService.runBatch(50);
+    }
+
+    @Scheduled(
+            cron = "${app.workers.coach-reminder-cron:0 0 18 * * *}",
+            zone = "${app.workers.coach-reminder-zone:Asia/Taipei}")
+    public void enqueueCoachDailyReminder() {
+        dailyCoachReminderService.enqueueNextDayReminders();
     }
 }

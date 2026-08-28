@@ -44,6 +44,14 @@ public class NotificationWorkerService {
         try {
             port.deliver(message);
             repository.markNotificationSent(message.id());
+        } catch (NotificationDeliveryException ex) {
+            boolean dead = !ex.retryable() || retryPolicy.isDead(message.attemptCount());
+            repository.markNotificationFailed(
+                    message.id(),
+                    dead,
+                    retryPolicy.nextDelay(message.attemptCount()),
+                    ex.errorCode(),
+                    ex.getMessage() == null ? "notification delivery failed" : ex.getMessage());
         } catch (RuntimeException ex) {
             repository.markNotificationFailed(
                     message.id(),
