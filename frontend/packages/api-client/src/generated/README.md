@@ -111,6 +111,13 @@ All URIs are relative to */api/v1*
 *LessonRequestsApi* | [**reviewLessonRequest**](docs/LessonRequestsApi.md#reviewlessonrequest) | **POST** /lesson-requests/{id}/review |
 *LessonRequestsApi* | [**submitLessonRequest**](docs/LessonRequestsApi.md#submitlessonrequest) | **POST** /lesson-requests/{id}/submission |
 *LessonRequestsApi* | [**updateLessonRequestSelectedAvailability**](docs/LessonRequestsApi.md#updatelessonrequestselectedavailability) | **PATCH** /lesson-requests/{id}/selected-availability |
+*PayoutsApi* | [**createPayoutBatch**](docs/PayoutsApi.md#createpayoutbatch) | **POST** /payout-batches |
+*PayoutsApi* | [**executePayoutBatch**](docs/PayoutsApi.md#executepayoutbatch) | **POST** /payout-batches/{batchId}/execution |
+*PayoutsApi* | [**getPayoutBatch**](docs/PayoutsApi.md#getpayoutbatch) | **GET** /payout-batches/{batchId} |
+*SettlementApi* | [**calculateCourseSessionSettlement**](docs/SettlementApi.md#calculatecoursesessionsettlement) | **POST** /course-sessions/{sessionId}/settlement-calculation |
+*SettlementApi* | [**confirmSessionSettlement**](docs/SettlementApi.md#confirmsessionsettlement) | **POST** /session-settlements/{settlementId}/confirmation |
+*SettlementApi* | [**getCourseSessionSettlement**](docs/SettlementApi.md#getcoursesessionsettlement) | **GET** /course-sessions/{sessionId}/settlement |
+*SettlementApi* | [**listMyCoachSettlements**](docs/SettlementApi.md#listmycoachsettlements) | **GET** /me/coach-settlements |
 
 
 ### Models
@@ -125,11 +132,16 @@ All URIs are relative to */api/v1*
 - [CoachApplicationRequest](docs/CoachApplicationRequest.md)
 - [CoachCancellationReviewQueueEnvelope](docs/CoachCancellationReviewQueueEnvelope.md)
 - [CoachCancellationReviewQueueItem](docs/CoachCancellationReviewQueueItem.md)
+- [CoachPayoutStatus](docs/CoachPayoutStatus.md)
 - [CoachSessionCancellation](docs/CoachSessionCancellation.md)
 - [CoachSessionCancellationEnvelope](docs/CoachSessionCancellationEnvelope.md)
 - [CoachSessionCancellationRequest](docs/CoachSessionCancellationRequest.md)
 - [CoachSessionCancellationReview](docs/CoachSessionCancellationReview.md)
 - [CoachSessionCancellationReviewEnvelope](docs/CoachSessionCancellationReviewEnvelope.md)
+- [CoachSettlementAllocationResponse](docs/CoachSettlementAllocationResponse.md)
+- [CoachSettlementSelfItem](docs/CoachSettlementSelfItem.md)
+- [CoachSettlementSelfList](docs/CoachSettlementSelfList.md)
+- [CoachSettlementSelfListEnvelope](docs/CoachSettlementSelfListEnvelope.md)
 - [CourseDetail](docs/CourseDetail.md)
 - [CourseDetailEnvelope](docs/CourseDetailEnvelope.md)
 - [CourseMatch](docs/CourseMatch.md)
@@ -227,6 +239,19 @@ All URIs are relative to */api/v1*
 - [MyCourseOfferingRegistration](docs/MyCourseOfferingRegistration.md)
 - [MyCourseOfferingRegistrationPage](docs/MyCourseOfferingRegistrationPage.md)
 - [MyCourseOfferingRegistrationPageEnvelope](docs/MyCourseOfferingRegistrationPageEnvelope.md)
+- [PayoutBatchCreateEnvelope](docs/PayoutBatchCreateEnvelope.md)
+- [PayoutBatchCreateItemRequest](docs/PayoutBatchCreateItemRequest.md)
+- [PayoutBatchCreateRequest](docs/PayoutBatchCreateRequest.md)
+- [PayoutBatchCreateResponse](docs/PayoutBatchCreateResponse.md)
+- [PayoutBatchEnvelope](docs/PayoutBatchEnvelope.md)
+- [PayoutBatchItemResponse](docs/PayoutBatchItemResponse.md)
+- [PayoutBatchItemStatus](docs/PayoutBatchItemStatus.md)
+- [PayoutBatchResponse](docs/PayoutBatchResponse.md)
+- [PayoutBatchStatus](docs/PayoutBatchStatus.md)
+- [PayoutExecutionEnvelope](docs/PayoutExecutionEnvelope.md)
+- [PayoutExecutionRequest](docs/PayoutExecutionRequest.md)
+- [PayoutExecutionResponse](docs/PayoutExecutionResponse.md)
+- [PayoutMethod](docs/PayoutMethod.md)
 - [ProfileUpdateRequest](docs/ProfileUpdateRequest.md)
 - [ReviewRequest](docs/ReviewRequest.md)
 - [RoleCode](docs/RoleCode.md)
@@ -244,6 +269,17 @@ All URIs are relative to */api/v1*
 - [SessionRescheduleRequest](docs/SessionRescheduleRequest.md)
 - [SessionRescheduleResult](docs/SessionRescheduleResult.md)
 - [SessionRescheduleResultEnvelope](docs/SessionRescheduleResultEnvelope.md)
+- [SessionSettlementEnvelope](docs/SessionSettlementEnvelope.md)
+- [SessionSettlementResponse](docs/SessionSettlementResponse.md)
+- [SettlementAllocationType](docs/SettlementAllocationType.md)
+- [SettlementCalculationEnvelope](docs/SettlementCalculationEnvelope.md)
+- [SettlementCalculationRequest](docs/SettlementCalculationRequest.md)
+- [SettlementCalculationResponse](docs/SettlementCalculationResponse.md)
+- [SettlementCoachAllocationRequest](docs/SettlementCoachAllocationRequest.md)
+- [SettlementConfirmationEnvelope](docs/SettlementConfirmationEnvelope.md)
+- [SettlementConfirmationRequest](docs/SettlementConfirmationRequest.md)
+- [SettlementConfirmationResponse](docs/SettlementConfirmationResponse.md)
+- [SettlementStatus](docs/SettlementStatus.md)
 
 ### Authorization
 

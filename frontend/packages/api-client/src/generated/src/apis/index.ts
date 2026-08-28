@@ -11,3 +11,5 @@ export * from './CourseOperationsApi';
 export * from './CurrentUserApi';
 export * from './FinanceApi';
 export * from './LessonRequestsApi';
+export * from './PayoutsApi';
+export * from './SettlementApi';
