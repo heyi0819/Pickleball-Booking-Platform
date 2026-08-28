@@ -155,7 +155,7 @@ public class SettlementStore {
 
     public List<CoachSettlementRow> findCoachSettlements(UUID settlementId) {
         return jdbc.query("""
-                select id, coach_profile_id, payable_amount, paid_amount, payout_status
+                select id, coach_profile_id, payable_amount, paid_amount, payout_status, version
                 from coach_settlements
                 where session_settlement_id = ?
                 order by coach_profile_id, id
@@ -164,7 +164,8 @@ public class SettlementStore {
                 rs.getObject("coach_profile_id", UUID.class),
                 rs.getBigDecimal("payable_amount"),
                 rs.getBigDecimal("paid_amount"),
-                rs.getString("payout_status")), settlementId);
+                rs.getString("payout_status"),
+                rs.getLong("version")), settlementId);
     }
 
     public boolean actorOwnsCoachSettlement(UUID settlementId, UUID userId) {
@@ -179,7 +180,7 @@ public class SettlementStore {
 
     public List<CoachSettlementRow> findCoachSettlementsForActor(UUID settlementId, UUID userId) {
         return jdbc.query("""
-                select cs.id, cs.coach_profile_id, cs.payable_amount, cs.paid_amount, cs.payout_status
+                select cs.id, cs.coach_profile_id, cs.payable_amount, cs.paid_amount, cs.payout_status, cs.version
                 from coach_settlements cs
                 join coach_profiles cp on cp.id = cs.coach_profile_id
                 where cs.session_settlement_id = ? and cp.user_id = ? and cp.deleted_at is null
@@ -189,7 +190,8 @@ public class SettlementStore {
                 rs.getObject("coach_profile_id", UUID.class),
                 rs.getBigDecimal("payable_amount"),
                 rs.getBigDecimal("paid_amount"),
-                rs.getString("payout_status")), settlementId, userId);
+                rs.getString("payout_status"),
+                rs.getLong("version")), settlementId, userId);
     }
 
     public FinanceReadiness lockFinanceReadiness(UUID courseSessionId, UUID priceSnapshotId) {
@@ -301,7 +303,8 @@ public class SettlementStore {
             UUID coachProfileId,
             BigDecimal payableAmount,
             BigDecimal paidAmount,
-            String payoutStatus) {}
+            String payoutStatus,
+            long version) {}
 
     public record FinanceReadiness(boolean sameSnapshot, boolean fullyCollected) {}
 
