@@ -22,10 +22,22 @@ line:
     channel-id: ${LINE_LOGIN_CHANNEL_ID:${LINE_CHANNEL_ID:}}
     verify-url: ${LINE_VERIFY_URL:https://api.line.me/oauth2/v2.1/verify}
     timeout-millis: ${LINE_VERIFY_TIMEOUT_MILLIS:3000}
+  messaging:
+    channel-access-token: ${LINE_MESSAGING_CHANNEL_ACCESS_TOKEN:}
+    push-url: ${LINE_MESSAGING_PUSH_URL:https://api.line.me/v2/bot/message/push}
+    timeout-millis: ${LINE_MESSAGING_TIMEOUT_MILLIS:3000}
 
 identity:
   default-organization-code: ${DEFAULT_ORGANIZATION_CODE:MVP-DEFAULT}
   default-organization-name: ${DEFAULT_ORGANIZATION_NAME:Pickleball MVP}
+
+app:
+  workers:
+    enabled: ${WORKERS_ENABLED:false}
+    outbox-delay-ms: ${OUTBOX_WORKER_DELAY_MS:5000}
+    notification-delay-ms: ${NOTIFICATION_WORKER_DELAY_MS:5000}
+    coach-reminder-cron: ${COACH_REMINDER_CRON:0 0 18 * * *}
+    coach-reminder-zone: ${COACH_REMINDER_ZONE:Asia/Taipei}
 
 management:
   endpoints:
