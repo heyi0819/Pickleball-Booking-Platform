@@ -192,7 +192,7 @@ public class SettlementApplicationService {
                 settlement.otherAdjustment(),
                 settlement.distributableAmount(),
                 coachRows.stream().map(row -> new CoachSettlementView(
-                        row.id(), row.coachProfileId(), row.payableAmount(), row.paidAmount(), row.payoutStatus())).toList(),
+                        row.id(), row.coachProfileId(), row.payableAmount(), row.paidAmount(), row.payoutStatus(), row.version())).toList(),
                 settlement.version());
     }
 
@@ -245,5 +245,6 @@ public class SettlementApplicationService {
             UUID coachProfileId,
             BigDecimal payableAmount,
             BigDecimal paidAmount,
-            String payoutStatus) {}
+            String payoutStatus,
+            long version) {}
 }
