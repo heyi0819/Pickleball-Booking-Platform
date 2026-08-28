@@ -60,13 +60,13 @@ public class PayoutStore {
     }
 
     public void lockOrganization(UUID organizationId) {
-        Integer count = jdbc.queryForObject("""
-                select count(*)
+        List<UUID> rows = jdbc.query("""
+                select id
                 from organizations
                 where id = ?
                 for update
-                """, Integer.class, organizationId);
-        if (count == null || count != 1) {
+                """, (rs, rowNum) -> rs.getObject("id", UUID.class), organizationId);
+        if (rows.size() != 1) {
             throw new IllegalStateException("Organization disappeared while creating payout batch");
         }
     }
