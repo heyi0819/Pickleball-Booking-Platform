@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './AdminOperationsApi';
 export * from './AuthenticationApi';
 export * from './CoachApplicationsApi';
 export * from './CoachAvailabilityApi';

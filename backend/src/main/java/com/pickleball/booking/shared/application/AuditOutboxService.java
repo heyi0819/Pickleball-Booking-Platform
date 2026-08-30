@@ -32,14 +32,7 @@ public class AuditOutboxService {
             Object before,
             Object after,
             String requestId) {
-        String beforeJson = json(before);
-        String afterJson = json(after);
-        jdbc.update("""
-                insert into audit_logs(
-                    organization_id, actor_user_id, actor_type, action, entity_type, entity_id,
-                    before_data, after_data, reason, request_id, created_at)
-                values (?, ?, 'USER', ?, ?, ?, cast(? as jsonb), cast(? as jsonb), ?, ?, now())
-                """, org, actor, action, type, id, beforeJson, afterJson, reason, requestId);
+        recordAudit(org, actor, action, type, id, reason, before, after, requestId);
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("action", action);
@@ -54,6 +47,27 @@ public class AuditOutboxService {
                     status, attempt_count, available_at, created_at)
                 values (?, ?, ?, ?, ?, cast(? as jsonb), 'PENDING', 0, now(), now())
                 """, UUID.randomUUID(), org, type, id, action, json(payload));
+    }
+
+    /** Records an operator action without producing another event for the queue being recovered. */
+    public void recordAudit(
+            UUID org,
+            UUID actor,
+            String action,
+            String type,
+            UUID id,
+            String reason,
+            Object before,
+            Object after,
+            String requestId) {
+        String beforeJson = json(before);
+        String afterJson = json(after);
+        jdbc.update("""
+                insert into audit_logs(
+                    organization_id, actor_user_id, actor_type, action, entity_type, entity_id,
+                    before_data, after_data, reason, request_id, created_at)
+                values (?, ?, 'USER', ?, ?, ?, cast(? as jsonb), cast(? as jsonb), ?, ?, now())
+                """, org, actor, action, type, id, beforeJson, afterJson, reason, requestId);
     }
 
     private String json(Object value) {

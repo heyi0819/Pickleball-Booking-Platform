@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { App } from "./App";
 
@@ -13,9 +13,11 @@ const server = setupServer(
   http.get("/api/v1/course-offerings", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
   http.get("/api/v1/courses", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
   http.get("/api/v1/session-change-requests", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
-  http.get("/api/v1/coach-cancellation-requests", () => HttpResponse.json({ data: [], meta: { requestId: "test" } }))
+  http.get("/api/v1/coach-cancellation-requests", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+  http.get("/api/v1/admin/outbox-events", () => HttpResponse.json({ data: { items: [], page: 0, size: 50, totalElements: 0 }, meta: { requestId: "test" } })),
+  http.get("/api/v1/admin/notifications", () => HttpResponse.json({ data: { items: [], page: 0, size: 50, totalElements: 0 }, meta: { requestId: "test" } }))
 );
-beforeAll(() => server.listen({ onUnhandledRequest: "error" })); afterEach(() => { server.resetHandlers(); sessionStorage.clear(); }); afterAll(() => server.close());
+beforeAll(() => server.listen({ onUnhandledRequest: "error" })); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); }); afterAll(() => server.close());
 
 describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", () => {
   it("allows committee users", async () => {
@@ -28,6 +30,41 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Student", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
     render(<App />); expect(await screen.findByRole("alert")).toBeTruthy();
+  });
+
+  it("keeps committee scope fixed and performs an audited eligible recovery", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    let recovered = false;
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "org-1", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/admin/outbox-events", ({ request }) => {
+        expect(new URL(request.url).searchParams.get("organizationId")).toBe("org-1");
+        return HttpResponse.json({ data: { items: recovered ? [] : [{ id: "event-1", organizationId: "org-1", aggregateType: "Course", aggregateId: "course-1", eventType: "CourseChanged", status: "FAILED", attemptCount: 2, availableAt: "2026-08-29T00:00:00Z", processedAt: null, lastError: "dependency timeout", createdAt: "2026-08-29T00:00:00Z" }], page: 0, size: 50, totalElements: recovered ? 0 : 1 }, meta: { requestId: "test" } });
+      }),
+      http.post("/api/v1/admin/outbox-events/event-1/retry", async ({ request }) => {
+        expect(request.headers.get("Idempotency-Key")).toMatch(/^admin-recovery-event-1-/);
+        expect(await request.json()).toEqual({ reason: "dependency restored" });
+        recovered = true;
+        return HttpResponse.json({ data: { id: "event-1", organizationId: "org-1", aggregateType: "Course", aggregateId: "course-1", eventType: "CourseChanged", status: "PENDING", attemptCount: 2, availableAt: "2026-08-29T00:01:00Z", processedAt: null, lastError: null, createdAt: "2026-08-29T00:00:00Z" }, meta: { requestId: "test" } });
+      })
+    );
+    render(<App />);
+    expect(await screen.findByText("dependency timeout")).toBeTruthy();
+    expect(screen.queryByLabelText("Organization ID")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Audit reason"), { target: { value: "dependency restored" } });
+    fireEvent.click(screen.getByRole("button", { name: "Retry event" }));
+    expect(await screen.findByText("Recovery request accepted and audited.")).toBeTruthy();
+    await waitFor(() => expect(recovered).toBe(true));
+  });
+
+  it("requires a platform administrator to select an explicit organization scope", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "pa", displayName: "Platform Admin", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] }, meta: { requestId: "test" } })));
+    render(<App />);
+    const input = await screen.findByLabelText("Organization ID");
+    expect(screen.getByRole("button", { name: "Refresh operations" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.change(input, { target: { value: "org-selected" } });
+    expect(screen.getByRole("button", { name: "Refresh operations" }).hasAttribute("disabled")).toBe(false);
   });
 
   it("previews and confirms pricing before secondary course formation confirmation", async () => {

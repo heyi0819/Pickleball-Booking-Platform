@@ -1,5 +1,14 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './AdminNotification';
+export * from './AdminNotificationEnvelope';
+export * from './AdminNotificationPage';
+export * from './AdminNotificationPageEnvelope';
+export * from './AdminOutboxEvent';
+export * from './AdminOutboxEventEnvelope';
+export * from './AdminOutboxEventPage';
+export * from './AdminOutboxEventPageEnvelope';
+export * from './AdminRecoveryRequest';
 export * from './AvailabilityProposal';
 export * from './AvailabilityProposalEnvelope';
 export * from './AvailabilityProposalListEnvelope';
@@ -117,6 +126,8 @@ export * from './Meta';
 export * from './MyCourseOfferingRegistration';
 export * from './MyCourseOfferingRegistrationPage';
 export * from './MyCourseOfferingRegistrationPageEnvelope';
+export * from './NotificationStatus';
+export * from './OutboxEventStatus';
 export * from './PayoutBatchCreateEnvelope';
 export * from './PayoutBatchCreateItemRequest';
 export * from './PayoutBatchCreateRequest';
