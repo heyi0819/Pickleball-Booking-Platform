@@ -2,11 +2,15 @@
 
 # Pickleball Booking Platform — Codex Handoff Context
 
-> Last synchronized project status: 2026-08-12  
-> Current phase: **Phase 10 — Development**  
-> Current gate: **10 Development Review Gate PASS / Approved Baseline**  
-> Next task: **10.1 Repository Bootstrap / Slice 0**  
-> Important: **The design/specification baseline is complete; the actual application repository and production code have not yet been bootstrapped. Do not treat design completion as implementation completion.**
+> Last synchronized project status: 2026-08-30
+>
+> Current phase: **Phase 10 — Development / Slice 8 Closure**
+>
+> Current gate: **Slices 0–7 and S8.1–S8.4 SEALED; S8.4 merge commit `67d8288d849b198d87b7e0677847ca06bc898e3b`; main CI Run `33298536951` GREEN**
+>
+> Next task: **Review and close focused maintenance/documentation PRs, then explicitly define and approve the next roadmap Slice and its acceptance gate. Do not automatically start Slice 9 or a Future Extension.**
+>
+> Important: **This header is the current implementation snapshot. The detailed roadmap and original bootstrap prompt below are retained as design/history context and must not be used to restart a sealed Slice.**
 
 ---
 
@@ -1374,7 +1378,7 @@ Codex 不應自行推翻以下 baseline；若實作發現缺口，使用 forward
 ## 12. Development Roadmap
 
 ### Slice 0 — Repository Bootstrap / Engineering Foundation
-**現在開始**
+**SEALED**
 
 目標：
 - clone 後可 build。
@@ -1508,7 +1512,7 @@ Codex 不應自行推翻以下 baseline；若實作發現缺口，使用 forward
 Codex 接手後請遵守：
 
 1. **不要先重做 PRD、DB、API 或 UI 設計。**
-2. **先完成 Slice 0 / 10.1 Repository Bootstrap。**
+2. **Slices 0–7 and S8.1–S8.4 已封版；開始任何新產品 Slice 前，先依最新 Git history、PR、main CI 與 Closure Gate 確認 maintainer 已核准範圍與驗收條件。**
 3. 不要一次生成整個產品所有 Entity / Controller / UI。
 4. 每次只做一個可完整驗收的 Vertical Slice。
 5. 每個 Slice 必須同時考慮：
@@ -1620,32 +1624,22 @@ Repository Bootstrap 階段先不要：
 
 ---
 
-## 17. 給 Codex 的第一個工作指令建議
+## 17. 給 Codex 的目前接續指令建議
 
 ```text
-Read PROJECT_CONTEXT.md and README.md first.
+Read AGENTS.md, PROJECT_CONTEXT.md, README.md, the latest Git history, merged/open PRs, and main CI first.
 
-We are currently at Phase 10.1 Repository Bootstrap / Slice 0.
-Do not redesign the product and do not implement later vertical slices yet.
+Slices 0–7 and S8.1–S8.4 are SEALED. Do not redo or broadly refactor them.
+The approved roadmap currently ends at Slice 8. Do not automatically start Slice 9 or a Future Extension.
 
-Create the approved monorepo engineering foundation:
-- backend: Java 21, Spring Boot 4.1.x, Maven Wrapper, modular-monolith package skeleton
-- frontend: Node 24 LTS, React 19.2.x, TypeScript, Vite 8.1.x, npm workspaces
-- apps/liff and apps/admin
-- packages/ui, api-client, shared, config
-- PostgreSQL 18 via compose
-- Flyway baseline
-- Testcontainers PostgreSQL smoke test
-- GitHub Actions CI skeleton
-- .env.example / .editorconfig / .gitignore
-- minimal Actuator health check
-- minimal frontend pages proving both apps build
+First close any authorized focused maintenance/documentation work through its own PR and CI Gate.
+Before starting another product Slice, require the maintainer to explicitly approve:
+- problem statement and P0 scope
+- non-goals and compatibility boundary
+- API / schema / security / UI impact
+- migration and forward-fix strategy
+- automated test matrix
+- production-like validation and Closure Gate
 
-Keep changes limited to Slice 0.
-At the end, run all available build/test commands and report:
-1. files created/changed
-2. commands executed
-3. test/build results
-4. unresolved local prerequisites
-5. recommended next step, which should be Slice 1 only after Slice 0 passes.
+At the end, report files changed, commands and tests executed, GitHub CI Run / HEAD SHA, unresolved prerequisites, risks, and the next legal step.
 ```

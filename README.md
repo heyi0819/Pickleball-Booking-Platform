@@ -1,6 +1,6 @@
 # Pickleball Booking Platform
 
-The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). This repository currently implements **10.1 — Repository Bootstrap / Slice 0** only: a modular-monolith skeleton, two frontend entry points, database migration infrastructure, and CI checks. No product-domain slice has been implemented yet.
+The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). The repository has completed and sealed **Slices 0–7 and S8.1–S8.4**, including identity and organization scope, coach and lesson demand, matching and enrollment, course operations, finance and payout, notification delivery, and Admin Ops / failure recovery. The latest merged product closure is S8.4 on `main`.
 
 ## Prerequisites
 
@@ -55,4 +55,4 @@ compose.yaml             PostgreSQL 18 local service
 
 ## Scope
 
-Slice 0 intentionally contains no business entities, operational APIs, or production pages. The next implementation step, after all checks pass, is Slice 1: Identity / LINE Login / Me / RBAC + organization scope.
+The approved roadmap currently ends at Slice 8. After S8.4 Closure, the next legal step is to review and close focused maintenance/documentation PRs, then have the maintainer explicitly define and approve the scope, risks, and acceptance gate for any next product Slice. Do not automatically start Slice 9 or a Future Extension.
