@@ -33,6 +33,9 @@ jobs:
           grep -q 'skipped="0"' "$REPORT"
           echo "NotificationProjectionRepositoryIT Surefire evidence:"
           grep '<testsuite ' "$REPORT"
+      - name: Verify Slice 1-8 backend acceptance evidence
+        working-directory: backend
+        run: bash ../scripts/verify-slice9-backend-evidence.sh target/surefire-reports
 
   frontend:
     name: Frontend checks
@@ -68,6 +71,9 @@ jobs:
       - name: Frontend Playwright E2E
         working-directory: frontend
         run: npm run e2e
+      - name: Verify Slice 1-8 Playwright acceptance evidence
+        working-directory: frontend
+        run: node scripts/verify-slice9-playwright-evidence.mjs
 
   migration:
     name: Clean and forward PostgreSQL migration
