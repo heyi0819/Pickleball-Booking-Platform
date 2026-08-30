@@ -4,11 +4,11 @@
 
 > Last synchronized project status: 2026-08-30
 >
-> Current phase: **Phase 10 — Development / Slice 8 Closure**
+> Current phase: **Phase 10 — Development / Slice 9 Product Acceptance**
 >
-> Current gate: **Slices 0–7 and S8.1–S8.4 SEALED; S8.4 merge commit `67d8288d849b198d87b7e0677847ca06bc898e3b`; main CI Run `33298536951` GREEN**
+> Current gate: **Slices 0–8 SEALED; maintenance PRs #34 and #35 SEALED; main merge commit `36abe0ceb2eea62dcafe1e917988fcbe81dcaa12`; main CI Run `33301035221` GREEN**
 >
-> Next task: **Review and close focused maintenance/documentation PRs, then explicitly define and approve the next roadmap Slice and its acceptance gate. Do not automatically start Slice 9 or a Future Extension.**
+> Next task: **Implement the explicitly approved Slice 9 acceptance gate defined in `docs/reference/slice9-product-acceptance.md`; do not add a Future Extension or deploy.**
 >
 > Important: **This header is the current implementation snapshot. The detailed roadmap and historical baseline sections below are retained as design/history context and must not be used to restart a sealed Slice.**
 
@@ -1505,6 +1505,17 @@ Codex 不應自行推翻以下 baseline；若實作發現缺口，使用 forward
 - Outbox / Audit 不是到 Slice 8 才開始做。
 - 前面 Slice 需要時就必須落地。
 
+### Slice 9 — MVP Product Acceptance / Release-Candidate Readiness
+**IN PROGRESS — explicitly approved 2026-08-30**
+
+目標：
+- 將 S1～S8 的代表性 backend、browser 與 production-like evidence 固定為可稽核 Closure Gate。
+- 補齊 Slice 3 matching / pricing / course confirmation 的 browser acceptance journey。
+- 在 ephemeral production-like runtime 驗證 S1～S8 protected capability 均維持 unauthenticated `401`。
+- 不新增產品功能、API、schema、role、migration 或 Future Extension。
+
+驗收、相容性與 recovery 規則以 `docs/reference/slice9-product-acceptance.md` 為準。
+
 ---
 
 ## 13. Codex 執行規則
@@ -1630,10 +1641,10 @@ Repository Bootstrap 階段先不要：
 Read AGENTS.md, PROJECT_CONTEXT.md, README.md, the latest Git history, merged/open PRs, and main CI first.
 
 Slices 0–7 and S8.1–S8.4 are SEALED. Do not redo or broadly refactor them.
-The approved roadmap currently ends at Slice 8. Do not automatically start Slice 9 or a Future Extension.
+Slice 9 MVP Product Acceptance / Release-Candidate Readiness is explicitly approved and in progress.
+Implement only the acceptance scope in docs/reference/slice9-product-acceptance.md. Do not add a Future Extension or deploy.
 
-First close any authorized focused maintenance/documentation work through its own PR and CI Gate.
-Before starting another product Slice, require the maintainer to explicitly approve:
+Before starting any product Slice after Slice 9, require the maintainer to explicitly approve:
 - problem statement and P0 scope
 - non-goals and compatibility boundary
 - API / schema / security / UI impact
