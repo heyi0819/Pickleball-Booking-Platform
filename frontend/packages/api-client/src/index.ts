@@ -1,4 +1,5 @@
 import {
+  AdminOperationsApi,
   AuthenticationApi,
   CoachApplicationsApi,
   CoachAvailabilityApi,
@@ -12,6 +13,10 @@ import {
   FinanceApi,
   LessonRequestsApi,
   ResponseError,
+  type AdminNotification,
+  type AdminNotificationPage,
+  type AdminOutboxEvent,
+  type AdminOutboxEventPage,
   type AvailabilityProposal,
   type AvailabilityProposalRequest,
   type CoachApplication,
@@ -72,6 +77,10 @@ import {
 } from "./generated/src";
 
 export type {
+  AdminNotification,
+  AdminNotificationPage,
+  AdminOutboxEvent,
+  AdminOutboxEventPage,
   AvailabilityProposal,
   AvailabilityProposalRequest,
   CoachApplication,
@@ -154,6 +163,13 @@ export type CourseOperationsQuery = {
   size?: number;
   sort?: "createdAt,desc" | "createdAt,asc" | "courseNo,asc" | "courseNo,desc" | "nextSessionAt,asc" | "nextSessionAt,desc";
 };
+export type AdminOperationsQuery = {
+  organizationId: string;
+  status?: "PENDING" | "PROCESSING" | "PROCESSED" | "SENDING" | "SENT" | "FAILED" | "DEAD";
+  retryDue?: boolean;
+  page?: number;
+  size?: number;
+};
 
 export class ApiClientError extends Error {
   constructor(public readonly status: number, public readonly code: string) { super(code); }
@@ -180,6 +196,7 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
   const courseOfferingRegistrations = (token: string) => new CourseOfferingRegistrationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const courseOperations = (token: string) => new CourseOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const finance = (token: string) => new FinanceApi(new Configuration({ basePath: baseUrl, accessToken: token }));
+  const adminOperations = (token: string) => new AdminOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
     baseUrl,
     async loginWithLine(idToken: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken } })).data; } catch (caught) { return mapError(caught); } },
@@ -240,5 +257,9 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
     async requestReceivableRefund(token: string, receivableId: string, idempotencyKey: string, request: FinanceRefundRequest): Promise<FinanceRefundRequestResponse> { try { return (await finance(token).requestReceivableRefund({ receivableId, idempotencyKey, financeRefundRequest: request })).data; } catch (caught) { return mapError(caught); } },
     async reviewRefund(token: string, refundId: string, idempotencyKey: string, request: FinanceRefundReviewRequest): Promise<FinanceRefundReviewResponse> { try { return (await finance(token).reviewRefund({ refundId, idempotencyKey, financeRefundReviewRequest: request })).data; } catch (caught) { return mapError(caught); } },
     async executeRefund(token: string, refundId: string, idempotencyKey: string, request: FinanceRefundExecutionRequest): Promise<FinanceRefundExecutionResponse> { try { return (await finance(token).executeRefund({ refundId, idempotencyKey, financeRefundExecutionRequest: request })).data; } catch (caught) { return mapError(caught); } },
+    async listAdminOutboxEvents(token: string, query: AdminOperationsQuery): Promise<AdminOutboxEventPage> { try { return (await adminOperations(token).listAdminOutboxEvents({ ...query, status: query.status as "PENDING" | "PROCESSING" | "PROCESSED" | "FAILED" | "DEAD" | undefined })).data; } catch (caught) { return mapError(caught); } },
+    async retryAdminOutboxEvent(token: string, eventId: string, idempotencyKey: string, reason: string): Promise<AdminOutboxEvent> { try { return (await adminOperations(token).retryAdminOutboxEvent({ eventId, idempotencyKey, adminRecoveryRequest: { reason } })).data; } catch (caught) { return mapError(caught); } },
+    async listAdminNotifications(token: string, query: AdminOperationsQuery): Promise<AdminNotificationPage> { try { return (await adminOperations(token).listAdminNotifications({ ...query, status: query.status as "PENDING" | "SENDING" | "SENT" | "FAILED" | "DEAD" | undefined })).data; } catch (caught) { return mapError(caught); } },
+    async retryAdminNotification(token: string, notificationId: string, idempotencyKey: string, reason: string): Promise<AdminNotification> { try { return (await adminOperations(token).retryAdminNotification({ notificationId, idempotencyKey, adminRecoveryRequest: { reason } })).data; } catch (caught) { return mapError(caught); } },
   };
 }

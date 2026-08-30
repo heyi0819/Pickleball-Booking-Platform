@@ -16,21 +16,33 @@ Next, try it out.
 ```ts
 import {
   Configuration,
-  AuthenticationApi,
+  AdminOperationsApi,
 } from '@pickleball/api-client-generated';
-import type { LoginWithLineRequest } from '@pickleball/api-client-generated';
+import type { ListAdminNotificationsRequest } from '@pickleball/api-client-generated';
 
 async function example() {
   console.log("🚀 Testing @pickleball/api-client-generated SDK...");
-  const api = new AuthenticationApi();
+  const config = new Configuration({
+    // Configure HTTP bearer authorization: bearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminOperationsApi(config);
 
   const body = {
-    // LineLoginRequest
-    lineLoginRequest: ...,
-  } satisfies LoginWithLineRequest;
+    // string
+    organizationId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // NotificationStatus (optional)
+    status: ...,
+    // boolean (optional)
+    retryDue: true,
+    // number (optional)
+    page: 56,
+    // number (optional)
+    size: 56,
+  } satisfies ListAdminNotificationsRequest;
 
   try {
-    const data = await api.loginWithLine(body);
+    const data = await api.listAdminNotifications(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -50,6 +62,10 @@ All URIs are relative to */api/v1*
 
 | Class | Method | HTTP request | Description
 | ----- | ------ | ------------ | -------------
+*AdminOperationsApi* | [**listAdminNotifications**](docs/AdminOperationsApi.md#listadminnotifications) | **GET** /admin/notifications |
+*AdminOperationsApi* | [**listAdminOutboxEvents**](docs/AdminOperationsApi.md#listadminoutboxevents) | **GET** /admin/outbox-events |
+*AdminOperationsApi* | [**retryAdminNotification**](docs/AdminOperationsApi.md#retryadminnotification) | **POST** /admin/notifications/{notificationId}/retry |
+*AdminOperationsApi* | [**retryAdminOutboxEvent**](docs/AdminOperationsApi.md#retryadminoutboxevent) | **POST** /admin/outbox-events/{eventId}/retry |
 *AuthenticationApi* | [**loginWithLine**](docs/AuthenticationApi.md#loginwithline) | **POST** /auth/line/login |
 *CoachApplicationsApi* | [**createCoachApplication**](docs/CoachApplicationsApi.md#createcoachapplication) | **POST** /coach-applications |
 *CoachApplicationsApi* | [**listCoachApplicationsForReview**](docs/CoachApplicationsApi.md#listcoachapplicationsforreview) | **GET** /coach-applications |
@@ -122,6 +138,15 @@ All URIs are relative to */api/v1*
 
 ### Models
 
+- [AdminNotification](docs/AdminNotification.md)
+- [AdminNotificationEnvelope](docs/AdminNotificationEnvelope.md)
+- [AdminNotificationPage](docs/AdminNotificationPage.md)
+- [AdminNotificationPageEnvelope](docs/AdminNotificationPageEnvelope.md)
+- [AdminOutboxEvent](docs/AdminOutboxEvent.md)
+- [AdminOutboxEventEnvelope](docs/AdminOutboxEventEnvelope.md)
+- [AdminOutboxEventPage](docs/AdminOutboxEventPage.md)
+- [AdminOutboxEventPageEnvelope](docs/AdminOutboxEventPageEnvelope.md)
+- [AdminRecoveryRequest](docs/AdminRecoveryRequest.md)
 - [AvailabilityProposal](docs/AvailabilityProposal.md)
 - [AvailabilityProposalEnvelope](docs/AvailabilityProposalEnvelope.md)
 - [AvailabilityProposalListEnvelope](docs/AvailabilityProposalListEnvelope.md)
@@ -239,6 +264,8 @@ All URIs are relative to */api/v1*
 - [MyCourseOfferingRegistration](docs/MyCourseOfferingRegistration.md)
 - [MyCourseOfferingRegistrationPage](docs/MyCourseOfferingRegistrationPage.md)
 - [MyCourseOfferingRegistrationPageEnvelope](docs/MyCourseOfferingRegistrationPageEnvelope.md)
+- [NotificationStatus](docs/NotificationStatus.md)
+- [OutboxEventStatus](docs/OutboxEventStatus.md)
 - [PayoutBatchCreateEnvelope](docs/PayoutBatchCreateEnvelope.md)
 - [PayoutBatchCreateItemRequest](docs/PayoutBatchCreateItemRequest.md)
 - [PayoutBatchCreateRequest](docs/PayoutBatchCreateRequest.md)
