@@ -12,6 +12,9 @@ spring:
   flyway:
     enabled: true
 
+server:
+  port: ${PORT:8080}
+
 security:
   jwt:
     # Required at runtime; production injects this from its secret store.
@@ -32,6 +35,9 @@ identity:
   default-organization-name: ${DEFAULT_ORGANIZATION_NAME:Pickleball MVP}
 
 app:
+  cors:
+    # Empty by default: browser requests from every cross-origin site are denied.
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
   workers:
     enabled: ${WORKERS_ENABLED:false}
     outbox-delay-ms: ${OUTBOX_WORKER_DELAY_MS:5000}

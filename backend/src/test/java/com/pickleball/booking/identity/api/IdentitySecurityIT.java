@@ -33,6 +33,7 @@ class IdentitySecurityIT {
         registry.add("spring.datasource.url", postgres::getJdbcUrl); registry.add("spring.datasource.username", postgres::getUsername); registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("security.jwt.signing-secret", () -> "test-only-signing-secret-with-at-least-thirty-two-characters");
         registry.add("line.login.channel-id", () -> "channel"); registry.add("line.login.verify-url", () -> line.baseUrl() + "/oauth2/v2.1/verify");
+        registry.add("app.cors.allowed-origins", () -> "https://pickleball-stg-liff.pages.dev");
     }
     @BeforeEach void stubLine() { line.resetAll(); line.stubFor(post(urlEqualTo("/oauth2/v2.1/verify")).willReturn(okJson("{\"sub\":\"line-subject\",\"name\":\"Member\",\"iss\":\"https://access.line.me\",\"aud\":\"channel\",\"exp\":1900000000}"))); }
     @AfterAll static void stopLine() { line.stop(); }
@@ -50,6 +51,30 @@ class IdentitySecurityIT {
     @Test void invalidOrExpiredLineCredentialIsUnauthorized() throws Exception {
         line.resetAll(); line.stubFor(post(urlEqualTo("/oauth2/v2.1/verify")).willReturn(aResponse().withStatus(400)));
         assertThat(request("POST", "/api/v1/auth/line/login", "{\"idToken\":\"invalid\"}", null).statusCode()).isEqualTo(401);
+    }
+    @Test void configuredStagingOriginCanPreflightButStillRequiresPlatformJwt() throws Exception {
+        var preflight = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/me"))
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                .header("Origin", "https://pickleball-stg-liff.pages.dev")
+                .header("Access-Control-Request-Method", "GET").build();
+        var response = HttpClient.newHttpClient().send(preflight, HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.headers().firstValue("access-control-allow-origin")).contains("https://pickleball-stg-liff.pages.dev");
+        var protectedRequest = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/me"))
+                .header("Origin", "https://pickleball-stg-liff.pages.dev").GET().build();
+        var protectedResponse = HttpClient.newHttpClient().send(protectedRequest, HttpResponse.BodyHandlers.ofString());
+        assertThat(protectedResponse.statusCode()).isEqualTo(401);
+        assertThat(protectedResponse.headers().firstValue("access-control-allow-origin")).contains("https://pickleball-stg-liff.pages.dev");
+        assertThat(protectedResponse.headers().firstValue("access-control-allow-credentials")).isEmpty();
+    }
+    @Test void unknownOriginIsDeniedWithoutWildcardCorsRegression() throws Exception {
+        var request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/me"))
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                .header("Origin", "https://unknown.example")
+                .header("Access-Control-Request-Method", "GET").build();
+        var response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(response.headers().firstValue("access-control-allow-origin")).isEmpty();
     }
     @Test void concurrentFirstLoginsCreateOneIdentityAndOneDefaultRole() throws Exception {
         line.resetAll(); line.stubFor(post(urlEqualTo("/oauth2/v2.1/verify")).willReturn(okJson("{\"sub\":\"concurrent-line-subject\",\"name\":\"Concurrent member\",\"iss\":\"https://access.line.me\",\"aud\":\"channel\",\"exp\":1900000000}")));
