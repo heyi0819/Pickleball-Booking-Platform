@@ -4,11 +4,11 @@
 
 > Last synchronized project status: 2026-08-30
 >
-> Current phase: **Phase 10 — Development / Slice 9 Product Acceptance**
+> Current phase: **Phase 10 — Development / S10.1 Persistent Staging Foundation**
 >
-> Current gate: **Slices 0–8 SEALED; maintenance PRs #34 and #35 SEALED; main merge commit `36abe0ceb2eea62dcafe1e917988fcbe81dcaa12`; main CI Run `33301035221` GREEN**
+> Current gate: **Slices 0–9 and Repository Governance SEALED; main merge commit `9413bb74cc1d3575744e819b364ff488488bffd7`; main CI Run `33312434964` GREEN**
 >
-> Next task: **Implement the explicitly approved Slice 9 acceptance gate defined in `docs/reference/slice9-product-acceptance.md`; do not add a Future Extension or deploy.**
+> Next task: **Implement the explicitly approved S10.1 staging foundation defined in `docs/reference/s10.1-persistent-staging-foundation.md`; do not deploy, create provider resources, or add a Future Extension.**
 >
 > Important: **This header is the current implementation snapshot. The detailed roadmap and historical baseline sections below are retained as design/history context and must not be used to restart a sealed Slice.**
 

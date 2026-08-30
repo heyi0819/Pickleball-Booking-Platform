@@ -1,6 +1,6 @@
 # Pickleball Booking Platform
 
-The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). The repository has completed and sealed **Slices 0–7 and S8.1–S8.4**, including identity and organization scope, coach and lesson demand, matching and enrollment, course operations, finance and payout, notification delivery, and Admin Ops / failure recovery. **Slice 9 — MVP Product Acceptance and Release-Candidate Readiness** is the current explicitly approved product Slice; its gate is defined in [docs/reference/slice9-product-acceptance.md](./docs/reference/slice9-product-acceptance.md).
+The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). The repository has completed and sealed **Slices 0–9** and Repository Governance. **S10.1 — Persistent Staging Foundation** prepares configuration and operational documentation only; it does not deploy or create cloud resources. Its contract is defined in [docs/reference/s10.1-persistent-staging-foundation.md](./docs/reference/s10.1-persistent-staging-foundation.md).
 
 ## Prerequisites
 
