@@ -31,7 +31,7 @@ test("platform admin scopes and audits failed outbox recovery", async ({ page })
   await expect(page.getByText("timeout")).toBeVisible();
   await page.getByLabel("Audit reason").fill("upstream repaired");
   await page.getByRole("button", { name: "Retry event" }).click();
-  await expect(page.getByRole("status")).toContainText("accepted and audited");
+  await expect(page.getByText("Recovery request accepted and audited.")).toBeVisible();
   expect(recovered).toBe(true);
 });
 

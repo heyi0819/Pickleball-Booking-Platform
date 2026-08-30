@@ -61,12 +61,13 @@ export function AdminOperationsPanel({ token, organizationId, platformAdmin }: {
     <p>Operational queue only; recovery is limited to FAILED or DEAD items and requires an audit reason.</p>
     {platformAdmin ? <label>Organization ID <input value={scope} onChange={(event) => setScope(event.target.value)} placeholder="UUID" /></label>
       : <p>Organization scope: <code>{scope}</code></p>}
-    <label>Status <select value={status} onChange={(event) => setStatus(event.target.value as (typeof statuses)[number])}>
+    <label htmlFor="admin-recovery-state">Recovery state</label>
+    <select id="admin-recovery-state" value={status} onChange={(event) => setStatus(event.target.value as (typeof statuses)[number])}>
       {statuses.map((item) => <option key={item || "ALL"} value={item}>{item || "ALL"}</option>)}
-    </select></label>
+    </select>
     <label><input type="checkbox" checked={retryDue} onChange={(event) => setRetryDue(event.target.checked)} /> Retry due only</label>
     <button disabled={!scope.trim() || state === "loading"} onClick={() => void load()}>{state === "loading" ? "Loading…" : "Refresh operations"}</button>
-    {message && <p role="status">{message}</p>}
+    {message && <p aria-live="polite">{message}</p>}
     {state === "error" && <p role="alert">Operational data could not be loaded.</p>}
     <OperationalTable title="Outbox events" empty="No matching outbox events." rows={outbox.map((item) => ({
       id: item.id, status: item.status, attempts: item.attemptCount, context: `${item.eventType} · ${item.aggregateType} ${item.aggregateId}`,

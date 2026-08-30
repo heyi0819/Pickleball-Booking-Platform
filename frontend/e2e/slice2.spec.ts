@@ -11,12 +11,12 @@ test("student creates a selected draft and sees the claimed-availability recover
   await page.route("**/api/v1/me", (route) => route.fulfill({ json: envelope({ id: draft.requesterUserId, displayName: "Student", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId, organizationCode: "MVP", organizationName: "MVP" }] }) }));
   await page.route("**/api/v1/coach-availability-proposals/available", (route) => route.fulfill({ json: envelope([availability]) }));
   await page.route("**/api/v1/lesson-requests/mine", (route) => route.fulfill({ json: envelope(created ? [draft] : []) }));
-  await page.route("**/api/v1/lesson-requests", (route) => route.fulfill({ status: 201, json: envelope(draft) }));
+  await page.route("**/api/v1/lesson-requests", (route) => { created = true; return route.fulfill({ status: 201, json: envelope(draft) }); });
   await page.route("**/api/v1/lesson-requests/*/submission", (route) => route.fulfill({ status: 409, json: { error: { code: "AVAILABILITY_ALREADY_CLAIMED" } } }));
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Find a coach time" })).toBeVisible();
   await page.getByRole("combobox", { name: "Approved availability" }).selectOption(availability.id);
-  await page.getByRole("button", { name: "Create lesson draft" }).click(); created = true;
+  await page.getByRole("button", { name: "Create lesson draft" }).click();
   await expect(page.getByText("Draft saved with your selected availability.")).toBeVisible();
   await page.getByRole("button", { name: "Submit" }).click();
   await expect(page.getByText("該時段已被其他需求取得，請重新整理並選擇其他時段。")).toBeVisible();
