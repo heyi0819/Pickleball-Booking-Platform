@@ -1,6 +1,6 @@
 # Pickleball Booking Platform
 
-The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). The repository has completed and sealed **Slices 0–7 and S8.1–S8.4**, including identity and organization scope, coach and lesson demand, matching and enrollment, course operations, finance and payout, notification delivery, and Admin Ops / failure recovery. The latest merged product closure is S8.4 on `main`.
+The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). The repository has completed and sealed **Slices 0–7 and S8.1–S8.4**, including identity and organization scope, coach and lesson demand, matching and enrollment, course operations, finance and payout, notification delivery, and Admin Ops / failure recovery. **Slice 9 — MVP Product Acceptance and Release-Candidate Readiness** is the current explicitly approved product Slice; its gate is defined in [docs/reference/slice9-product-acceptance.md](./docs/reference/slice9-product-acceptance.md).
 
 ## Prerequisites
 
@@ -55,4 +55,4 @@ compose.yaml             PostgreSQL 18 local service
 
 ## Scope
 
-The approved roadmap currently ends at Slice 8. After S8.4 Closure, the next legal step is to review and close focused maintenance/documentation PRs, then have the maintainer explicitly define and approve the scope, risks, and acceptance gate for any next product Slice. Do not automatically start Slice 9 or a Future Extension.
+Slice 9 is limited to auditable cross-Slice acceptance evidence and production-like release-candidate readiness. It does not authorize a Future Extension or deployment. Coupon, Event, Analytics / BI, Court Inventory, real-time court booking, and online payment providers remain out of scope.
