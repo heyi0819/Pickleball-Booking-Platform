@@ -46,6 +46,19 @@ function Import-DotEnv {
     }
 }
 
+function Assert-LocalJwtSigningSecret {
+    $jwtSigningSecret = [string]$env:JWT_SIGNING_SECRET
+    $examplePlaceholder = 'replace-with-at-least-32-character-local-secret'
+
+    if ([string]::IsNullOrWhiteSpace($jwtSigningSecret) -or $jwtSigningSecret -eq $examplePlaceholder) {
+        Stop-WithError 'JWT_SIGNING_SECRET is missing or still uses the .env.example placeholder. Set a unique local development secret of at least 32 characters in the repository root .env, then rerun this script.'
+    }
+
+    if ($jwtSigningSecret.Length -lt 32) {
+        Stop-WithError 'JWT_SIGNING_SECRET must be at least 32 characters. Set a unique local development secret in the repository root .env, then rerun this script.'
+    }
+}
+
 function Test-DockerDaemon {
     # Run through cmd.exe so Docker CLI stderr is redirected before Windows PowerShell
     # can turn it into a NativeCommandError when $ErrorActionPreference is 'Stop'.
@@ -233,6 +246,7 @@ try {
         Write-Warning 'Created .env from .env.example. It contains placeholders only; set any required local credentials before using external integrations.'
     }
     Import-DotEnv -Path $envFile
+    Assert-LocalJwtSigningSecret
 
     Wait-ForDocker
     & docker compose up -d postgres
