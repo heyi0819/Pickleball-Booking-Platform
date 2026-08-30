@@ -101,13 +101,42 @@ for attempt in $(seq 1 45); do
   sleep 2
 done
 
-echo "Verifying Spring Security boundary..."
-ME_STATUS="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
-  "http://127.0.0.1:${API_PORT}/api/v1/me")"
-if [[ "${ME_STATUS}" != "401" ]]; then
-  echo "Expected unauthenticated /api/v1/me to return 401, got ${ME_STATUS}." >&2
+echo "Verifying public OpenAPI contract and Slice 1-8 Spring Security boundaries..."
+OPENAPI_STATUS="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+  "http://127.0.0.1:${API_PORT}/v3/api-docs.yaml")"
+if [[ "${OPENAPI_STATUS}" != "200" ]]; then
+  echo "Expected public /v3/api-docs.yaml to return 200, got ${OPENAPI_STATUS}." >&2
   exit 1
 fi
+
+protected_endpoints=(
+  "S1|GET|/api/v1/me"
+  "S2|GET|/api/v1/lesson-requests/mine"
+  "S3|GET|/api/v1/course-matches"
+  "S4|GET|/api/v1/course-offerings"
+  "S5|GET|/api/v1/courses"
+  "S6|POST|/api/v1/receivables/00000000-0000-0000-0000-000000000001/payments"
+  "S7|GET|/api/v1/me/coach-settlements"
+  "S8|GET|/api/v1/admin/outbox-events"
+)
+PROTECTED_ENDPOINT_CHECKS=0
+for entry in "${protected_endpoints[@]}"; do
+  slice="${entry%%|*}"
+  remainder="${entry#*|}"
+  method="${remainder%%|*}"
+  path="${remainder#*|}"
+  curl_args=(--silent --show-error --output /dev/null --write-out '%{http_code}' --request "${method}")
+  if [[ "${method}" == "POST" ]]; then
+    curl_args+=(--header 'Content-Type: application/json' --data '{}')
+  fi
+  status="$(curl "${curl_args[@]}" "http://127.0.0.1:${API_PORT}${path}")"
+  if [[ "${status}" != "401" ]]; then
+    echo "Expected unauthenticated ${slice} ${method} ${path} to return 401, got ${status}." >&2
+    exit 1
+  fi
+  PROTECTED_ENDPOINT_CHECKS=$((PROTECTED_ENDPOINT_CHECKS + 1))
+  echo "PASS ${slice} security boundary: ${method} ${path} -> 401"
+done
 
 BACKEND_IMAGE_ID="$(docker image inspect "${BACKEND_IMAGE}" --format '{{.Id}}')"
 DEPLOY_SHA="${GITHUB_SHA:-$(git rev-parse HEAD)}"
@@ -120,7 +149,9 @@ cat > "${METADATA_FILE}" <<EOF
   "postgresImage": "postgres:18",
   "migrationVersion": "${APPLIED_MIGRATION_VERSION}",
   "readiness": "UP",
-  "unauthenticatedMeStatus": 401,
+  "openApiStatus": ${OPENAPI_STATUS},
+  "protectedEndpointChecks": ${PROTECTED_ENDPOINT_CHECKS},
+  "protectedSlices": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"],
   "persistentCloudResourcesCreated": false,
   "paidCloudRequired": false
 }
