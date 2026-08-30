@@ -10,7 +10,7 @@
 >
 > Next task: **Review and close focused maintenance/documentation PRs, then explicitly define and approve the next roadmap Slice and its acceptance gate. Do not automatically start Slice 9 or a Future Extension.**
 >
-> Important: **This header is the current implementation snapshot. The detailed roadmap and original bootstrap prompt below are retained as design/history context and must not be used to restart a sealed Slice.**
+> Important: **This header is the current implementation snapshot. The detailed roadmap and historical baseline sections below are retained as design/history context and must not be used to restart a sealed Slice.**
 
 ---
 
