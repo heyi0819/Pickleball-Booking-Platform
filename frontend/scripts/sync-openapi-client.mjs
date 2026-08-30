@@ -16,9 +16,11 @@ const checkOnly = process.argv.includes("--check");
 function normalize(dir) {
   for (const relative of files(dir)) {
     const path = join(dir, relative);
-    const normalized = readFileSync(path, "utf8").replace(/[ \t]+$/gm, "").replace(/\r?\n+$/g, "") + "\n";
-    writeFileSync(path, normalized, "utf8");
+    writeFileSync(path, normalizedContent(path), "utf8");
   }
+}
+function normalizedContent(path) {
+  return readFileSync(path, "utf8").replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").replace(/\n+$/g, "") + "\n";
 }
 function files(dir, prefix = "") {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -31,7 +33,7 @@ try {
   normalize(staging);
   if (checkOnly) {
     const generated = files(staging);
-    const changed = generated.some((relative) => !existsSync(join(target, relative)) || !readFileSync(join(target, relative)).equals(readFileSync(join(staging, relative))));
+    const changed = generated.some((relative) => !existsSync(join(target, relative)) || normalizedContent(join(target, relative)) !== normalizedContent(join(staging, relative)));
     const stale = files(target).some((relative) => !existsSync(join(staging, relative)));
     if (changed || stale) throw new Error("OpenAPI generated client is stale. Run npm run api:generate.");
   } else {
