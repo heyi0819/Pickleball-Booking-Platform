@@ -66,6 +66,59 @@ Google Drive 的進度檔只作為規劃與背景來源之一。不得假設 Cod
 
 不得僅為方便而新增第二套工具鏈。
 
+### 3.1 Codex Model / Reasoning Policy
+
+#### Default execution mode
+
+對於範圍、架構、驗收條件與實作邊界都已核准的日常 repository 執行工作，Codex 預設使用：
+
+- Model：GPT-5.6 Terra
+- Reasoning effort：Low
+
+典型工作包括：repository inspection、branch / commit / PR、依已核准設計的例行 implementation、測試執行、CI 狀態檢查、文件同步、邊界明確的 mechanical refactor，以及依既有 runbook 執行 provider configuration。
+
+本專案不以速度或 token 成本作為主要最佳化目標；**正確性、安全性、可維護性、驗證完整度與 evidence 品質優先於執行速度**。
+
+#### Mandatory reasoning escalation
+
+Codex 不得因 Low 是預設值，就在明顯需要更深推理的任務中繼續硬做。遇到下列情況，在進一步修改前必須先明確提醒 maintainer，說明建議提高 reasoning effort 及原因：
+
+至少建議 Medium：
+
+- 跨模組／跨 bounded context implementation
+- LINE Login、LIFF identity、OAuth、JWT validation / issuance
+- Spring Security、authorization、CORS 或 trust-boundary 變更
+- PostgreSQL role / privilege 或 Flyway migration 工作
+- transaction consistency、concurrency、idempotency、資料一致性問題
+- provider deployment failure 或跨 provider integration failure
+- difficult CI failure、root cause 不明或有多個合理假設
+- 有多種實作方式且 blast radius 尚不清楚
+
+建議 High / XHigh：
+
+- 初步 evidence gathering 後 root cause 仍不明
+- 可能影響資料完整性、recovery 或不可逆操作
+- security-sensitive 行為仍有 ambiguity
+- 需要在 implementation 過程做重大架構取捨
+- 變更跨多個 bounded contexts 且失敗成本高
+
+不得為了維持 Low 而降低測試、security、migration safeguard、review depth 或 Evidence Gate。
+
+#### Planning boundary
+
+重大專案規劃不是 Codex 自行重做的 implementation 工作。下列事項必須停止 implementation，回到 ChatGPT architecture / planning workflow：
+
+- 新 Slice planning
+- roadmap / MVP scope change
+- major architecture decision / redesign
+- domain boundary redesign
+- database architecture redesign
+- security architecture redesign
+- Future Extension approval
+- major provider / platform strategy change
+
+專案規劃與重大設計決策由 ChatGPT 使用 **GPT-5.6 且採可用的最高 reasoning effort** 進行。Codex 的責任是執行已核准方案，而不是重新規劃或取代 roadmap。
+
 ## 4. 不可重做已封版工作
 
 已合併到目標分支，且標示 Approved／Done／SEALED／Released，或已通過 Closure Review 的成果，視為已封版。
