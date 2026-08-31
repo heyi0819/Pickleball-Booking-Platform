@@ -41,7 +41,7 @@ class Slice8MigrationIT {
 
     @Test
     void emptyDatabaseMigratesThroughSliceEightPersistence() {
-        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("12");
+        assertThat(latestVersion(jdbc, "flyway_schema_history")).isEqualTo("13");
         assertThat(tableExists("notification_targets")).isTrue();
         assertThat(tableExists("notifications")).isTrue();
         assertThat(tableExists("outbox_events")).isTrue();
@@ -82,7 +82,7 @@ class Slice8MigrationIT {
                 .load()
                 .migrate();
 
-        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("12");
+        assertThat(latestVersion(upgradeJdbc, schema + ".flyway_schema_history")).isEqualTo("13");
         assertThat(upgradeJdbc.queryForObject(
                 "select status from " + schema + ".outbox_events where id=?", String.class, outboxId))
                 .isEqualTo("PENDING");
