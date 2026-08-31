@@ -26,6 +26,9 @@ backend.hcl
 .firebaserc
 staging-release-metadata.json
 zero-cost-release-metadata.json
+*.dump
+*.dump.age
+*.metadata.json
 
 # GitHub OIDC generated credentials
 gha-creds-*.json
