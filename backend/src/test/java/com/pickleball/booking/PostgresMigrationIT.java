@@ -49,6 +49,12 @@ class PostgresMigrationIT {
     }
 
     @Test
+    void latestMigrationRemovesThePhoneColumnAndIndex() {
+        assertThat(jdbc.queryForObject("select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'phone')", Boolean.class)).isFalse();
+        assertThat(jdbc.queryForObject("select to_regclass('public.idx_users_phone') is null", Boolean.class)).isTrue();
+    }
+
+    @Test
     void sliceTwoConstraintsAllowDraftSharingButProtectTheActiveClaimAndVenueForeignKeys() {
         UUID organization = UUID.randomUUID(); UUID coachUser = UUID.randomUUID(); UUID studentOne = UUID.randomUUID(); UUID studentTwo = UUID.randomUUID();
         UUID profile = UUID.randomUUID(); UUID proposal = UUID.randomUUID(); UUID requestOne = UUID.randomUUID(); UUID requestTwo = UUID.randomUUID();

@@ -22,13 +22,13 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" })); afterEach(() =>
 describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", () => {
   it("allows committee users", async () => {
     sessionStorage.setItem("platform.access-token", "token");
-    server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
+    server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
     render(<App />); expect(await screen.findByRole("heading", { name: "Authorized admin entry" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course matching" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Open enrollment" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course operations" })).toBeTruthy();
   });
 
   it("denies non-admin roles", async () => {
     sessionStorage.setItem("platform.access-token", "token");
-    server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Student", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
+    server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Student", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
     render(<App />); expect(await screen.findByRole("alert")).toBeTruthy();
   });
 
@@ -36,7 +36,7 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     sessionStorage.setItem("platform.access-token", "token");
     let recovered = false;
     server.use(
-      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "org-1", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "org-1", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
       http.get("/api/v1/admin/outbox-events", ({ request }) => {
         expect(new URL(request.url).searchParams.get("organizationId")).toBe("org-1");
         return HttpResponse.json({ data: { items: recovered ? [] : [{ id: "event-1", organizationId: "org-1", aggregateType: "Course", aggregateId: "course-1", eventType: "CourseChanged", status: "FAILED", attemptCount: 2, availableAt: "2026-08-29T00:00:00Z", processedAt: null, lastError: "dependency timeout", createdAt: "2026-08-29T00:00:00Z" }], page: 0, size: 50, totalElements: recovered ? 0 : 1 }, meta: { requestId: "test" } });
@@ -59,7 +59,7 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
 
   it("requires a platform administrator to select an explicit organization scope", async () => {
     sessionStorage.setItem("platform.access-token", "token");
-    server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "pa", displayName: "Platform Admin", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] }, meta: { requestId: "test" } })));
+    server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "pa", displayName: "Platform Admin", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] }, meta: { requestId: "test" } })));
     render(<App />);
     const input = await screen.findByLabelText("Organization ID");
     expect(screen.getByRole("button", { name: "Refresh operations" }).hasAttribute("disabled")).toBe(true);
@@ -71,7 +71,7 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     sessionStorage.setItem("platform.access-token", "token");
     let pricingConfirmed = false; let formed = false;
     server.use(
-      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
       http.get("/api/v1/course-matches", () => HttpResponse.json({ data: [{ id: "m1", lessonRequestId: "l1", status: formed ? "CONFIRMED" : "DRAFT", participantCount: 2, version: 1, createdAt: "2026-08-24T10:00:00Z", readiness: readiness(pricingConfirmed), pricing: { status: pricingConfirmed ? "CONFIRMED" : "NOT_CONFIRMED", priceSnapshotId: pricingConfirmed ? "p1" : null } }], meta: { requestId: "test" } })),
       http.get("/api/v1/course-matches/m1", () => HttpResponse.json({ data: { id: "m1", lessonRequestId: "l1", status: formed ? "CONFIRMED" : "DRAFT", participantCount: 2, minimumParticipants: 1, maximumParticipants: 4, version: 1, sessions: [{ id: "s1", sequenceNo: 1, startAt: "2026-09-01T02:00:00Z", endAt: "2026-09-01T03:00:00Z", venueType: "OTHER", venueId: null, venueName: "Court A", venueAddress: "Taipei" }], coachInvitations: [{ invitationId: "i1", courseMatchSessionId: "s1", sessionIndex: 1, coachProfileId: "cp1", assignmentOrder: 1, status: "ACCEPTED", invitationSentAt: "2026-08-24T10:00:00Z", respondedAt: "2026-08-24T11:00:00Z", responseNote: "ok" }], readiness: readiness(pricingConfirmed), pricing: { status: pricingConfirmed ? "CONFIRMED" : "NOT_CONFIRMED", priceSnapshotId: pricingConfirmed ? "p1" : null } }, meta: { requestId: "test" } })),
       http.post("/api/v1/course-matches/m1/pricing-preview", () => HttpResponse.json({ data: { courseMatchId: "m1", currency: "TWD", billingMode: "FULL_COURSE", totalAmount: "1800.00", breakdown: [{ courseMatchSessionId: "s1", itemType: "TUITION", description: "Tuition", quantity: "1", unitAmount: "1800.00", lineAmount: "1800.00", sourceReferenceType: null, sourceReferenceId: null }], pricingFingerprint: "a".repeat(64) }, meta: { requestId: "test" } })),
@@ -99,7 +99,7 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     const summary = () => ({ id: "o1", organizationId: "o", title: "Weekend Beginners", status, coach: { coachProfileId: "cp1", userId: "coach-user", displayName: "Coach Lin" }, scheduleType: "SINGLE", firstSessionAt: "2026-09-12T02:00:00Z", registrationOpenAt: "2026-08-26T00:00:00Z", registrationCloseAt: "2026-09-10T00:00:00Z", minimumParticipants: 2, maximumParticipants: 6, registeredCount: 3, remainingCapacity: 3, billingMode: "FULL_COURSE", skillLevel: "BEGINNER", priceSnapshotId: priceConfirmed ? "ps1" : null, pricePerParticipant: priceConfirmed ? 1200 : null, currency: priceConfirmed ? "TWD" : null, registrationState: status === "OPEN" ? "OPEN" : status === "DRAFT" ? "NOT_OPEN" : "CLOSED", ownRegistrationId: null, ownRegistrationStatus: null, version: status === "DRAFT" ? 1 : status === "OPEN" ? 2 : 3 });
     const detail = () => ({ summary: summary(), description: "Weekend class", sessionPlans: [{ id: "os1", sequenceNo: 1, startAt: "2026-09-12T02:00:00Z", endAt: "2026-09-12T03:00:00Z", venueId: null, venueName: "Court A", venueAddress: "Taipei" }] });
     server.use(
-      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
       http.get("/api/v1/coach-applications", () => HttpResponse.json({ data: [{ id: "ca1", coachProfileId: "cp1", status: "APPROVED", applicationNote: null, submittedAt: "2026-08-01T00:00:00Z", reviewedBy: "u", reviewedAt: "2026-08-02T00:00:00Z", reviewNote: "approved" }], meta: { requestId: "test" } })),
       http.get("/api/v1/course-offerings", () => HttpResponse.json({ data: { items: [summary()], page: 0, size: 100, total: 1 }, meta: { requestId: "test" } })),
       http.get("/api/v1/course-offerings/o1", () => HttpResponse.json({ data: detail(), meta: { requestId: "test" } })),

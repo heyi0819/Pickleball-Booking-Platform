@@ -51,7 +51,6 @@ const baseSession = {
 const studentMe = envelope({
   id: "student-user",
   displayName: "Student",
-  phone: null,
   email: null,
   locale: "zh-TW",
   profileComplete: true,
@@ -61,7 +60,6 @@ const studentMe = envelope({
 const coachMe = envelope({
   id: "coach-user",
   displayName: "Coach Lin",
-  phone: null,
   email: null,
   locale: "zh-TW",
   profileComplete: true,
@@ -71,7 +69,6 @@ const coachMe = envelope({
 const committeeMe = envelope({
   id: "committee-user",
   displayName: "Committee",
-  phone: null,
   email: null,
   locale: "zh-TW",
   profileComplete: true,

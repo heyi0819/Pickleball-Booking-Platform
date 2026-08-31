@@ -2045,7 +2045,6 @@ components:
       required: [displayName, locale]
       properties:
         displayName: { type: string, minLength: 1, maxLength: 100 }
-        phone: { type: [string, 'null'], maxLength: 30 }
         email: { type: [string, 'null'], format: email, maxLength: 254 }
         locale: { type: string, minLength: 1, maxLength: 10 }
 
@@ -2083,7 +2082,6 @@ components:
       properties:
         id: { type: string, format: uuid }
         displayName: { type: string }
-        phone: { type: [string, 'null'] }
         email: { type: [string, 'null'], format: email }
         locale: { type: string }
         profileComplete: { type: boolean }

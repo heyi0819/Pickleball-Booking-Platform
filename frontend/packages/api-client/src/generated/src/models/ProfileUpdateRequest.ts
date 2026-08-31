@@ -30,12 +30,6 @@ export interface ProfileUpdateRequest {
      * @type {string}
      * @memberof ProfileUpdateRequest
      */
-    phone?: string | null;
-    /**
-     *
-     * @type {string}
-     * @memberof ProfileUpdateRequest
-     */
     email?: string | null;
     /**
      *
@@ -65,7 +59,6 @@ export function ProfileUpdateRequestFromJSONTyped(json: any, ignoreDiscriminator
     return {
 
         'displayName': json['displayName'],
-        'phone': json['phone'] == null ? undefined : json['phone'],
         'email': json['email'] == null ? undefined : json['email'],
         'locale': json['locale'],
     };
@@ -83,7 +76,6 @@ export function ProfileUpdateRequestToJSONTyped(value?: ProfileUpdateRequest | n
     return {
 
         'displayName': value['displayName'],
-        'phone': value['phone'],
         'email': value['email'],
         'locale': value['locale'],
     };

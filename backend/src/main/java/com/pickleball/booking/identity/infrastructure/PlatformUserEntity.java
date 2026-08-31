@@ -9,7 +9,6 @@ import java.util.UUID;
 public class PlatformUserEntity {
     @Id private UUID id;
     @Column(name = "display_name", nullable = false) private String displayName;
-    private String phone;
     private String email;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private UserStatus status = UserStatus.ACTIVE;
     @Column(nullable = false) private String locale = "zh-TW";
@@ -22,8 +21,8 @@ public class PlatformUserEntity {
     public PlatformUserEntity(UUID id, String displayName) { this.id = id; this.displayName = displayName; }
     @PrePersist void create() { var now = Instant.now(); createdAt = now; updatedAt = now; }
     @PreUpdate void update() { updatedAt = Instant.now(); }
-    public UUID getId() { return id; } public String getDisplayName() { return displayName; } public String getPhone() { return phone; } public String getEmail() { return email; } public String getLocale() { return locale; } public UserStatus getStatus() { return status; }
-    public void updateProfile(String displayName, String phone, String email, String locale) { this.displayName = displayName; this.phone = phone; this.email = email; this.locale = locale; }
+    public UUID getId() { return id; } public String getDisplayName() { return displayName; } public String getEmail() { return email; } public String getLocale() { return locale; } public UserStatus getStatus() { return status; }
+    public void updateProfile(String displayName, String email, String locale) { this.displayName = displayName; this.email = email; this.locale = locale; }
     public void recordLogin() { lastLoginAt = Instant.now(); }
     public void changeStatus(UserStatus status) { this.status = status; }
 }

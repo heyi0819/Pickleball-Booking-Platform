@@ -34,7 +34,7 @@ public class IdentityService {
     @Transactional
     public MeView me(AuthenticatedPrincipal principal) { var user = requireActiveUser(principal.userId()); return toMe(user); }
     @Transactional
-    public MeView updateProfile(AuthenticatedPrincipal principal, UserProfile profile) { var user = requireActiveUser(principal.userId()); user.updateProfile(profile.displayName().trim(), blankToNull(profile.phone()), blankToNull(profile.email()), profile.locale()); return toMe(user); }
+    public MeView updateProfile(AuthenticatedPrincipal principal, UserProfile profile) { var user = requireActiveUser(principal.userId()); user.updateProfile(profile.displayName().trim(), blankToNull(profile.email()), profile.locale()); return toMe(user); }
     @Transactional
     public List<RoleView> roles(AuthenticatedPrincipal principal) { requireActiveUser(principal.userId()); return activeRoles(principal.userId()); }
     @Transactional
@@ -47,10 +47,10 @@ public class IdentityService {
         return organizationAccess.permits(assignments, requiredRole, organizationId);
     }
     public PlatformUserEntity requireActiveUser(UUID userId) { var user = users.findById(userId).orElseThrow(() -> new AccessForbiddenException("User not found")); if (user.getStatus() != UserStatus.ACTIVE) throw new AccessForbiddenException("User is not active"); return user; }
-    private MeView toMe(PlatformUserEntity user) { var profile = new UserProfile(user.getDisplayName(), user.getPhone(), user.getEmail(), user.getLocale()); return new MeView(user.getId(), user.getDisplayName(), user.getPhone(), user.getEmail(), user.getLocale(), profile.isComplete(), activeRoles(user.getId())); }
+    private MeView toMe(PlatformUserEntity user) { var profile = new UserProfile(user.getDisplayName(), user.getEmail(), user.getLocale()); return new MeView(user.getId(), user.getDisplayName(), user.getEmail(), user.getLocale(), profile.isComplete(), activeRoles(user.getId())); }
     private List<RoleView> activeRoles(UUID userId) { return roles.findByUserId(userId).stream().filter(r -> r.getStatus() == RoleAssignmentStatus.ACTIVE).filter(r -> r.getOrganization() == null || r.getOrganization().getStatus() == OrganizationStatus.ACTIVE).map(r -> new RoleView(r.getRoleCode(), r.getOrganization() == null ? null : r.getOrganization().getId(), r.getOrganization() == null ? null : r.getOrganization().getCode(), r.getOrganization() == null ? null : r.getOrganization().getName())).toList(); }
     private String blankToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }
     public record LoginResult(String accessToken, long expiresIn, UUID userId, String displayName, List<RoleCode> roles) {}
-    public record MeView(UUID id, String displayName, String phone, String email, String locale, boolean profileComplete, List<RoleView> roles) {}
+    public record MeView(UUID id, String displayName, String email, String locale, boolean profileComplete, List<RoleView> roles) {}
     public record RoleView(RoleCode roleCode, UUID organizationId, String organizationCode, String organizationName) {}
 }
