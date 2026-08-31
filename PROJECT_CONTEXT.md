@@ -4,11 +4,13 @@
 
 > Last synchronized project status: 2026-08-31
 >
-> Current phase: **Phase 10 — Development / S10.3 Application Deployment**
+> Current phase: **Phase 10 — Development / S10.4 Real LINE / LIFF Acceptance**
 >
-> Current gate: **Slices 0–9, Repository Governance, S10.1 and S10.2 SEALED; main merge commit `fa4215ef2bdf5b531fe9f26956cdf4161a892335`; post-merge main CI Run `33348797656` GREEN. S10.3 staging provider setup, HTTPS/CORS smoke, encrypted backup, and isolated restore evidence are complete; PR and final CI Merge Gate remain.**
+> Current gate: **Slices 0–9, Repository Governance, S10.1, S10.2 and S10.3 SEALED; main merge commit `2b4ca2bd55988920313f0e3a8a7ca7dc829aa3ef`; post-merge main CI Run `33387287885` GREEN.**
 >
-> Next task: **Review the focused S10.3 documentation/tooling diff, create its PR, and complete the final CI Merge Gate. Do not create real LINE resources, production resources, paid upgrades, or a Future Extension.**
+> Next task: **Execute the explicitly approved S10.4 real LINE / LIFF staging acceptance. Do not begin S10.5, create production LINE resources, or add a Future Extension.**
+>
+> Codex model / reasoning policy is canonical in repository-root `AGENTS.md`: routine approved implementation defaults to **GPT-5.6 Terra / Low**; Codex must explicitly warn the maintainer before tasks that materially benefit from higher reasoning; major project planning and architecture decisions return to ChatGPT using **GPT-5.6 with the highest available reasoning effort**. Quality and verification take priority over execution speed.
 >
 > Important: **This header is the current implementation snapshot. The detailed roadmap and historical baseline sections below are retained as design/history context and must not be used to restart a sealed Slice.**
 
@@ -1549,6 +1551,7 @@ Codex 接手後請遵守：
 13. 任何 schema 變更都新增 Flyway migration。
 14. Production 不使用 destructive down migration。
 15. 如果規格與實作衝突，先確認 02 / 04 / 05 / 06 的 source-of-truth，再 forward-fix。
+16. Codex model / reasoning policy 以 repository-root `AGENTS.md` 為唯一完整規範；本文件只保留摘要，不另行複製完整 escalation matrix。
 
 ---
 
