@@ -1,6 +1,6 @@
 # Pickleball Booking Platform
 
-The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). The repository has completed and sealed **Slices 0–9** and Repository Governance. **S10.1 — Persistent Staging Foundation** prepares configuration and operational documentation only; it does not deploy or create cloud resources. Its contract is defined in [docs/reference/s10.1-persistent-staging-foundation.md](./docs/reference/s10.1-persistent-staging-foundation.md).
+The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). The repository has completed and sealed **Slices 0–9**, Repository Governance, **S10.1 — Persistent Staging Foundation**, and **S10.2 — Secrets / Database Roles / Backup-Restore Baseline**. **S10.3 — Application Deployment** records the persistent, free, non-production staging boundary, smoke evidence, encrypted backup, and isolated restore rehearsal in [docs/reference/s10.3-application-deployment.md](./docs/reference/s10.3-application-deployment.md).
 
 ## Prerequisites
 
