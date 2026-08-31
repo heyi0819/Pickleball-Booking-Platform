@@ -31,9 +31,10 @@ $encrypted = Join-Path $backupRoot "$prefix.dump.age"
 $metadata = Join-Path $backupRoot "$prefix.metadata.json"
 
 try {
-    $flywayVersion = (& psql -X -At -v ON_ERROR_STOP=1 -c "select coalesce(max(version), 'baseline') from flyway_schema_history where success = true;").Trim()
+    $flywayVersion = & psql -X -At -v ON_ERROR_STOP=1 -c "select coalesce(max(version), 'baseline') from flyway_schema_history where success = true;"
     if ($LASTEXITCODE -ne 0) { throw 'Unable to query Flyway history.' }
-    & pg_dump --format=custom --no-owner --no-privileges --file=$plain
+    $flywayVersion = $flywayVersion.Trim()
+    & pg_dump --format=custom --no-owner --no-privileges --schema=public --file=$plain
     if ($LASTEXITCODE -ne 0) { throw 'pg_dump failed.' }
     & $ageExecutable -r $AgeRecipient -o $encrypted $plain
     if ($LASTEXITCODE -ne 0) { throw 'age encryption failed.' }

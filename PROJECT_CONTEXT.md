@@ -2,13 +2,13 @@
 
 # Pickleball Booking Platform — Codex Handoff Context
 
-> Last synchronized project status: 2026-08-30
+> Last synchronized project status: 2026-08-31
 >
-> Current phase: **Phase 10 — Development / S10.1 Persistent Staging Foundation**
+> Current phase: **Phase 10 — Development / S10.3 Application Deployment**
 >
-> Current gate: **Slices 0–9 and Repository Governance SEALED; main merge commit `9413bb74cc1d3575744e819b364ff488488bffd7`; main CI Run `33312434964` GREEN**
+> Current gate: **Slices 0–9, Repository Governance, S10.1 and S10.2 SEALED; main merge commit `fa4215ef2bdf5b531fe9f26956cdf4161a892335`; post-merge main CI Run `33348797656` GREEN. S10.3 staging provider setup, HTTPS/CORS smoke, encrypted backup, and isolated restore evidence are complete; PR and final CI Merge Gate remain.**
 >
-> Next task: **Implement the explicitly approved S10.1 staging foundation defined in `docs/reference/s10.1-persistent-staging-foundation.md`; do not deploy, create provider resources, or add a Future Extension.**
+> Next task: **Review the focused S10.3 documentation/tooling diff, create its PR, and complete the final CI Merge Gate. Do not create real LINE resources, production resources, paid upgrades, or a Future Extension.**
 >
 > Important: **This header is the current implementation snapshot. The detailed roadmap and historical baseline sections below are retained as design/history context and must not be used to restart a sealed Slice.**
 
