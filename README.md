@@ -1,6 +1,6 @@
 # Pickleball Booking Platform
 
-The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). The repository has completed and sealed **Slices 0–9**, Repository Governance, **S10.1 — Persistent Staging Foundation**, and **S10.2 — Secrets / Database Roles / Backup-Restore Baseline**. **S10.3 — Application Deployment** records the persistent, free, non-production staging boundary, smoke evidence, encrypted backup, and isolated restore rehearsal in [docs/reference/s10.3-application-deployment.md](./docs/reference/s10.3-application-deployment.md).
+The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). **Slices 0–9**, Repository Governance, and **S10.1–S10.4** are sealed. The current non-production staging operational runbook is [S10.5 Operational / Release Closure](./docs/reference/s10.5-operational-release-closure.md); it records the canonical Render, Cloudflare Pages, Neon, LINE/LIFF, UptimeRobot, deployment, recovery, backup, and smoke boundaries without recording secrets.
 
 ## Prerequisites
 
