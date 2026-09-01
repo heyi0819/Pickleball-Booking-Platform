@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const liff = vi.hoisted(() => ({ init: vi.fn(async () => undefined), isLoggedIn: vi.fn(() => true), login: vi.fn(), getIDToken: vi.fn(() => "line-id-token") }));
 vi.mock("@line/liff", () => ({ default: liff }));
-import { App, BOOTSTRAP_TIMEOUT_MS } from "./App";
+import { App, BACKEND_AUTHENTICATION_TIMEOUT_MS, BOOTSTRAP_TIMEOUT_MS } from "./App";
 const member = { id: "00000000-0000-0000-0000-000000000001", displayName: "Test member", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }, { roleCode: "COACH", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] };
 const server = setupServer(
   http.post("/api/v1/auth/line/login", () => HttpResponse.json({ data: { accessToken: "token", tokenType: "Bearer", expiresIn: 1800, user: { id: member.id, displayName: member.displayName, roles: [] } }, meta: { requestId: "test" } })),
@@ -54,6 +54,8 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     render(<App />);
     await act(async () => { await Promise.resolve(); });
     await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
+    expect(screen.getByText(/Signing in with LINE/)).toBeTruthy();
+    await act(async () => { await vi.advanceTimersByTimeAsync(BACKEND_AUTHENTICATION_TIMEOUT_MS - BOOTSTRAP_TIMEOUT_MS); });
     expect(screen.getByRole("alert").textContent).toContain("backend authentication");
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });

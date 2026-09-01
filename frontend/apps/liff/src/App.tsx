@@ -19,6 +19,7 @@ import { CoachCourseOperations, CommitteeCourseOperations, StudentCourseOperatio
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
 const TOKEN_KEY = "platform.access-token";
 export const BOOTSTRAP_TIMEOUT_MS = 15_000;
+export const BACKEND_AUTHENTICATION_TIMEOUT_MS = 60_000;
 const liffClient = import.meta.env.VITE_E2E_LIFF === "true"
   ? { init: async () => undefined, isLoggedIn: () => true, login: () => undefined, getIDToken: () => "e2e-line-id-token" }
   : liff;
@@ -28,7 +29,8 @@ type BootstrapStage = "platform session" | "LIFF SDK initialization" | "LINE log
 
 async function withinBootstrapTimeout<T>(stage: BootstrapStage, operation: Promise<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timeout = globalThis.setTimeout(() => reject(new Error(`Unable to complete LINE sign-in during ${stage}. Please retry.`)), BOOTSTRAP_TIMEOUT_MS);
+    const timeoutMs = stage === "backend authentication" ? BACKEND_AUTHENTICATION_TIMEOUT_MS : BOOTSTRAP_TIMEOUT_MS;
+    const timeout = globalThis.setTimeout(() => reject(new Error(`Unable to complete LINE sign-in during ${stage}. Please retry.`)), timeoutMs);
     operation.then((value) => { globalThis.clearTimeout(timeout); resolve(value); }, (error: unknown) => { globalThis.clearTimeout(timeout); reject(error); });
   });
 }
