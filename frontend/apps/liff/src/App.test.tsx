@@ -1,10 +1,10 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const liff = vi.hoisted(() => ({ init: vi.fn(async () => undefined), isLoggedIn: vi.fn(() => true), login: vi.fn(), getIDToken: vi.fn(() => "line-id-token") }));
 vi.mock("@line/liff", () => ({ default: liff }));
-import { App } from "./App";
+import { App, BOOTSTRAP_TIMEOUT_MS } from "./App";
 const member = { id: "00000000-0000-0000-0000-000000000001", displayName: "Test member", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }, { roleCode: "COACH", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] };
 const server = setupServer(
   http.post("/api/v1/auth/line/login", () => HttpResponse.json({ data: { accessToken: "token", tokenType: "Bearer", expiresIn: 1800, user: { id: member.id, displayName: member.displayName, roles: [] } }, meta: { requestId: "test" } })),
@@ -13,7 +13,7 @@ const server = setupServer(
   http.get("/api/v1/course-match-invitations/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
   http.get("/api/v1/courses", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } }))
 );
-beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => vi.stubEnv("VITE_LIFF_ID", "test-liff")); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); vi.clearAllMocks(); vi.unstubAllEnvs(); }); afterAll(() => server.close());
+beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => { vi.stubEnv("VITE_LIFF_ID", "test-liff"); liff.init.mockResolvedValue(undefined); liff.isLoggedIn.mockReturnValue(true); liff.getIDToken.mockReturnValue("line-id-token"); }); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllEnvs(); vi.useRealTimers(); }); afterAll(() => server.close());
 
 describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment", () => {
   it("logs in with LIFF without optional contact data and selects a role", async () => {
@@ -25,6 +25,37 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
   it("shows a recoverable error when LINE login fails", async () => {
     server.use(http.post("/api/v1/auth/line/login", () => HttpResponse.json({ error: "bad" }, { status: 401 })));
     render(<App />); expect(await screen.findByRole("alert")).toBeTruthy(); expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  it("does not leave a LIFF initialization that never resolves on the signing-in screen", async () => {
+    vi.useFakeTimers();
+    liff.init.mockImplementation(() => new Promise(() => undefined));
+    render(<App />);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
+    expect(screen.getByRole("alert").textContent).toContain("LIFF SDK initialization");
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  it("retries successfully after a LIFF initialization timeout", async () => {
+    vi.useFakeTimers();
+    liff.init.mockImplementationOnce(() => new Promise(() => undefined));
+    render(<App />);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
+    vi.useRealTimers();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByRole("heading", { name: "Select your role" })).toBeTruthy();
+  });
+
+  it("does not leave a stalled backend authentication request on the signing-in screen", async () => {
+    vi.useFakeTimers();
+    server.use(http.post("/api/v1/auth/line/login", () => new Promise<never>(() => undefined)));
+    render(<App />);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
+    expect(screen.getByRole("alert").textContent).toContain("backend authentication");
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
   it("lets a coach accept a match invitation and refreshes the inbox", async () => {

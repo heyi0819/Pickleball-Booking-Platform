@@ -18,39 +18,66 @@ import { CoachCourseOperations, CommitteeCourseOperations, StudentCourseOperatio
 
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
 const TOKEN_KEY = "platform.access-token";
+export const BOOTSTRAP_TIMEOUT_MS = 15_000;
 const liffClient = import.meta.env.VITE_E2E_LIFF === "true"
   ? { init: async () => undefined, isLoggedIn: () => true, login: () => undefined, getIDToken: () => "e2e-line-id-token" }
   : liff;
 
-type State = "loading" | "roles" | "home" | "no-roles" | "error";
+type State = "loading" | "redirecting" | "roles" | "home" | "no-roles" | "error";
+type BootstrapStage = "platform session" | "LIFF SDK initialization" | "LINE login state" | "LINE ID token retrieval" | "backend authentication" | "platform token storage" | "current-user retrieval" | "role/home rendering";
+
+async function withinBootstrapTimeout<T>(stage: BootstrapStage, operation: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = globalThis.setTimeout(() => reject(new Error(`Unable to complete LINE sign-in during ${stage}. Please retry.`)), BOOTSTRAP_TIMEOUT_MS);
+    operation.then((value) => { globalThis.clearTimeout(timeout); resolve(value); }, (error: unknown) => { globalThis.clearTimeout(timeout); reject(error); });
+  });
+}
+
+function bootstrapError(stage: BootstrapStage) {
+  return `Unable to complete LINE sign-in during ${stage}. Please retry.`;
+}
 
 export function App() {
   const [state, setState] = useState<State>("loading");
   const [me, setMe] = useState<Me | null>(null);
   const [selectedRole, setSelectedRole] = useState<RoleContext | null>(null);
   const [error, setError] = useState("");
-  const loadMe = async (token: string) => {
-    const current = await api.me(token); setMe(current);
+  const [bootstrapStage, setBootstrapStage] = useState<BootstrapStage>("platform session");
+  const loadMe = async (token: string, setStage: (stage: BootstrapStage) => void) => {
+    setStage("current-user retrieval");
+    const current = await withinBootstrapTimeout("current-user retrieval", api.me(token)); setMe(current);
+    setStage("role/home rendering");
     if (current.roles.length === 0) setState("no-roles");
     else if (current.roles.length === 1) { setSelectedRole(current.roles[0]); setState("home"); }
     else setState("roles");
   };
   useEffect(() => { void bootstrap(); }, []);
   async function bootstrap() {
+    let currentStage: BootstrapStage = "platform session";
+    const setStage = (stage: BootstrapStage) => { currentStage = stage; setBootstrapStage(stage); };
     try {
+      setError("");
       const savedToken = sessionStorage.getItem(TOKEN_KEY);
-      if (savedToken) { await loadMe(savedToken); return; }
+      if (savedToken) { await loadMe(savedToken, setStage); return; }
       const liffId = import.meta.env.VITE_LIFF_ID;
       if (!liffId) throw new Error("LIFF is not configured");
-      await liffClient.init({ liffId });
-      if (!liffClient.isLoggedIn()) { liffClient.login(); return; }
+      setStage("LIFF SDK initialization");
+      await withinBootstrapTimeout("LIFF SDK initialization", liffClient.init({ liffId }));
+      setStage("LINE login state");
+      if (!liffClient.isLoggedIn()) { liffClient.login(); setState("redirecting"); return; }
+      setStage("LINE ID token retrieval");
       const idToken = liffClient.getIDToken(); if (!idToken) throw new Error("LINE did not provide an ID token");
-      const login = await api.loginWithLine(idToken); sessionStorage.setItem(TOKEN_KEY, login.accessToken); await loadMe(login.accessToken);
-    } catch (caught) { sessionStorage.removeItem(TOKEN_KEY); setError(caught instanceof Error ? caught.message : "Login failed"); setState("error"); }
+      setStage("backend authentication");
+      const login = await withinBootstrapTimeout("backend authentication", api.loginWithLine(idToken));
+      setStage("platform token storage");
+      sessionStorage.setItem(TOKEN_KEY, login.accessToken);
+      await loadMe(login.accessToken, setStage);
+    } catch { sessionStorage.removeItem(TOKEN_KEY); setError(bootstrapError(currentStage)); setState("error"); }
   }
   const token = sessionStorage.getItem(TOKEN_KEY) ?? "";
   return <PageShell><h1>{platformName}</h1>
-    {state === "loading" && <p>Signing in with LINE…</p>}
+    {state === "loading" && <p aria-live="polite">Signing in with LINE… {bootstrapStage}</p>}
+    {state === "redirecting" && <p aria-live="polite">Redirecting to LINE…</p>}
     {state === "error" && <><p role="alert">{error}</p><button onClick={() => { setState("loading"); void bootstrap(); }}>Retry</button></>}
     {state === "roles" && <><h2>Select your role</h2>{me?.roles.map((role) => <button key={`${role.roleCode}-${role.organizationId ?? "global"}`} onClick={() => { setSelectedRole(role); setState("home"); }}>{role.roleCode}</button>)}</>}
     {state === "no-roles" && <p>No active role is available. Please contact an administrator.</p>}
