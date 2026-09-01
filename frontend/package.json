@@ -15,7 +15,7 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
-    "test": "npm run test --workspace @pickleball/admin && npm run test --workspace @pickleball/liff",
+    "test": "npm run test --workspace @pickleball/shared && npm run test --workspace @pickleball/ui && npm run test --workspace @pickleball/admin && npm run test --workspace @pickleball/liff",
     "build": "npm run build --workspaces --if-present",
     "api:generate": "node scripts/sync-openapi-client.mjs",
     "api:check": "node scripts/sync-openapi-client.mjs --check",
