@@ -2,13 +2,13 @@
 
 # Pickleball Booking Platform — Codex Handoff Context
 
-> Last synchronized project status: 2026-08-31
+> Last synchronized project status: 2026-09-01
 >
-> Current phase: **Phase 10 — Development / S10.4 Real LINE / LIFF Acceptance**
+> Current phase: **Phase 10 — S10.5 Operational / Release Closure**
 >
-> Current gate: **Slices 0–9, Repository Governance, S10.1, S10.2 and S10.3 SEALED; main merge commit `2b4ca2bd55988920313f0e3a8a7ca7dc829aa3ef`; post-merge main CI Run `33387287885` GREEN.**
+> Current gate: **Slices 0–9, Repository Governance, and S10.1–S10.4 SEALED; authoritative main merge commit `55c8bfb874aef02a965cb1d574c89e75a2a6a8dd`; post-merge main CI Run `33510883379` GREEN. S10.5 is the approved operational / release closure work.**
 >
-> Next task: **Execute the explicitly approved S10.4 real LINE / LIFF staging acceptance. Do not begin S10.5, create production LINE resources, or add a Future Extension.**
+> Next task: **Complete S10.5 operational / release closure only. Do not begin UI/UX production polish, S11, Phase 2, production infrastructure, production LINE resources, or a Future Extension until their separate gates are approved.**
 >
 > Codex model / reasoning policy is canonical in repository-root `AGENTS.md`: routine approved implementation defaults to **GPT-5.6 Terra / Low**; Codex must explicitly warn the maintainer before tasks that materially benefit from higher reasoning; major project planning and architecture decisions return to ChatGPT using **GPT-5.6 with the highest available reasoning effort**. Quality and verification take priority over execution speed.
 >
