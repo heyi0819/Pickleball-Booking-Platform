@@ -8,7 +8,6 @@ Name | Type
 ------------ | -------------
 `id` | string
 `displayName` | string
-`phone` | string
 `email` | string
 `locale` | string
 `profileComplete` | boolean
@@ -23,7 +22,6 @@ import type { Me } from '@pickleball/api-client-generated'
 const example = {
   "id": null,
   "displayName": null,
-  "phone": null,
   "email": null,
   "locale": null,
   "profileComplete": null,

@@ -43,7 +43,11 @@ class IdentitySecurityIT {
         var token = body.body().replaceAll(".*\\\"accessToken\\\":\\\"([^\\\"]+)\\\".*", "$1");
         assertThat(request("GET", "/api/v1/me", null, null).statusCode()).isEqualTo(401);
         assertThat(request("GET", "/api/v1/me", null, "malformed").statusCode()).isEqualTo(401);
-        assertThat(request("GET", "/api/v1/me", null, token).statusCode()).isEqualTo(200);
+        var me = request("GET", "/api/v1/me", null, token);
+        assertThat(me.statusCode()).isEqualTo(200);
+        assertThat(me.body()).contains("\"profileComplete\":true").contains("\"email\":null").doesNotContain("\"phone\"");
+        assertThat(request("PATCH", "/api/v1/me/profile", "{\"displayName\":\"Member\",\"email\":\"member@example.test\",\"locale\":\"zh-TW\"}", token).statusCode()).isEqualTo(200);
+        assertThat(request("PATCH", "/api/v1/me/profile", "{\"displayName\":\"Member\",\"email\":\"not-an-email\",\"locale\":\"zh-TW\"}", token).statusCode()).isEqualTo(400);
         var userId = identities.findByProviderAndProviderSubjectAndRevokedAtIsNull("LINE", "line-subject").orElseThrow().getUser().getId();
         var user = users.findById(userId).orElseThrow(); user.changeStatus(UserStatus.SUSPENDED); users.saveAndFlush(user);
         assertThat(request("GET", "/api/v1/me", null, token).statusCode()).isEqualTo(401);

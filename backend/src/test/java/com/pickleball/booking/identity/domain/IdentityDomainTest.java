@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class IdentityDomainTest {
-    @Test void profileNeedsAContactMethodToBeComplete() {
-        assertThat(new UserProfile("Member", null, null, "zh-TW").isComplete()).isFalse();
-        assertThat(new UserProfile("Member", "0912345678", null, "zh-TW").isComplete()).isTrue();
+    @Test void profileIsCompleteWithoutOptionalContactData() {
+        assertThat(new UserProfile("Member", null, "zh-TW").isComplete()).isTrue();
+        assertThat(new UserProfile("Member", "member@example.test", "zh-TW").isComplete()).isTrue();
     }
     @Test void onlyPlatformAdminMayUseGlobalScope() {
         var userId = UUID.randomUUID();

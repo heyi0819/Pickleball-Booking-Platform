@@ -44,12 +44,6 @@ export interface Me {
      * @type {string}
      * @memberof Me
      */
-    phone?: string | null;
-    /**
-     *
-     * @type {string}
-     * @memberof Me
-     */
     email?: string | null;
     /**
      *
@@ -95,7 +89,6 @@ export function MeFromJSONTyped(json: any, ignoreDiscriminator: boolean): Me {
 
         'id': json['id'],
         'displayName': json['displayName'],
-        'phone': json['phone'] == null ? undefined : json['phone'],
         'email': json['email'] == null ? undefined : json['email'],
         'locale': json['locale'],
         'profileComplete': json['profileComplete'],
@@ -116,7 +109,6 @@ export function MeToJSONTyped(value?: Me | null, ignoreDiscriminator: boolean = 
 
         'id': value['id'],
         'displayName': value['displayName'],
-        'phone': value['phone'],
         'email': value['email'],
         'locale': value['locale'],
         'profileComplete': value['profileComplete'],

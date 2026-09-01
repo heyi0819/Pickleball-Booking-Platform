@@ -46,7 +46,7 @@ test("committee prices a ready match and confirms formal course creation", async
     const method = request.method();
 
     if (method === "GET" && path === "/api/v1/me") {
-      return route.fulfill({ json: envelope({ id: "committee-user", displayName: "Committee", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "org-1", organizationCode: "MVP", organizationName: "MVP" }] }) });
+      return route.fulfill({ json: envelope({ id: "committee-user", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "org-1", organizationCode: "MVP", organizationName: "MVP" }] }) });
     }
     if (method === "GET" && path === "/api/v1/course-matches") return route.fulfill({ json: envelope([summary()]) });
     if (method === "GET" && path === `/api/v1/course-matches/${matchId}`) return route.fulfill({ json: envelope(detail()) });

@@ -5,7 +5,6 @@ const envelope = (data: unknown) => ({ data, meta });
 const committeeMe = envelope({
   id: "committee-user",
   displayName: "Committee",
-  phone: null,
   email: null,
   locale: "zh-TW",
   profileComplete: true,
@@ -14,7 +13,6 @@ const committeeMe = envelope({
 const studentMe = envelope({
   id: "student-user",
   displayName: "Student",
-  phone: null,
   email: null,
   locale: "zh-TW",
   profileComplete: true,

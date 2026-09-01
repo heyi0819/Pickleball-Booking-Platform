@@ -15,7 +15,7 @@ test("committee records payment then requests, approves and executes a partial r
     const url = new URL(request.url());
     const path = url.pathname;
     if (request.method() === "GET" && path === "/api/v1/me") {
-      await route.fulfill({ json: envelope({ id: "committee-user", displayName: "Finance Committee", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] }) });
+      await route.fulfill({ json: envelope({ id: "committee-user", displayName: "Finance Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] }) });
       return;
     }
     if (request.method() === "GET" && (path === "/api/v1/course-offerings" || path === "/api/v1/courses")) {

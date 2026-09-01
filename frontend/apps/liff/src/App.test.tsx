@@ -5,23 +5,21 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 const liff = vi.hoisted(() => ({ init: vi.fn(async () => undefined), isLoggedIn: vi.fn(() => true), login: vi.fn(), getIDToken: vi.fn(() => "line-id-token") }));
 vi.mock("@line/liff", () => ({ default: liff }));
 import { App } from "./App";
-const member = { id: "00000000-0000-0000-0000-000000000001", displayName: "Test member", phone: null, email: null, locale: "zh-TW", profileComplete: false, roles: [] };
-let afterProfile = false;
+const member = { id: "00000000-0000-0000-0000-000000000001", displayName: "Test member", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }, { roleCode: "COACH", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] };
 const server = setupServer(
   http.post("/api/v1/auth/line/login", () => HttpResponse.json({ data: { accessToken: "token", tokenType: "Bearer", expiresIn: 1800, user: { id: member.id, displayName: member.displayName, roles: [] } }, meta: { requestId: "test" } })),
-  http.patch("/api/v1/me/profile", () => { afterProfile = true; return HttpResponse.json({ data: member, meta: { requestId: "test" } }); }),
-  http.get("/api/v1/me", () => HttpResponse.json({ data: afterProfile ? { ...member, profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }, { roleCode: "COACH", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] } : member, meta: { requestId: "test"} })),
+  http.get("/api/v1/me", () => HttpResponse.json({ data: member, meta: { requestId: "test"} })),
   http.get("/api/v1/coach-availability-proposals/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
   http.get("/api/v1/course-match-invitations/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
   http.get("/api/v1/courses", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } }))
 );
-beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => vi.stubEnv("VITE_LIFF_ID", "test-liff")); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); afterProfile = false; vi.clearAllMocks(); vi.unstubAllEnvs(); }); afterAll(() => server.close());
+beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => vi.stubEnv("VITE_LIFF_ID", "test-liff")); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); vi.clearAllMocks(); vi.unstubAllEnvs(); }); afterAll(() => server.close());
 
 describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment", () => {
-  it("logs in with LIFF, completes profile, and selects a role", async () => {
-    render(<App />); expect(await screen.findByRole("heading", { name: "Complete your profile" })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Updated member" } }); fireEvent.submit(screen.getByRole("button", { name: "Save profile" }).closest("form")!);
-    expect(await screen.findByRole("heading", { name: "Select your role" })).toBeTruthy(); fireEvent.click(screen.getByRole("button", { name: "COACH" })); expect(await screen.findByRole("heading", { name: "COACH entry" })).toBeTruthy(); await waitFor(() => expect(liff.getIDToken).toHaveBeenCalled());
+  it("logs in with LIFF without optional contact data and selects a role", async () => {
+    render(<App />); expect(await screen.findByRole("heading", { name: "Select your role" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Complete your profile" })).toBeNull(); expect(screen.queryByLabelText("Phone")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "COACH" })); expect(await screen.findByRole("heading", { name: "COACH entry" })).toBeTruthy(); await waitFor(() => expect(liff.getIDToken).toHaveBeenCalled());
   });
 
   it("shows a recoverable error when LINE login fails", async () => {

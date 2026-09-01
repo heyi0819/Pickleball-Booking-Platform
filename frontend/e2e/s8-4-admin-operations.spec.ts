@@ -4,7 +4,7 @@ test("platform admin scopes and audits failed outbox recovery", async ({ page })
   let recovered = false;
   await page.addInitScript(() => sessionStorage.setItem("platform.access-token", "test-token"));
   await page.route("**/api/v1/me", route => route.fulfill({ json: {
-    data: { id: "platform-admin", displayName: "Platform Admin", phone: null, email: null, locale: "zh-TW",
+    data: { id: "platform-admin", displayName: "Platform Admin", email: null, locale: "zh-TW",
       profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] },
     meta: { requestId: "e2e" },
   } }));

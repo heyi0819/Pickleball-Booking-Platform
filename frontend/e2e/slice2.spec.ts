@@ -8,7 +8,7 @@ test("student creates a selected draft and sees the claimed-availability recover
   let created = false;
   const envelope = (data: unknown) => ({ data, meta: { requestId: "slice2" } });
   await page.route("**/api/v1/auth/line/login", (route) => route.fulfill({ json: envelope({ accessToken: "test-token", tokenType: "Bearer", expiresIn: 1800, user: { id: draft.requesterUserId, displayName: "Student", roles: ["STUDENT"] } }) }));
-  await page.route("**/api/v1/me", (route) => route.fulfill({ json: envelope({ id: draft.requesterUserId, displayName: "Student", phone: null, email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId, organizationCode: "MVP", organizationName: "MVP" }] }) }));
+  await page.route("**/api/v1/me", (route) => route.fulfill({ json: envelope({ id: draft.requesterUserId, displayName: "Student", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId, organizationCode: "MVP", organizationName: "MVP" }] }) }));
   await page.route("**/api/v1/coach-availability-proposals/available", (route) => route.fulfill({ json: envelope([availability]) }));
   await page.route("**/api/v1/lesson-requests/mine", (route) => route.fulfill({ json: envelope(created ? [draft] : []) }));
   await page.route("**/api/v1/lesson-requests", (route) => { created = true; return route.fulfill({ status: 201, json: envelope(draft) }); });

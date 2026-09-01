@@ -7,7 +7,6 @@
 Name | Type
 ------------ | -------------
 `displayName` | string
-`phone` | string
 `email` | string
 `locale` | string
 
@@ -19,7 +18,6 @@ import type { ProfileUpdateRequest } from '@pickleball/api-client-generated'
 // TODO: Update the object below with actual values
 const example = {
   "displayName": null,
-  "phone": null,
   "email": null,
   "locale": null,
 } satisfies ProfileUpdateRequest
