@@ -84,10 +84,10 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     );
     render(<App />);
     expect(await screen.findByRole("heading", { name: "教練首頁" })).toBeTruthy(); fireEvent.click(screen.getByRole("button", { name: "可授課時段" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Accept match" }));
+    fireEvent.click(await screen.findByRole("button", { name: "接受媒合" }));
     await waitFor(() => expect(accepted).toBe(true));
-    expect(await screen.findByText("Match invitation accepted.")).toBeTruthy();
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Accept match" })).toBeNull());
+    expect(await screen.findByText("已接受媒合邀請。")).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole("button", { name: "接受媒合" })).toBeNull());
   });
 
   it("lets a student inspect, register, and cancel an open enrollment offering", async () => {

@@ -12,7 +12,7 @@ test("student submits a coach application and committee approves it", async ({ b
   await page.route("**/api/v1/me", route => route.fulfill({ json: envelope({ id: applicant, displayName: "Applicant", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: org, organizationCode: "MVP", organizationName: "MVP" }] }) }));
   await page.route("**/api/v1/coach-availability-proposals/available", route => route.fulfill({ json: envelope([]) })); await page.route("**/api/v1/lesson-requests/mine", route => route.fulfill({ json: envelope([]) }));
   await page.route("**/api/v1/coach-applications", route => route.fulfill({ status: 201, json: envelope(application) }));
-  await page.goto("/"); await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "找課與需求" }).click(); await page.getByRole("button", { name: "Apply to become a coach" }).click(); await expect(page.getByText("Coach application submitted for committee review.")).toBeVisible();
+  await page.goto("/"); await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "找課與需求" }).click(); await page.getByRole("button", { name: "申請成為教練" }).click(); await expect(page.getByText("教練申請已送出，等待委員會審核。")).toBeVisible();
   const committee = await browser.newContext(); await committee.addInitScript(() => sessionStorage.setItem("platform.access-token", "committee-token")); const admin = await committee.newPage();
   await admin.route("**/api/v1/me", route => route.fulfill({ json: envelope({ id: "committee", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: org, organizationCode: "MVP", organizationName: "MVP" }] }) }));
   await admin.route("**/api/v1/coach-applications?organizationId=" + org, route => route.fulfill({ json: envelope([{ ...application, status: approved ? "APPROVED" : "SUBMITTED" }]) }));
@@ -28,6 +28,6 @@ test("coach submits availability, committee approves it, and students can see it
   await page.route("**/api/v1/coach-availability-proposals/mine", route => route.fulfill({ json: envelope([submitted ? { ...availability, status: "SUBMITTED" } : availability]) }));
   await page.route("**/api/v1/course-match-invitations/mine", route => route.fulfill({ json: envelope([]) }));
   await page.route("**/api/v1/coach-availability-proposals", route => route.fulfill({ status: 201, json: envelope(availability) })); await page.route("**/api/v1/coach-availability-proposals/*/submission", route => { submitted = true; return route.fulfill({ json: envelope({ ...availability, status: "SUBMITTED" }) }); });
-  await page.goto("/"); await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "可授課時段" }).click(); await expect(page.getByRole("heading", { name: "My availability" })).toBeVisible(); await page.getByRole("button", { name: "Submit for review" }).click(); await expect(page.getByText("Availability submitted for review.")).toBeVisible();
+  await page.goto("/"); await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "可授課時段" }).click(); await expect(page.getByRole("heading", { name: "我的可授課時段" })).toBeVisible(); await page.getByRole("button", { name: "送審" }).click(); await expect(page.getByText("可授課時段已送審。")).toBeVisible();
   await coach.close();
 });

@@ -6,6 +6,7 @@ import {
   type SessionChangeReviewQueueItem,
 } from "@pickleball/api-client";
 import { useEffect, useState } from "react";
+import { presentApiError } from "@pickleball/shared";
 
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
 type SessionRow = CourseSessionSummary & { courseNo: string };
@@ -80,4 +81,4 @@ function CancellationForm({ session, onPrepare }: { session: SessionRow; onPrepa
 function ConfirmReschedule({ draft, onConfirm, onCancel }: { draft: RescheduleDraft; onConfirm: () => void; onCancel: () => void }) { return <section role="dialog" aria-label="確認改期申請"><h4>確認改期申請</h4><p>{draft.label}</p><p>{formatDate(draft.startAt)} ～ {formatDate(draft.endAt)}</p><p>原因：{draft.reason}</p><button onClick={onConfirm}>確認送出</button><button onClick={onCancel}>返回</button></section>; }
 function ReviewButtons({ onChoose }: { onChoose: (decision: "APPROVE" | "REJECT") => void }) { return <><button onClick={() => onChoose("APPROVE")}>核准</button><button onClick={() => onChoose("REJECT")}>駁回</button></>; }
 function formatDate(value: Date) { return value.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }); }
-function operationError(caught: unknown, fallback: string) { return caught instanceof ApiClientError ? `${fallback} (${caught.code})` : fallback; }
+function operationError(caught: unknown, fallback: string) { return caught instanceof ApiClientError ? presentApiError(caught.code) : fallback; }
