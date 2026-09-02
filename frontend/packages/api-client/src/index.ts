@@ -1,4 +1,14 @@
 import {
+  AdminFinanceApi,
+  type AdminFinanceReceivable,
+  type AdminFinanceReceivablePage,
+  type ListAdminReceivablesRequest,
+  type AdminFinancePayment,
+  type AdminFinancePaymentPage,
+  type ListAdminPaymentsRequest,
+  type AdminFinanceRefund,
+  type AdminFinanceRefundPage,
+  type ListAdminRefundsRequest,
   AdminOperationsApi,
   AuthenticationApi,
   CoachApplicationsApi,
@@ -77,6 +87,15 @@ import {
 } from "./generated/src";
 
 export type {
+  AdminFinanceReceivable,
+  AdminFinanceReceivablePage,
+  ListAdminReceivablesRequest,
+  AdminFinancePayment,
+  AdminFinancePaymentPage,
+  ListAdminPaymentsRequest,
+  AdminFinanceRefund,
+  AdminFinanceRefundPage,
+  ListAdminRefundsRequest,
   AdminNotification,
   AdminNotificationPage,
   AdminOutboxEvent,
@@ -186,6 +205,7 @@ async function mapError(caught: unknown): Promise<never> {
 /** Handwritten adapter over the OpenAPI-generated client. Apps never construct URLs themselves. */
 export function createApiClient({ baseUrl }: ApiClientOptions) {
   const anonymous = new AuthenticationApi(new Configuration({ basePath: baseUrl }));
+  const adminFinance = (token: string) => new AdminFinanceApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const authenticated = (token: string) => new CurrentUserApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const coachApplications = (token: string) => new CoachApplicationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const coachAvailability = (token: string) => new CoachAvailabilityApi(new Configuration({ basePath: baseUrl, accessToken: token }));
@@ -198,6 +218,30 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
   const finance = (token: string) => new FinanceApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const adminOperations = (token: string) => new AdminOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
+    async listAdminReceivables(token: string, query: ListAdminReceivablesRequest): Promise<AdminFinanceReceivablePage> {
+      try { return (await adminFinance(token).listAdminReceivables(query)).data; }
+      catch (caught) { return mapError(caught); }
+    },
+    async getAdminReceivable(token: string, organizationId: string, id: string): Promise<AdminFinanceReceivable> {
+      try { return (await adminFinance(token).getAdminReceivable({ organizationId, id })).data; }
+      catch (caught) { return mapError(caught); }
+    },
+    async listAdminPayments(token: string, query: ListAdminPaymentsRequest): Promise<AdminFinancePaymentPage> {
+      try { return (await adminFinance(token).listAdminPayments(query)).data; }
+      catch (caught) { return mapError(caught); }
+    },
+    async getAdminPayment(token: string, organizationId: string, id: string): Promise<AdminFinancePayment> {
+      try { return (await adminFinance(token).getAdminPayment({ organizationId, id })).data; }
+      catch (caught) { return mapError(caught); }
+    },
+    async listAdminRefunds(token: string, query: ListAdminRefundsRequest): Promise<AdminFinanceRefundPage> {
+      try { return (await adminFinance(token).listAdminRefunds(query)).data; }
+      catch (caught) { return mapError(caught); }
+    },
+    async getAdminRefund(token: string, organizationId: string, id: string): Promise<AdminFinanceRefund> {
+      try { return (await adminFinance(token).getAdminRefund({ organizationId, id })).data; }
+      catch (caught) { return mapError(caught); }
+    },
     baseUrl,
     async loginWithLine(idToken: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken } })).data; } catch (caught) { return mapError(caught); } },
     async me(token: string): Promise<Me> { try { return (await authenticated(token).getCurrentUser()).data; } catch (caught) { return mapError(caught); } },
