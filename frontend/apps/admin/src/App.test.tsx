@@ -20,9 +20,20 @@ const server = setupServer(
   ,http.get("/api/v1/admin/payments", () => HttpResponse.json({ data: { items: [], page: 0, size: 20, totalElements: 0 }, meta: { requestId: "test" } }))
   ,http.get("/api/v1/admin/refunds", () => HttpResponse.json({ data: { items: [], page: 0, size: 20, totalElements: 0 }, meta: { requestId: "test" } }))
 );
-beforeAll(() => { HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute("open", ""); }; HTMLDialogElement.prototype.close = function close() { this.removeAttribute("open"); }; server.listen({ onUnhandledRequest: "error" }); }); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); }); afterAll(() => server.close());
+beforeAll(() => { HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute("open", ""); }; HTMLDialogElement.prototype.close = function close() { this.removeAttribute("open"); }; server.listen({ onUnhandledRequest: "error" }); }); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); history.replaceState({}, "", "/"); }); afterAll(() => server.close());
 
 describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", () => {
+  it("clears a cancelled LINE login attempt without exposing provider details", async () => {
+    sessionStorage.setItem("admin.line.state", "state");
+    sessionStorage.setItem("admin.line.verifier", "verifier");
+    sessionStorage.setItem("admin.line.nonce", "nonce");
+    history.replaceState({}, "", "/auth/line/callback?error=access_denied&error_description=provider-detail");
+    render(<App />);
+    expect(await screen.findByText("LINE 登入未完成，請重新開始。")).toBeTruthy();
+    expect(sessionStorage.getItem("admin.line.state")).toBeNull();
+    expect(document.body.textContent).not.toContain("provider-detail");
+  });
+
   it("allows committee users", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
