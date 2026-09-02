@@ -45,7 +45,7 @@ class LineNotificationDeliveryAdapterTest {
         when(recipients.resolve(any())).thenReturn("U-line-recipient");
         adapter = new LineNotificationDeliveryAdapter(
                 recipients, new NotificationTemplateRenderer(), "channel-token",
-                line.baseUrl() + "/v2/bot/message/push", 100);
+                line.baseUrl() + "/v2/bot/message/push", 1_000);
     }
 
     @Test
