@@ -5,7 +5,10 @@ test("platform admin scopes and audits failed outbox recovery", async ({ page })
   await page.addInitScript(() => sessionStorage.setItem("platform.access-token", "test-token"));
   await page.route("**/api/v1/me", route => route.fulfill({ json: {
     data: { id: "platform-admin", displayName: "Platform Admin", email: null, locale: "zh-TW",
-      profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] },
+      profileComplete: true, roles: [
+        { roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null },
+        { roleCode: "STUDENT", organizationId: "11111111-1111-1111-1111-111111111111", organizationCode: "MVP", organizationName: "MVP" },
+      ] },
     meta: { requestId: "e2e" },
   } }));
   await page.route("**/api/v1/admin/outbox-events**", async route => {
@@ -26,11 +29,13 @@ test("platform admin scopes and audits failed outbox recovery", async ({ page })
   } }));
 
   await page.goto("http://127.0.0.1:4174");
-  await page.getByLabel("Organization ID").fill("11111111-1111-1111-1111-111111111111");
+  await page.getByLabel("Organization scope").selectOption("11111111-1111-1111-1111-111111111111");
   await page.getByRole("button", { name: "Refresh operations" }).click();
   await expect(page.getByText("timeout")).toBeVisible();
   await page.getByLabel("Audit reason").fill("upstream repaired");
   await page.getByRole("button", { name: "Retry event" }).click();
+  await expect(page.getByRole("dialog", { name: "Confirm recovery" })).toBeVisible();
+  await page.getByRole("button", { name: "確認" }).click();
   await expect(page.getByText("Recovery request accepted and audited.")).toBeVisible();
   expect(recovered).toBe(true);
 });

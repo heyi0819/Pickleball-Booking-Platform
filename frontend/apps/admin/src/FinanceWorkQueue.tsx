@@ -95,7 +95,7 @@ export function FinanceWorkQueue({ token, organizationId, organizationName }: { 
     <p>組織：{organizationName || organizationId}。金額與狀態由帳務系統決定；此頁只呈現可讀資訊與啟動既有命令。</p>
     <p>現金為 MVP 預設；銀行轉帳僅記錄平台外已完成的交易，不會在此發起轉帳。</p>
     <button onClick={() => void load()} disabled={state === "loading" || busy}>{state === "loading" ? "載入中…" : "重新整理財務清單"}</button>
-    {message && <p role="status">{message}</p>}{state === "error" && <p role="alert">財務資料暫時無法載入。</p>}{state === "loading" && <p aria-live="polite">正在載入應收、付款與退款工作…</p>}
+    {message && <p role={state === "error" ? "alert" : "status"}>{message}</p>}{state === "error" && <p>財務資料暫時無法載入。</p>}{state === "loading" && <p aria-live="polite">正在載入應收、付款與退款工作…</p>}
     {state === "loaded" && <div>
       <Queue title="待收應收" empty="目前沒有可顯示的應收。" items={receivables} summary={(item) => `${item.memberName} · ${item.courseNo} · ${item.currency} ${item.outstandingAmount} 未收 · ${statusLabel(item.status)}`} onOpen={(item) => void open("receivable", item.id)} />
       <Queue title="付款紀錄" empty="目前沒有可顯示的付款。" items={payments} summary={(item) => `${item.memberName} · ${item.currency} ${item.amount} · 可退款參考 ${item.refundableAmount} · ${statusLabel(item.status)}`} onOpen={(item) => void open("payment", item.id)} />
