@@ -37,7 +37,7 @@ async function withinBootstrapTimeout<T>(stage: BootstrapStage, operation: Promi
 }
 
 function bootstrapError(stage: BootstrapStage) {
-  return "無法完成 LINE 登入，請稍後重試。";
+  return stage === "backend authentication" ? "無法完成平台登入，請稍後重試。" : "無法完成 LINE 登入，請稍後重試。";
 }
 
 export function App() {
@@ -74,7 +74,7 @@ export function App() {
       setStage("platform token storage");
       sessionStorage.setItem(TOKEN_KEY, login.accessToken);
       await loadMe(login.accessToken, setStage);
-    } catch { sessionStorage.removeItem(TOKEN_KEY); setError(bootstrapError(currentStage)); setState("error"); }
+  } catch { sessionStorage.removeItem(TOKEN_KEY); setError(bootstrapError(currentStage)); setState("error"); }
   }
   const token = sessionStorage.getItem(TOKEN_KEY) ?? "";
   return <PageShell><p className="liff-brand">{platformName}</p>
