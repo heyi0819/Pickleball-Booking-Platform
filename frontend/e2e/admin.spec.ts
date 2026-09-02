@@ -3,7 +3,7 @@ const response = (roles: object[]) => ({ data: { id: "admin-user", displayName: 
 test("admin smoke permits committee and rejects a student", async ({ page }) => {
   await page.addInitScript(() => sessionStorage.setItem("platform.access-token", "test-token"));
   await page.route("**/api/v1/me", route => route.fulfill({ json: response([{ roleCode: "COMMITTEE", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }]) }));
-  await page.goto("http://127.0.0.1:4174"); await expect(page.getByRole("heading", { name: "Authorized admin entry" })).toBeVisible();
+  await page.goto("http://127.0.0.1:4174"); await expect(page.getByRole("heading", { name: "管理後台" })).toBeVisible();
   await page.route("**/api/v1/me", route => route.fulfill({ json: response([{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }]) }));
-  await page.reload(); await expect(page.getByRole("alert")).toContainText("Forbidden");
+  await page.reload(); await expect(page.getByRole("alert")).toContainText("沒有管理後台存取權限");
 });

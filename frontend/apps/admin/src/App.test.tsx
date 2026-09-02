@@ -23,7 +23,7 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
   it("allows committee users", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
-    render(<App />); expect(await screen.findByRole("heading", { name: "Authorized admin entry" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course matching" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Open enrollment" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course operations" })).toBeTruthy();
+    render(<App />); expect(await screen.findByRole("heading", { name: "管理後台" })).toBeTruthy(); expect(await screen.findByRole("navigation", { name: "管理後台導覽" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course matching" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Open enrollment" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course operations" })).toBeTruthy();
   });
 
   it("denies non-admin roles", async () => {

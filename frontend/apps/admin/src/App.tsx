@@ -14,7 +14,7 @@ import {
   type LessonRequest,
   type Me,
 } from "@pickleball/api-client";
-import { platformName } from "@pickleball/shared";
+import { platformName, roleLabel } from "@pickleball/shared";
 import { PageShell } from "@pickleball/ui";
 import { useEffect, useState } from "react";
 import { CourseOperationsWorkQueue } from "./CourseOperationsWorkQueue";
@@ -29,7 +29,7 @@ export function App() {
   const committeeRole = me?.roles.find((role) => role.roleCode === "COMMITTEE" && role.organizationId);
   const token = sessionStorage.getItem("platform.access-token") ?? "";
   const platformAdmin = me?.roles.some((role) => role.roleCode === "PLATFORM_ADMIN") ?? false;
-  return <PageShell><h1>{platformName} Admin</h1>{state === "loading" && <p>Checking access…</p>}{state === "forbidden" && <p role="alert">Forbidden: administrator access is required.</p>}{state === "allowed" && <><h2>Authorized admin entry</h2><p>Signed in as {me?.displayName}</p><AdminOperationsPanel token={token} organizationId={committeeRole?.organizationId ?? undefined} platformAdmin={platformAdmin} />{committeeRole?.organizationId ? <CommitteeReview token={token} organizationId={committeeRole.organizationId} /> : <p>A committee organization role is required to review organization work.</p>}</>}</PageShell>;
+  return <PageShell><div className="admin-shell"><header className="admin-shell__header" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "1rem", padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "0.75rem", background: "#ffffff" }}><div><p className="admin-shell__eyebrow">{platformName}</p><h1>管理後台</h1>{committeeRole?.organizationName && <p>組織範圍：{committeeRole.organizationName}</p>}</div>{me && <p className="admin-shell__identity">{me.displayName} · {platformAdmin ? roleLabel("PLATFORM_ADMIN") : roleLabel("COMMITTEE")}</p>}</header><nav className="admin-shell__nav" aria-label="管理後台導覽" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", padding: "0.75rem 0" }}><a href="#overview">總覽</a><a href="#operations">營運待辦</a><a href="#reviews">審核與課程</a></nav><div className="admin-shell__content" id="overview">{state === "loading" && <p aria-live="polite">正在確認存取權限…</p>}{state === "forbidden" && <p role="alert">你沒有管理後台存取權限，請聯絡系統管理員。</p>}{state === "allowed" && <><section className="admin-shell__summary" style={{ padding: "1.25rem", border: "1px solid #cbd5e1", borderRadius: "0.75rem", background: "#f8fafc" }}><h2>營運總覽</h2><p>已登入為 {me?.displayName}。請由下方工作區處理待辦事項；高風險動作均需再次確認。</p></section><div id="operations"><AdminOperationsPanel token={token} organizationId={committeeRole?.organizationId ?? undefined} platformAdmin={platformAdmin} /></div>{committeeRole?.organizationId ? <div id="reviews"><CommitteeReview token={token} organizationId={committeeRole.organizationId} /></div> : <p>需要具組織範圍的委員會角色，才能處理該組織的審核與課程工作。</p>}</>}</div></div></PageShell>;
 }
 
 function CommitteeReview({ token, organizationId }: { token: string; organizationId: string }) {

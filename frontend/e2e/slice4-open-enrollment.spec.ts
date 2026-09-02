@@ -218,7 +218,7 @@ test("committee Admin creates, prices, publishes, closes, and forms an open enro
   });
 
   await page.goto("http://127.0.0.1:4174");
-  await expect(page.getByRole("heading", { name: "Authorized admin entry" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "管理後台" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Open enrollment" })).toBeVisible();
 
   await page.getByLabel("Title").fill("Weekend Group");
