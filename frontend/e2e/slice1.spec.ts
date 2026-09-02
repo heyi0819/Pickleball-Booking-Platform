@@ -6,7 +6,7 @@ test("LIFF login reaches role selection and chosen entry", async ({ page }) => {
   await page.route("**/api/v1/me", (route) => route.fulfill({ json: { data: me, meta: { requestId: "test" } } }));
   await page.goto("/"); await expect(page.getByRole("heading", { name: "選擇使用身分" })).toBeVisible();
   await page.getByRole("button", { name: "教練" }).click(); await expect(page.getByRole("heading", { name: "教練首頁" })).toBeVisible();
-  await page.getByRole("button", { name: "可授課時段" }).click(); await expect(page.getByRole("heading", { name: "可授課時段" })).toBeVisible();
+  await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "可授課時段" }).click(); await expect(page.getByRole("heading", { name: "可授課時段" })).toBeVisible();
   await page.goBack(); await expect(page.getByRole("heading", { name: "教練首頁" })).toBeVisible();
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 800 });

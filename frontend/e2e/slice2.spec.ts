@@ -14,6 +14,7 @@ test("student creates a selected draft and sees the claimed-availability recover
   await page.route("**/api/v1/lesson-requests", (route) => { created = true; return route.fulfill({ status: 201, json: envelope(draft) }); });
   await page.route("**/api/v1/lesson-requests/*/submission", (route) => route.fulfill({ status: 409, json: { error: { code: "AVAILABILITY_ALREADY_CLAIMED" } } }));
   await page.goto("/");
+  await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "找課與需求" }).click();
   await expect(page.getByRole("heading", { name: "Find a coach time" })).toBeVisible();
   await page.getByRole("combobox", { name: "Approved availability" }).selectOption(availability.id);
   await page.getByRole("button", { name: "Create lesson draft" }).click();
