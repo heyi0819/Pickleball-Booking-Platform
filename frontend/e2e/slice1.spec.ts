@@ -4,6 +4,7 @@ const me = { id: "00000000-0000-0000-0000-000000000001", displayName: "Test memb
 test("LIFF login reaches role selection and chosen entry", async ({ page }) => {
   await page.route("**/api/v1/auth/line/login", (route) => route.fulfill({ json: { data: { accessToken: "test-token", tokenType: "Bearer", expiresIn: 1800, user: { id: me.id, displayName: me.displayName, roles: ["STUDENT", "COACH"] } }, meta: { requestId: "test" } } }));
   await page.route("**/api/v1/me", (route) => route.fulfill({ json: { data: me, meta: { requestId: "test" } } }));
-  await page.goto("/"); await expect(page.getByRole("heading", { name: "Select your role" })).toBeVisible();
-  await page.getByRole("button", { name: "COACH" }).click(); await expect(page.getByRole("heading", { name: "COACH entry" })).toBeVisible();
+  await page.goto("/"); await expect(page.getByRole("heading", { name: "選擇使用身分" })).toBeVisible();
+  await page.getByRole("button", { name: "教練" }).click(); await expect(page.getByRole("heading", { name: "教練首頁" })).toBeVisible();
+  await page.getByRole("button", { name: "可授課時段" }).click(); await expect(page.getByRole("heading", { name: "可授課時段" })).toBeVisible();
 });

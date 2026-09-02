@@ -13,18 +13,32 @@ const server = setupServer(
   http.get("/api/v1/course-match-invitations/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
   http.get("/api/v1/courses", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } }))
 );
-beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => { vi.stubEnv("VITE_LIFF_ID", "test-liff"); liff.init.mockResolvedValue(undefined); liff.isLoggedIn.mockReturnValue(true); liff.getIDToken.mockReturnValue("line-id-token"); }); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllEnvs(); vi.useRealTimers(); }); afterAll(() => server.close());
+beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => { window.history.replaceState({}, "", "/"); vi.stubEnv("VITE_LIFF_ID", "test-liff"); liff.init.mockResolvedValue(undefined); liff.isLoggedIn.mockReturnValue(true); liff.getIDToken.mockReturnValue("line-id-token"); }); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllEnvs(); vi.useRealTimers(); }); afterAll(() => server.close());
 
 describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment", () => {
   it("logs in with LIFF without optional contact data and selects a role", async () => {
-    render(<App />); expect(await screen.findByRole("heading", { name: "Select your role" })).toBeTruthy();
+    render(<App />); expect(await screen.findByRole("heading", { name: "選擇使用身分" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Complete your profile" })).toBeNull(); expect(screen.queryByLabelText("Phone")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "COACH" })); expect(await screen.findByRole("heading", { name: "COACH entry" })).toBeTruthy(); await waitFor(() => expect(liff.getIDToken).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "教練" })); expect(await screen.findByRole("heading", { name: "教練首頁" })).toBeTruthy(); await waitFor(() => expect(liff.getIDToken).toHaveBeenCalled());
+  });
+
+  it("switches an authorized role from 我的 and returns to its role home", async () => {
+    render(<App />); fireEvent.click(await screen.findByRole("button", { name: "學員" }));
+    fireEvent.click(screen.getByRole("button", { name: "我的" }));
+    fireEvent.click(screen.getByRole("button", { name: "教練" }));
+    expect(await screen.findByRole("heading", { name: "教練首頁" })).toBeTruthy();
+  });
+
+  it("falls back to the selected role home for an unknown route", async () => {
+    window.history.replaceState({}, "", "/not-a-liff-task");
+    sessionStorage.setItem("platform.access-token", "token");
+    server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { ...member, roles: [member.roles[0]] }, meta: { requestId: "test" } })));
+    render(<App />); expect(await screen.findByRole("heading", { name: "學員首頁" })).toBeTruthy();
   });
 
   it("shows a recoverable error when LINE login fails", async () => {
     server.use(http.post("/api/v1/auth/line/login", () => HttpResponse.json({ error: "bad" }, { status: 401 })));
-    render(<App />); expect(await screen.findByRole("alert")).toBeTruthy(); expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    render(<App />); expect(await screen.findByRole("alert")).toBeTruthy(); expect(screen.getByRole("button", { name: "重試" })).toBeTruthy();
   });
 
   it("does not leave a LIFF initialization that never resolves on the signing-in screen", async () => {
@@ -34,7 +48,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     await act(async () => { await Promise.resolve(); });
     await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
     expect(screen.getByRole("alert").textContent).toContain("LIFF SDK initialization");
-    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "重試" })).toBeTruthy();
   });
 
   it("retries successfully after a LIFF initialization timeout", async () => {
@@ -44,8 +58,8 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     await act(async () => { await Promise.resolve(); });
     await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
     vi.useRealTimers();
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByRole("heading", { name: "Select your role" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "重試" }));
+    expect(await screen.findByRole("heading", { name: "選擇使用身分" })).toBeTruthy();
   });
 
   it("does not leave a stalled backend authentication request on the signing-in screen", async () => {
@@ -54,10 +68,10 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     render(<App />);
     await act(async () => { await Promise.resolve(); });
     await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
-    expect(screen.getByText(/Signing in with LINE/)).toBeTruthy();
+    expect(screen.getByText(/正在連線至 LINE/)).toBeTruthy();
     await act(async () => { await vi.advanceTimersByTimeAsync(BACKEND_AUTHENTICATION_TIMEOUT_MS - BOOTSTRAP_TIMEOUT_MS); });
     expect(screen.getByRole("alert").textContent).toContain("backend authentication");
-    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "重試" })).toBeTruthy();
   });
 
   it("lets a coach accept a match invitation and refreshes the inbox", async () => {
@@ -69,7 +83,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
       http.post("/api/v1/course-match-invitations/i1/response", async ({ request }) => { const body = await request.json() as { status: string }; accepted = body.status === "ACCEPTED"; return HttpResponse.json({ data: { invitationId: "i1", courseMatchId: "m1", courseMatchSessionId: "s1", coachProfileId: "cp1", status: "ACCEPTED", respondedAt: "2026-08-24T12:00:00Z", responseNote: "Accepted via Coach LIFF" }, meta: { requestId: "test" } }); })
     );
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "COACH entry" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "教練首頁" })).toBeTruthy(); fireEvent.click(screen.getByRole("button", { name: "可授課時段" }));
     fireEvent.click(await screen.findByRole("button", { name: "Accept match" }));
     await waitFor(() => expect(accepted).toBe(true));
     expect(await screen.findByText("Match invitation accepted.")).toBeTruthy();
@@ -91,7 +105,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
       http.post("/api/v1/course-offering-registrations/r1/cancellation", () => { registrationStatus = "CANCELLED"; return HttpResponse.json({ data: { id: "r1", offeringId: "o1", status: "CANCELLED", registeredAt: "2026-08-25T03:00:00Z", cancelledAt: "2026-08-25T04:00:00Z", cancelReason: null, convertedCourseMembershipId: null }, meta: { requestId: "test" } }); })
     );
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "STUDENT entry" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "學員首頁" })).toBeTruthy(); fireEvent.click(screen.getByRole("button", { name: "找課與需求" }));
     expect(await screen.findByText(/Beginner Group/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "查看課程" }));
     expect(await screen.findByRole("heading", { name: "Beginner Group", level: 4 })).toBeTruthy();
@@ -116,7 +130,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
       http.get("/api/v1/courses/c1/sessions", () => HttpResponse.json({ data: [{ id: "s1", organizationId: "org", courseId: "c1", sequenceNo: 1, scheduledStartAt: "2026-09-15T02:00:00Z", scheduledEndAt: "2026-09-15T03:00:00Z", expectedParticipantCount: 4, guestParticipantCount: 0, actualParticipantCount: null, status: "SCHEDULED", cancellationSource: null, cancellationNote: null, completedAt: null, venueId: null, venueName: "Court A", venueAddress: "Taipei", venueStatus: "CONFIRMED", coachProfileId: "cp1", coachDisplayName: "Coach Lin", ownEnrollmentId: "e1", ownEnrollmentStatus: cancelled ? "CANCELLED" : "SCHEDULED" }], meta: { requestId: "test" } })),
       http.post("/api/v1/session-enrollments/e1/cancellation", () => { cancelled = true; return HttpResponse.json({ data: { enrollmentId: "e1", status: "CANCELLED", cancelledAt: "2026-08-25T14:00:00Z", courseSessionStatus: "SCHEDULED" }, meta: { requestId: "test" } }); })
     );
-    render(<App />);
+    render(<App />); fireEvent.click(await screen.findByRole("button", { name: "我的課程" }));
     expect(await screen.findByText(/C-001/)).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: "取消本堂報名" }));
     expect(await screen.findByRole("dialog", { name: "確認取消本堂報名" })).toBeTruthy();

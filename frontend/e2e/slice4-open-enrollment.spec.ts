@@ -105,7 +105,8 @@ test("student LIFF browses, registers, refreshes capacity, and cancels open enro
   });
 
   await page.goto("http://127.0.0.1:4173");
-  await expect(page.getByRole("heading", { name: "STUDENT entry" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "學員首頁" })).toBeVisible();
+  await page.getByRole("button", { name: "找課與需求" }).click();
   await expect(page.getByText(/Beginner Group/).first()).toBeVisible();
 
   await page.getByRole("button", { name: "查看課程" }).click();
