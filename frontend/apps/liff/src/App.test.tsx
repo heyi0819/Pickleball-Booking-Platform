@@ -47,7 +47,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     render(<App />);
     await act(async () => { await Promise.resolve(); });
     await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
-    expect(screen.getByRole("alert").textContent).toContain("LIFF SDK initialization");
+    expect(screen.getByRole("alert").textContent).toContain("無法完成 LINE 登入");
     expect(screen.getByRole("button", { name: "重試" })).toBeTruthy();
   });
 
@@ -70,7 +70,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
     expect(screen.getByText(/正在連線至 LINE/)).toBeTruthy();
     await act(async () => { await vi.advanceTimersByTimeAsync(BACKEND_AUTHENTICATION_TIMEOUT_MS - BOOTSTRAP_TIMEOUT_MS); });
-    expect(screen.getByRole("alert").textContent).toContain("backend authentication");
+    expect(screen.getByRole("alert").textContent).toContain("無法完成平台登入");
     expect(screen.getByRole("button", { name: "重試" })).toBeTruthy();
   });
 
