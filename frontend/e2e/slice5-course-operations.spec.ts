@@ -354,7 +354,7 @@ test("committee Admin reviews a reschedule request and directly reschedules a fo
   });
 
   await page.goto("http://127.0.0.1:4174");
-  await expect(page.getByRole("heading", { name: "Authorized admin entry" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "管理後台" })).toBeVisible();
   const operations = page.getByRole("region", { name: "Course operations" });
   await expect(operations.getByRole("heading", { name: "Course operations" })).toBeVisible();
   await expect(operations).toContainText("School event");
