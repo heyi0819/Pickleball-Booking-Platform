@@ -88,8 +88,13 @@ class AdminFinanceReadHttpIT {
         String adminToken = tokens.issue(f.admin()).value();
         jdbc.update("update users set status='SUSPENDED' where id=?", f.admin());
         for (String kind : List.of("receivables", "payments", "refunds")) {
-            getWithToken("/api/v1/admin/" + kind + "?organizationId=" + f.own().org(), adminToken, 403);
-            getWithToken("/api/v1/admin/" + kind + "/" + f.own().ids().get(kind) + "?organizationId=" + f.own().org(), adminToken, 403);
+            // Existing token authentication rejects suspended users before organization authorization.
+            for (String path : List.of("/api/v1/admin/" + kind,
+                    "/api/v1/admin/" + kind + "/" + f.own().ids().get(kind))) {
+                var denied = getWithToken(path + "?organizationId=" + f.own().org(), adminToken, 401);
+                assertThat(denied.get("error").get("code").asText()).isEqualTo("AUTH_INVALID_TOKEN");
+                assertThat(denied.has("data")).isFalse();
+            }
         }
     }
 

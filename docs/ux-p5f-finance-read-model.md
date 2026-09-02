@@ -63,7 +63,7 @@ GET 不 lock 帳務資料、不修正 ledger、不寫 audit/outbox/idempotency�
 新增 `AdminFinanceReadHttpIT`，使用 PostgreSQL 18 Testcontainers 與真實 HTTP/JWT：
 
 - 全部六端點的 401、403、404、committee scope、platform explicit scope。
-- revoked role / suspended user 使用已簽發 token 仍被拒絕。
+- revoked role 使用已簽發 token 仍回 403；suspended user 由既有 token filter 回 401 / AUTH_INVALID_TOKEN。
 - filters、page bounds、大 offset、排序 tie-break、跨組織 relationship filter。
 - exact decimal、nullable timestamps、readable references、status semantics。
 - 既有退款保留狀態與排除當前 request 的計算。
@@ -81,6 +81,12 @@ process-local user.home / cache / repository override 後可寫入 workspace cac
 
 OpenAPI Generator 的既有 3.1 beta / schema-name 警告仍存在；使用 repository 鎖定版本，不以改工具鏈消除。
 本機 NO_COLOR / FORCE_COLOR 警告不影響測試，未變更設定。
+
+本機 Playwright 在 page.goto 等待 load 時逾時；相同測試於受核准執行環境再跑一次為 6 PASS / 8 timeout。
+未改動或跳過測試；CI run 33591515572 的 Frontend checks 與原有 14 條 Playwright 全部 PASS。
+該首輪 CI backend 180 tests 中唯一失敗為新測試誤將 suspended user 預期為 403（實際 401）。
+已依 IdentitySecurityIT 與既有 authentication filter 校正 assertion 並追加 error code / 無 data 驗證，未變更 production security。
+修正後所有 required jobs 需在最終 HEAD 重新完整通過，最終 evidence 記錄於 PR body。
 
 ## Rollout / rollback / 下一步
 
