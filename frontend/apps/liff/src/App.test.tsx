@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const liff = vi.hoisted(() => ({ init: vi.fn(async () => undefined), isLoggedIn: vi.fn(() => true), login: vi.fn(), getIDToken: vi.fn(() => "line-id-token") }));
 vi.mock("@line/liff", () => ({ default: liff }));
@@ -105,7 +105,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
       http.post("/api/v1/course-offering-registrations/r1/cancellation", () => { registrationStatus = "CANCELLED"; return HttpResponse.json({ data: { id: "r1", offeringId: "o1", status: "CANCELLED", registeredAt: "2026-08-25T03:00:00Z", cancelledAt: "2026-08-25T04:00:00Z", cancelReason: null, convertedCourseMembershipId: null }, meta: { requestId: "test" } }); })
     );
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "學員首頁" })).toBeTruthy(); fireEvent.click(screen.getByRole("button", { name: "找課與需求" }));
+    expect(await screen.findByRole("heading", { name: "學員首頁" })).toBeTruthy(); fireEvent.click(within(screen.getByRole("navigation", { name: "主要導覽" })).getByRole("button", { name: "找課與需求" }));
     expect(await screen.findByText(/Beginner Group/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "查看課程" }));
     expect(await screen.findByRole("heading", { name: "Beginner Group", level: 4 })).toBeTruthy();
