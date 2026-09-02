@@ -45,7 +45,6 @@ export function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [selectedRole, setSelectedRole] = useState<RoleContext | null>(null);
   const [error, setError] = useState("");
-  const [bootstrapStage, setBootstrapStage] = useState<BootstrapStage>("platform session");
   const loadMe = async (token: string, setStage: (stage: BootstrapStage) => void) => {
     setStage("current-user retrieval");
     const current = await withinBootstrapTimeout("current-user retrieval", api.me(token)); setMe(current);
@@ -57,7 +56,7 @@ export function App() {
   useEffect(() => { void bootstrap(); }, []);
   async function bootstrap() {
     let currentStage: BootstrapStage = "platform session";
-    const setStage = (stage: BootstrapStage) => { currentStage = stage; setBootstrapStage(stage); };
+    const setStage = (stage: BootstrapStage) => { currentStage = stage; };
     try {
       setError("");
       const savedToken = sessionStorage.getItem(TOKEN_KEY);
