@@ -47,7 +47,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     render(<App />);
     await act(async () => { await Promise.resolve(); });
     await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
-    expect(screen.getByRole("alert").textContent).toContain("LIFF SDK initialization");
+    expect(screen.getByRole("alert").textContent).toContain("無法完成 LINE 登入");
     expect(screen.getByRole("button", { name: "重試" })).toBeTruthy();
   });
 
@@ -70,7 +70,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     await act(async () => { await vi.advanceTimersByTimeAsync(BOOTSTRAP_TIMEOUT_MS + 1); });
     expect(screen.getByText(/正在連線至 LINE/)).toBeTruthy();
     await act(async () => { await vi.advanceTimersByTimeAsync(BACKEND_AUTHENTICATION_TIMEOUT_MS - BOOTSTRAP_TIMEOUT_MS); });
-    expect(screen.getByRole("alert").textContent).toContain("backend authentication");
+    expect(screen.getByRole("alert").textContent).toContain("無法完成平台登入");
     expect(screen.getByRole("button", { name: "重試" })).toBeTruthy();
   });
 
@@ -84,10 +84,10 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     );
     render(<App />);
     expect(await screen.findByRole("heading", { name: "教練首頁" })).toBeTruthy(); fireEvent.click(screen.getByRole("button", { name: "可授課時段" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Accept match" }));
+    fireEvent.click(await screen.findByRole("button", { name: "接受媒合" }));
     await waitFor(() => expect(accepted).toBe(true));
-    expect(await screen.findByText("Match invitation accepted.")).toBeTruthy();
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Accept match" })).toBeNull());
+    expect(await screen.findByText("已接受媒合邀請。")).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole("button", { name: "接受媒合" })).toBeNull());
   });
 
   it("lets a student inspect, register, and cancel an open enrollment offering", async () => {
