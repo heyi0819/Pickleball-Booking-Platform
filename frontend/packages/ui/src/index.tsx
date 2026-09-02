@@ -1,6 +1,6 @@
 import { cloneElement, useEffect, useId, useRef, type ButtonHTMLAttributes, type HTMLAttributes, type PropsWithChildren, type ReactElement, type ReactNode } from "react";
 
-export function PageShell({ children }: PropsWithChildren) { return <main className="ui-page-shell">{children}</main>; }
+export function PageShell({ children }: PropsWithChildren) { return <><a className="ui-skip-link" href="#app-content">跳至主要內容</a><main className="ui-page-shell">{children}</main></>; }
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) { return <header className="ui-page-header"><div><h1>{title}</h1>{description && <p>{description}</p>}</div>{actions && <div className="ui-page-header__actions">{actions}</div>}</header>; }
 export function Card({ children, className = "", ...props }: PropsWithChildren<HTMLAttributes<HTMLElement>>) { return <section className={`ui-card ${className}`.trim()} {...props}>{children}</section>; }
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "danger"; loading?: boolean };

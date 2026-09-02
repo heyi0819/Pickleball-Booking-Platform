@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Alert, Button, ConfirmationDialog, FormField } from "./index";
+import { Alert, Button, ConfirmationDialog, FormField, PageShell } from "./index";
 
 describe("UI foundation primitives", () => {
   it("exposes loading state and accessible form errors", () => { render(<><Button loading>儲存</Button><FormField label="電子郵件" error="請輸入有效電子郵件" required><input /></FormField><Alert tone="danger">操作失敗</Alert></>); expect(screen.getByRole("button").hasAttribute("disabled")).toBe(true); expect(screen.getByLabelText(/電子郵件/).getAttribute("aria-invalid")).toBe("true"); expect(screen.getByRole("alert").textContent).toContain("操作失敗"); });
   it("focuses the confirmation action and invokes cancellation", () => { HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute("open", ""); }; HTMLDialogElement.prototype.close = function close() { this.removeAttribute("open"); }; const cancel = vi.fn(); render(<ConfirmationDialog open title="確認取消" description="請確認操作。" onConfirm={vi.fn()} onCancel={cancel} />); expect(document.activeElement).toBe(screen.getByRole("button", { name: "確認" })); fireEvent.click(screen.getByRole("button", { name: "取消" })); expect(cancel).toHaveBeenCalledOnce(); });
+  it("gives each dialog an independent accessible title", () => { HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute("open", ""); }; render(<><ConfirmationDialog open title="第一個確認" description="第一項操作" onConfirm={vi.fn()} onCancel={vi.fn()} /><ConfirmationDialog open title="第二個確認" description="第二項操作" onConfirm={vi.fn()} onCancel={vi.fn()} /></>); const ids = [screen.getByRole("dialog", { name: "第一個確認" }), screen.getByRole("dialog", { name: "第二個確認" })].map((dialog) => dialog.getAttribute("aria-labelledby")); expect(new Set(ids).size).toBe(2); });
+  it("provides a keyboard skip link to the application content landmark", () => { render(<PageShell><div id="app-content" tabIndex={-1}>內容</div></PageShell>); expect(screen.getByRole("link", { name: "跳至主要內容" }).getAttribute("href")).toBe("#app-content"); });
 });
