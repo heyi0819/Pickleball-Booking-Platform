@@ -16,9 +16,9 @@ test("student creates a selected draft and sees the claimed-availability recover
   await page.goto("/");
   await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "找課與需求" }).click();
   await expect(page.getByRole("heading", { name: "找教練時段" })).toBeVisible();
-  await page.getByRole("combobox", { name: "Approved availability" }).selectOption(availability.id);
-  await page.getByRole("button", { name: "Create lesson draft" }).click();
+  await page.getByRole("combobox", { name: "可選時段" }).selectOption(availability.id);
+  await page.getByRole("button", { name: "建立需求草稿" }).click();
   await expect(page.getByText("需求草稿已儲存。送出後將交由委員會處理。")).toBeVisible();
-  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByRole("button", { name: "送出需求" }).click();
   await expect(page.getByText("該時段已被其他需求取得，請重新整理並選擇其他時段。")).toBeVisible();
 });

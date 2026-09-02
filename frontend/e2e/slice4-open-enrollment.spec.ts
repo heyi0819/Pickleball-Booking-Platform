@@ -112,7 +112,7 @@ test("student LIFF browses, registers, refreshes capacity, and cancels open enro
   await page.getByRole("button", { name: "查看課程" }).click();
   await expect(page.getByRole("heading", { name: "Beginner Group", level: 4 })).toBeVisible();
   await expect(page.getByText("教練：Coach Lin")).toBeVisible();
-  await expect(page.getByText("費用：TWD 1200")).toBeVisible();
+  await expect(page.getByText(/費用：.*1,200/)).toBeVisible();
 
   await page.getByRole("button", { name: "立即報名" }).click();
   await expect(page.getByRole("status")).toContainText("報名成功");
