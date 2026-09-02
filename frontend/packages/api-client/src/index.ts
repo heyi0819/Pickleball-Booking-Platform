@@ -218,6 +218,10 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
   const finance = (token: string) => new FinanceApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const adminOperations = (token: string) => new AdminOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
+    async exchangeAdminLineAuthorizationCode(authorizationCode: string, codeVerifier: string, nonce: string): Promise<LoginData> {
+      try { return (await anonymous.exchangeAdminLineAuthorizationCode({ adminLineExchangeRequest: { authorizationCode, codeVerifier, nonce } })).data; }
+      catch (caught) { return mapError(caught); }
+    },
     async listAdminReceivables(token: string, query: ListAdminReceivablesRequest): Promise<AdminFinanceReceivablePage> {
       try { return (await adminFinance(token).listAdminReceivables(query)).data; }
       catch (caught) { return mapError(caught); }

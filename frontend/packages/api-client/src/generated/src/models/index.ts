@@ -13,6 +13,7 @@ export * from './AdminFinanceRefund';
 export * from './AdminFinanceRefundEnvelope';
 export * from './AdminFinanceRefundPage';
 export * from './AdminFinanceRefundPageEnvelope';
+export * from './AdminLineExchangeRequest';
 export * from './AdminNotification';
 export * from './AdminNotificationEnvelope';
 export * from './AdminNotificationPage';

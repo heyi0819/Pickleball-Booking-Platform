@@ -162,6 +162,21 @@ paths:
         '401': { $ref: '#/components/responses/InvalidToken' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /auth/line/admin/exchange:
+    post:
+      operationId: exchangeAdminLineAuthorizationCode
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminLineExchangeRequest' }
+      responses:
+        '200': { description: Platform access token issued for an existing administrator, content: { application/json: { schema: { $ref: '#/components/schemas/LoginResponseEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /me:
     get:
       operationId: getCurrentUser
@@ -2335,6 +2350,14 @@ components:
       required: [idToken]
       properties:
         idToken: { type: string, minLength: 1, maxLength: 10000 }
+
+    AdminLineExchangeRequest:
+      type: object
+      required: [authorizationCode, codeVerifier, nonce]
+      properties:
+        authorizationCode: { type: string, minLength: 1, maxLength: 2048 }
+        codeVerifier: { type: string, minLength: 43, maxLength: 128 }
+        nonce: { type: string, minLength: 1, maxLength: 256 }
 
     ProfileUpdateRequest:
       type: object

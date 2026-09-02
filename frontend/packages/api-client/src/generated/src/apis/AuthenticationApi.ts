@@ -15,11 +15,14 @@
 
 import * as runtime from '../runtime';
 import type {
+  AdminLineExchangeRequest,
   ErrorEnvelope,
   LineLoginRequest,
   LoginResponseEnvelope,
 } from '../models/index';
 import {
+    AdminLineExchangeRequestFromJSON,
+    AdminLineExchangeRequestToJSON,
     ErrorEnvelopeFromJSON,
     ErrorEnvelopeToJSON,
     LineLoginRequestFromJSON,
@@ -27,6 +30,10 @@ import {
     LoginResponseEnvelopeFromJSON,
     LoginResponseEnvelopeToJSON,
 } from '../models/index';
+
+export interface ExchangeAdminLineAuthorizationCodeRequest {
+    adminLineExchangeRequest: AdminLineExchangeRequest;
+}
 
 export interface LoginWithLineRequest {
     lineLoginRequest: LineLoginRequest;
@@ -39,6 +46,19 @@ export interface LoginWithLineRequest {
  * @interface AuthenticationApiInterface
  */
 export interface AuthenticationApiInterface {
+    /**
+     *
+     * @param {AdminLineExchangeRequest} adminLineExchangeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthenticationApiInterface
+     */
+    exchangeAdminLineAuthorizationCodeRaw(requestParameters: ExchangeAdminLineAuthorizationCodeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LoginResponseEnvelope>>;
+
+    /**
+     */
+    exchangeAdminLineAuthorizationCode(requestParameters: ExchangeAdminLineAuthorizationCodeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LoginResponseEnvelope>;
+
     /**
      *
      * @param {LineLoginRequest} lineLoginRequest
@@ -58,6 +78,43 @@ export interface AuthenticationApiInterface {
  *
  */
 export class AuthenticationApi extends runtime.BaseAPI implements AuthenticationApiInterface {
+
+    /**
+     */
+    async exchangeAdminLineAuthorizationCodeRaw(requestParameters: ExchangeAdminLineAuthorizationCodeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LoginResponseEnvelope>> {
+        if (requestParameters['adminLineExchangeRequest'] == null) {
+            throw new runtime.RequiredError(
+                'adminLineExchangeRequest',
+                'Required parameter "adminLineExchangeRequest" was null or undefined when calling exchangeAdminLineAuthorizationCode().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/auth/line/admin/exchange`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: AdminLineExchangeRequestToJSON(requestParameters['adminLineExchangeRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => LoginResponseEnvelopeFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async exchangeAdminLineAuthorizationCode(requestParameters: ExchangeAdminLineAuthorizationCodeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LoginResponseEnvelope> {
+        const response = await this.exchangeAdminLineAuthorizationCodeRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      */

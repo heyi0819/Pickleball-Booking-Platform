@@ -21,7 +21,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfiguration {
     @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, PlatformAuthenticationFilter platformFilter, ObjectMapper json, CorsConfigurationSource corsConfigurationSource) throws Exception {
         return http.csrf(csrf -> csrf.disable()).cors(cors -> cors.configurationSource(corsConfigurationSource)).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/line/login").permitAll().requestMatchers("/actuator/health/**", "/v3/api-docs.yaml").permitAll().anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/line/login", "/api/v1/auth/line/admin/exchange").permitAll().requestMatchers("/actuator/health/**", "/v3/api-docs.yaml").permitAll().anyRequest().authenticated())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> { response.setStatus(401); response.setContentType(MediaType.APPLICATION_JSON_VALUE); json.writeValue(response.getOutputStream(), new ApiExceptionHandler.ErrorResponse(new ApiExceptionHandler.ErrorBody("AUTH_INVALID_TOKEN", "Authentication is required", List.of(), java.util.Map.of(), (String) request.getAttribute(RequestIdFilter.ATTRIBUTE)))); }))
                 .addFilterBefore(platformFilter, UsernamePasswordAuthenticationFilter.class).build();
     }

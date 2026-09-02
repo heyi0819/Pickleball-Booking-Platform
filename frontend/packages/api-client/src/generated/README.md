@@ -66,6 +66,7 @@ All URIs are relative to */api/v1*
 *AdminOperationsApi* | [**listAdminOutboxEvents**](docs/AdminOperationsApi.md#listadminoutboxevents) | **GET** /admin/outbox-events |
 *AdminOperationsApi* | [**retryAdminNotification**](docs/AdminOperationsApi.md#retryadminnotification) | **POST** /admin/notifications/{notificationId}/retry |
 *AdminOperationsApi* | [**retryAdminOutboxEvent**](docs/AdminOperationsApi.md#retryadminoutboxevent) | **POST** /admin/outbox-events/{eventId}/retry |
+*AuthenticationApi* | [**exchangeAdminLineAuthorizationCode**](docs/AuthenticationApi.md#exchangeadminlineauthorizationcode) | **POST** /auth/line/admin/exchange |
 *AuthenticationApi* | [**loginWithLine**](docs/AuthenticationApi.md#loginwithline) | **POST** /auth/line/login |
 *CoachApplicationsApi* | [**createCoachApplication**](docs/CoachApplicationsApi.md#createcoachapplication) | **POST** /coach-applications |
 *CoachApplicationsApi* | [**listCoachApplicationsForReview**](docs/CoachApplicationsApi.md#listcoachapplicationsforreview) | **GET** /coach-applications |
@@ -151,6 +152,7 @@ All URIs are relative to */api/v1*
 - [AdminFinanceRefundEnvelope](docs/AdminFinanceRefundEnvelope.md)
 - [AdminFinanceRefundPage](docs/AdminFinanceRefundPage.md)
 - [AdminFinanceRefundPageEnvelope](docs/AdminFinanceRefundPageEnvelope.md)
+- [AdminLineExchangeRequest](docs/AdminLineExchangeRequest.md)
 - [AdminNotification](docs/AdminNotification.md)
 - [AdminNotificationEnvelope](docs/AdminNotificationEnvelope.md)
 - [AdminNotificationPage](docs/AdminNotificationPage.md)
