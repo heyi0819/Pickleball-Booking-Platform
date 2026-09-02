@@ -16,9 +16,9 @@ Next, try it out.
 ```ts
 import {
   Configuration,
-  AdminOperationsApi,
+  AdminFinanceApi,
 } from '@pickleball/api-client-generated';
-import type { ListAdminNotificationsRequest } from '@pickleball/api-client-generated';
+import type { GetAdminPaymentRequest } from '@pickleball/api-client-generated';
 
 async function example() {
   console.log("🚀 Testing @pickleball/api-client-generated SDK...");
@@ -26,23 +26,17 @@ async function example() {
     // Configure HTTP bearer authorization: bearerAuth
     accessToken: "YOUR BEARER TOKEN",
   });
-  const api = new AdminOperationsApi(config);
+  const api = new AdminFinanceApi(config);
 
   const body = {
     // string
     organizationId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
-    // NotificationStatus (optional)
-    status: ...,
-    // boolean (optional)
-    retryDue: true,
-    // number (optional)
-    page: 56,
-    // number (optional)
-    size: 56,
-  } satisfies ListAdminNotificationsRequest;
+    // string
+    id: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+  } satisfies GetAdminPaymentRequest;
 
   try {
-    const data = await api.listAdminNotifications(body);
+    const data = await api.getAdminPayment(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -62,6 +56,12 @@ All URIs are relative to */api/v1*
 
 | Class | Method | HTTP request | Description
 | ----- | ------ | ------------ | -------------
+*AdminFinanceApi* | [**getAdminPayment**](docs/AdminFinanceApi.md#getadminpayment) | **GET** /admin/payments/{id} | Read organization-scoped payments
+*AdminFinanceApi* | [**getAdminReceivable**](docs/AdminFinanceApi.md#getadminreceivable) | **GET** /admin/receivables/{id} | Read organization-scoped receivables
+*AdminFinanceApi* | [**getAdminRefund**](docs/AdminFinanceApi.md#getadminrefund) | **GET** /admin/refunds/{id} | Read organization-scoped refunds
+*AdminFinanceApi* | [**listAdminPayments**](docs/AdminFinanceApi.md#listadminpayments) | **GET** /admin/payments | List organization-scoped payments
+*AdminFinanceApi* | [**listAdminReceivables**](docs/AdminFinanceApi.md#listadminreceivables) | **GET** /admin/receivables | List organization-scoped receivables
+*AdminFinanceApi* | [**listAdminRefunds**](docs/AdminFinanceApi.md#listadminrefunds) | **GET** /admin/refunds | List organization-scoped refunds
 *AdminOperationsApi* | [**listAdminNotifications**](docs/AdminOperationsApi.md#listadminnotifications) | **GET** /admin/notifications |
 *AdminOperationsApi* | [**listAdminOutboxEvents**](docs/AdminOperationsApi.md#listadminoutboxevents) | **GET** /admin/outbox-events |
 *AdminOperationsApi* | [**retryAdminNotification**](docs/AdminOperationsApi.md#retryadminnotification) | **POST** /admin/notifications/{notificationId}/retry |
@@ -138,6 +138,19 @@ All URIs are relative to */api/v1*
 
 ### Models
 
+- [AdminFinancePayment](docs/AdminFinancePayment.md)
+- [AdminFinancePaymentEnvelope](docs/AdminFinancePaymentEnvelope.md)
+- [AdminFinancePaymentPage](docs/AdminFinancePaymentPage.md)
+- [AdminFinancePaymentPageEnvelope](docs/AdminFinancePaymentPageEnvelope.md)
+- [AdminFinanceReceivable](docs/AdminFinanceReceivable.md)
+- [AdminFinanceReceivableEnvelope](docs/AdminFinanceReceivableEnvelope.md)
+- [AdminFinanceReceivablePage](docs/AdminFinanceReceivablePage.md)
+- [AdminFinanceReceivablePageEnvelope](docs/AdminFinanceReceivablePageEnvelope.md)
+- [AdminFinanceReceivableReference](docs/AdminFinanceReceivableReference.md)
+- [AdminFinanceRefund](docs/AdminFinanceRefund.md)
+- [AdminFinanceRefundEnvelope](docs/AdminFinanceRefundEnvelope.md)
+- [AdminFinanceRefundPage](docs/AdminFinanceRefundPage.md)
+- [AdminFinanceRefundPageEnvelope](docs/AdminFinanceRefundPageEnvelope.md)
 - [AdminNotification](docs/AdminNotification.md)
 - [AdminNotificationEnvelope](docs/AdminNotificationEnvelope.md)
 - [AdminNotificationPage](docs/AdminNotificationPage.md)

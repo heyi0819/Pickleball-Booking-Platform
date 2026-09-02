@@ -6,6 +6,147 @@ info:
 servers:
   - url: /api/v1
 paths:
+  /admin/receivables:
+    get:
+      operationId: listAdminReceivables
+      tags: [Admin finance]
+      summary: List organization-scoped receivables
+      description: |
+        Read-only operational projection. COMMITTEE requires an active server-side assignment
+        for the explicit organizationId. PLATFORM_ADMIN must also select an explicit organization.
+        Unauthorized scope is 403; unknown organization or out-of-scope detail is 404.
+        Monetary projections are informational; existing commands revalidate eligibility and balances.
+        Stable descending createdAt, then id ordering; zero-based bounded pagination.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: status, in: query, schema: { type: string, enum: [OPEN, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED, REFUNDED] } }
+        - { name: memberId, in: query, schema: { type: string, format: uuid } }
+        - { name: courseId, in: query, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Finance read projection, content: { application/json: { schema: { $ref: '#/components/schemas/AdminFinanceReceivablePageEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/receivables/{id}:
+    get:
+      operationId: getAdminReceivable
+      tags: [Admin finance]
+      summary: Read organization-scoped receivables
+      description: |
+        Read-only operational projection. COMMITTEE requires an active server-side assignment
+        for the explicit organizationId. PLATFORM_ADMIN must also select an explicit organization.
+        Unauthorized scope is 403; unknown organization or out-of-scope detail is 404.
+        Monetary projections are informational; existing commands revalidate eligibility and balances.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Finance read projection, content: { application/json: { schema: { $ref: '#/components/schemas/AdminFinanceReceivableEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/payments:
+    get:
+      operationId: listAdminPayments
+      tags: [Admin finance]
+      summary: List organization-scoped payments
+      description: |
+        Read-only operational projection. COMMITTEE requires an active server-side assignment
+        for the explicit organizationId. PLATFORM_ADMIN must also select an explicit organization.
+        Unauthorized scope is 403; unknown organization or out-of-scope detail is 404.
+        Monetary projections are informational; existing commands revalidate eligibility and balances.
+        Stable descending paidAt, then id ordering; zero-based bounded pagination.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: status, in: query, schema: { type: string, enum: [COMPLETED, PARTIALLY_REFUNDED, REFUNDED, VOIDED] } }
+        - { name: memberId, in: query, schema: { type: string, format: uuid } }
+        - { name: receivableId, in: query, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Finance read projection, content: { application/json: { schema: { $ref: '#/components/schemas/AdminFinancePaymentPageEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/payments/{id}:
+    get:
+      operationId: getAdminPayment
+      tags: [Admin finance]
+      summary: Read organization-scoped payments
+      description: |
+        Read-only operational projection. COMMITTEE requires an active server-side assignment
+        for the explicit organizationId. PLATFORM_ADMIN must also select an explicit organization.
+        Unauthorized scope is 403; unknown organization or out-of-scope detail is 404.
+        Monetary projections are informational; existing commands revalidate eligibility and balances.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Finance read projection, content: { application/json: { schema: { $ref: '#/components/schemas/AdminFinancePaymentEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/refunds:
+    get:
+      operationId: listAdminRefunds
+      tags: [Admin finance]
+      summary: List organization-scoped refunds
+      description: |
+        Read-only operational projection. COMMITTEE requires an active server-side assignment
+        for the explicit organizationId. PLATFORM_ADMIN must also select an explicit organization.
+        Unauthorized scope is 403; unknown organization or out-of-scope detail is 404.
+        Monetary projections are informational; existing commands revalidate eligibility and balances.
+        Stable descending requestedAt, then id ordering; zero-based bounded pagination.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: status, in: query, schema: { type: string, enum: [PENDING_APPROVAL, APPROVED, REJECTED, COMPLETED, FAILED, CANCELLED] } }
+        - { name: memberId, in: query, schema: { type: string, format: uuid } }
+        - { name: paymentId, in: query, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Finance read projection, content: { application/json: { schema: { $ref: '#/components/schemas/AdminFinanceRefundPageEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/refunds/{id}:
+    get:
+      operationId: getAdminRefund
+      tags: [Admin finance]
+      summary: Read organization-scoped refunds
+      description: |
+        Read-only operational projection. COMMITTEE requires an active server-side assignment
+        for the explicit organizationId. PLATFORM_ADMIN must also select an explicit organization.
+        Unauthorized scope is 403; unknown organization or out-of-scope detail is 404.
+        Monetary projections are informational; existing commands revalidate eligibility and balances.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Finance read projection, content: { application/json: { schema: { $ref: '#/components/schemas/AdminFinanceRefundEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /auth/line/login:
     post:
       operationId: loginWithLine
@@ -1107,6 +1248,161 @@ components:
     ValidationFailed: { description: Invalid request, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
 
   schemas:
+    AdminFinanceDecimal:
+      type: string
+      pattern: '^-?[0-9]+\.[0-9]{2}$'
+      description: Exact persisted decimal amount, serialized without floating point conversion.
+    AdminFinanceReceivableReference:
+      type: object
+      required: [id, receivableNo, courseId, courseNo]
+      properties:
+        id: { type: string, format: uuid }
+        receivableNo: { type: string }
+        courseId: { type: string, format: uuid }
+        courseNo: { type: string }
+
+    AdminFinanceReceivable:
+      type: object
+      required: [id, receivableNo, organizationId, organizationName, memberId, memberName, courseId, courseNo, currency, totalAmount, adjustedAmount, paidAmount, refundedAmount, outstandingAmount, status, createdAt, dueAt]
+      properties:
+        id: { type: string, format: uuid }
+        receivableNo: { type: string }
+        organizationId: { type: string, format: uuid }
+        organizationName: { type: string }
+        memberId: { type: string, format: uuid }
+        memberName: { type: string }
+        courseId: { type: string, format: uuid }
+        courseNo: { type: string }
+        currency: { type: string }
+        totalAmount: { $ref: '#/components/schemas/AdminFinanceDecimal' }
+        adjustedAmount: { $ref: '#/components/schemas/AdminFinanceDecimal' }
+        paidAmount: { $ref: '#/components/schemas/AdminFinanceDecimal' }
+        refundedAmount: { $ref: '#/components/schemas/AdminFinanceDecimal' }
+        outstandingAmount: { $ref: '#/components/schemas/AdminFinanceDecimal' }
+        status: { type: string, enum: [OPEN, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED, REFUNDED] }
+        createdAt: { type: string, format: date-time }
+        dueAt: { type: [string, 'null'], format: date-time }
+
+    AdminFinanceReceivablePage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminFinanceReceivable' } }
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1, maximum: 100 }
+        totalElements: { type: integer, format: int64, minimum: 0 }
+
+    AdminFinanceReceivableEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/AdminFinanceReceivable' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    AdminFinanceReceivablePageEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/AdminFinanceReceivablePage' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    AdminFinancePayment:
+      type: object
+      required: [id, paymentNo, organizationId, organizationName, memberId, memberName, amount, currency, status, method, paidAt, recordedAt, refundableAmount, receivables]
+      properties:
+        id: { type: string, format: uuid }
+        paymentNo: { type: string }
+        organizationId: { type: string, format: uuid }
+        organizationName: { type: string }
+        memberId: { type: string, format: uuid }
+        memberName: { type: string }
+        amount: { $ref: '#/components/schemas/AdminFinanceDecimal' }
+        currency: { type: string }
+        status: { type: string, enum: [COMPLETED, PARTIALLY_REFUNDED, REFUNDED, VOIDED] }
+        method: { $ref: '#/components/schemas/FinancePaymentMethod' }
+        paidAt: { type: string, format: date-time }
+        recordedAt: { type: string, format: date-time }
+        refundableAmount:
+          type: string
+          description: |
+            Payment amount less all PENDING_APPROVAL, APPROVED and COMPLETED refund reservations.
+            This is a snapshot, not permission to request, approve or execute a refund.
+            Commands remain authoritative and enforce their existing lifecycle-specific checks.
+        receivables: { type: array, items: { $ref: '#/components/schemas/AdminFinanceReceivableReference' } }
+
+    AdminFinancePaymentPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminFinancePayment' } }
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1, maximum: 100 }
+        totalElements: { type: integer, format: int64, minimum: 0 }
+
+    AdminFinancePaymentEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/AdminFinancePayment' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    AdminFinancePaymentPageEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/AdminFinancePaymentPage' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    AdminFinanceRefund:
+      type: object
+      required: [id, refundNo, organizationId, organizationName, paymentId, paymentNo, memberId, memberName, amount, currency, status, reason, requestedAt, approvedAt, refundedAt, refundableAmount, receivables]
+      properties:
+        id: { type: string, format: uuid }
+        refundNo: { type: string }
+        organizationId: { type: string, format: uuid }
+        organizationName: { type: string }
+        paymentId: { type: string, format: uuid }
+        paymentNo: { type: string }
+        memberId: { type: string, format: uuid }
+        memberName: { type: string }
+        amount: { $ref: '#/components/schemas/AdminFinanceDecimal' }
+        currency: { type: string }
+        status: { type: string, enum: [PENDING_APPROVAL, APPROVED, REJECTED, COMPLETED, FAILED, CANCELLED] }
+        reason: { type: string }
+        requestedAt: { type: string, format: date-time }
+        approvedAt: { type: [string, 'null'], format: date-time }
+        refundedAt: { type: [string, 'null'], format: date-time }
+        refundableAmount:
+          type: string
+          description: |
+            Payment amount less PENDING_APPROVAL, APPROVED and COMPLETED refund reservations excluding this request, matching review context.
+            This is a snapshot, not permission to request, approve or execute a refund.
+            Commands remain authoritative and enforce their existing lifecycle-specific checks.
+        receivables: { type: array, items: { $ref: '#/components/schemas/AdminFinanceReceivableReference' } }
+
+    AdminFinanceRefundPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminFinanceRefund' } }
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1, maximum: 100 }
+        totalElements: { type: integer, format: int64, minimum: 0 }
+
+    AdminFinanceRefundEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/AdminFinanceRefund' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    AdminFinanceRefundPageEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/AdminFinanceRefundPage' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
 
 
     SettlementMoneyAmount:
