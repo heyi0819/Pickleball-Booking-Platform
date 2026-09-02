@@ -16,8 +16,11 @@ const server = setupServer(
   http.get("/api/v1/coach-cancellation-requests", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
   http.get("/api/v1/admin/outbox-events", () => HttpResponse.json({ data: { items: [], page: 0, size: 50, totalElements: 0 }, meta: { requestId: "test" } })),
   http.get("/api/v1/admin/notifications", () => HttpResponse.json({ data: { items: [], page: 0, size: 50, totalElements: 0 }, meta: { requestId: "test" } }))
+  ,http.get("/api/v1/admin/receivables", () => HttpResponse.json({ data: { items: [], page: 0, size: 20, totalElements: 0 }, meta: { requestId: "test" } }))
+  ,http.get("/api/v1/admin/payments", () => HttpResponse.json({ data: { items: [], page: 0, size: 20, totalElements: 0 }, meta: { requestId: "test" } }))
+  ,http.get("/api/v1/admin/refunds", () => HttpResponse.json({ data: { items: [], page: 0, size: 20, totalElements: 0 }, meta: { requestId: "test" } }))
 );
-beforeAll(() => server.listen({ onUnhandledRequest: "error" })); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); }); afterAll(() => server.close());
+beforeAll(() => { HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute("open", ""); }; HTMLDialogElement.prototype.close = function close() { this.removeAttribute("open"); }; server.listen({ onUnhandledRequest: "error" }); }); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); }); afterAll(() => server.close());
 
 describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", () => {
   it("allows committee users", async () => {
@@ -53,6 +56,8 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     expect(screen.queryByLabelText("Organization ID")).toBeNull();
     fireEvent.change(screen.getByLabelText("Audit reason"), { target: { value: "dependency restored" } });
     fireEvent.click(screen.getByRole("button", { name: "Retry event" }));
+    expect(await screen.findByRole("dialog", { name: "Confirm recovery" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "確認" }));
     expect(await screen.findByText("Recovery request accepted and audited.")).toBeTruthy();
     await waitFor(() => expect(recovered).toBe(true));
   });
@@ -61,10 +66,9 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "pa", displayName: "Platform Admin", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] }, meta: { requestId: "test" } })));
     render(<App />);
-    const input = await screen.findByLabelText("Organization ID");
+    await screen.findByLabelText("Organization scope");
     expect(screen.getByRole("button", { name: "Refresh operations" }).hasAttribute("disabled")).toBe(true);
-    fireEvent.change(input, { target: { value: "org-selected" } });
-    expect(screen.getByRole("button", { name: "Refresh operations" }).hasAttribute("disabled")).toBe(false);
+    expect(screen.getByRole("alert")).toBeTruthy();
   });
 
   it("previews and confirms pricing before secondary course formation confirmation", async () => {
