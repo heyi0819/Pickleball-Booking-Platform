@@ -164,7 +164,8 @@ test("student LIFF cancels one formal-course session and submits a reschedule re
   });
 
   await page.goto("http://127.0.0.1:4173");
-  await expect(page.getByRole("heading", { name: "STUDENT entry" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "學員首頁" })).toBeVisible();
+  await page.getByRole("button", { name: "我的課程" }).click();
   const operations = page.getByRole("region", { name: "Student course operations" });
   await expect(operations.getByRole("heading", { name: "我的正式課程" })).toBeVisible();
   await expect(operations).toContainText(course.courseNo);
@@ -225,7 +226,8 @@ test("coach LIFF submits reschedule and cancellation requests through secondary 
   });
 
   await page.goto("http://127.0.0.1:4173");
-  await expect(page.getByRole("heading", { name: "COACH entry" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "教練首頁" })).toBeVisible();
+  await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "我的授課" }).click();
   const operations = page.getByRole("region", { name: "Coach course operations" });
   await expect(operations.getByRole("heading", { name: "我的授課課程" })).toBeVisible();
 
@@ -282,7 +284,8 @@ test("committee LIFF reviews pending reschedule and coach cancellation queues", 
   });
 
   await page.goto("http://127.0.0.1:4173");
-  await expect(page.getByRole("heading", { name: "COMMITTEE entry" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "委員會首頁" })).toBeVisible();
+  await page.getByRole("navigation", { name: "主要導覽" }).getByRole("button", { name: "課程" }).click();
   const operations = page.getByRole("region", { name: "Committee course operations" });
   await expect(operations).toContainText("School event");
   await expect(operations).toContainText("Tournament duty");

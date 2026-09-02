@@ -12,8 +12,9 @@ import {
 } from "@pickleball/api-client";
 import liff from "@line/liff";
 import { PageShell } from "@pickleball/ui";
-import { platformName } from "@pickleball/shared";
-import { useEffect, useState } from "react";
+import { platformName, roleLabel } from "@pickleball/shared";
+import { useEffect, useState, type ReactNode } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import { CoachCourseOperations, CommitteeCourseOperations, StudentCourseOperations } from "./CourseOperations";
 
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
@@ -77,15 +78,48 @@ export function App() {
     } catch { sessionStorage.removeItem(TOKEN_KEY); setError(bootstrapError(currentStage)); setState("error"); }
   }
   const token = sessionStorage.getItem(TOKEN_KEY) ?? "";
-  return <PageShell><h1>{platformName}</h1>
-    {state === "loading" && <p aria-live="polite">Signing in with LINE… {bootstrapStage}</p>}
-    {state === "redirecting" && <p aria-live="polite">Redirecting to LINE…</p>}
-    {state === "error" && <><p role="alert">{error}</p><button onClick={() => { setState("loading"); void bootstrap(); }}>Retry</button></>}
-    {state === "roles" && <><h2>Select your role</h2>{me?.roles.map((role) => <button key={`${role.roleCode}-${role.organizationId ?? "global"}`} onClick={() => { setSelectedRole(role); setState("home"); }}>{role.roleCode}</button>)}</>}
-    {state === "no-roles" && <p>No active role is available. Please contact an administrator.</p>}
-    {state === "home" && <><h2>{selectedRole?.roleCode} entry</h2><p>{selectedRole?.organizationName ?? "Platform-wide access"}</p>{selectedRole?.roleCode === "STUDENT" && <><StudentCourseOperations token={token} /><StudentOpenEnrollment token={token} /><StudentLessonDemand token={token} /></>}{selectedRole?.roleCode === "COACH" && <><CoachCourseOperations token={token} /><CoachSupply token={token} /></>}{selectedRole?.roleCode === "COMMITTEE" && selectedRole.organizationId && <><CommitteeCourseOperations token={token} organizationId={selectedRole.organizationId} /><CommitteeOpenEnrollment token={token} organizationId={selectedRole.organizationId} /></>}</>}
+  return <PageShell><p className="liff-brand">{platformName}</p>
+    {state === "loading" && <p aria-live="polite">正在連線至 LINE… {bootstrapStage}</p>}
+    {state === "redirecting" && <p aria-live="polite">正在前往 LINE 登入…</p>}
+    {state === "error" && <><p role="alert">{error}</p><button onClick={() => { setState("loading"); void bootstrap(); }}>重試</button></>}
+    {state === "roles" && <RoleSelector roles={me?.roles ?? []} onSelect={(role) => { setSelectedRole(role); setState("home"); }} />}
+    {state === "no-roles" && <p role="alert">目前沒有可使用的角色，請聯絡管理員。</p>}
+    {state === "home" && selectedRole && <BrowserRouter><LiffShell token={token} me={me} role={selectedRole} onRoleSwitch={(role) => setSelectedRole(role)} /></BrowserRouter>}
   </PageShell>;
 }
+
+function RoleSelector({ roles, onSelect }: { roles: RoleContext[]; onSelect: (role: RoleContext) => void }) {
+  return <section aria-label="選擇角色"><h2>選擇使用身分</h2><p>請選擇這次要使用的平台身分。</p>{roles.filter((role) => ["STUDENT", "COACH", "COMMITTEE"].includes(role.roleCode)).map((role) => <button key={`${role.roleCode}-${role.organizationId ?? "global"}`} onClick={() => onSelect(role)}>{roleLabel(role.roleCode)}</button>)}</section>;
+}
+
+type NavigationItem = { path: string; label: string };
+function navigationFor(role: RoleContext): NavigationItem[] {
+  if (role.roleCode === "STUDENT") return [{ path: "/", label: "首頁" }, { path: "/courses", label: "我的課程" }, { path: "/demand", label: "找課與需求" }, { path: "/profile", label: "我的" }];
+  if (role.roleCode === "COACH") return [{ path: "/", label: "首頁" }, { path: "/courses", label: "我的授課" }, { path: "/availability", label: "可授課時段" }, { path: "/profile", label: "我的" }];
+  return [{ path: "/", label: "首頁" }, { path: "/courses", label: "課程" }, { path: "/operations", label: "營運" }, { path: "/profile", label: "我的" }];
+}
+
+function LiffShell({ token, me, role, onRoleSwitch }: { token: string; me: Me | null; role: RoleContext; onRoleSwitch: (role: RoleContext) => void }) {
+  const navigate = useNavigate(); const location = useLocation(); const navigation = navigationFor(role); const title = navigation.find((item) => item.path === location.pathname)?.label ?? "首頁";
+  const switchableRoles = (me?.roles ?? []).filter((item) => ["STUDENT", "COACH", "COMMITTEE"].includes(item.roleCode));
+  const home = <RoleHome role={role} navigate={navigate} />;
+  return <div className="liff-shell"><header className="liff-shell__header"><div><p className="liff-shell__role">{roleLabel(role.roleCode)}{role.organizationName ? ` · ${role.organizationName}` : ""}</p><p className="liff-shell__title">{title}</p></div>{switchableRoles.length > 1 && <button className="liff-shell__switch" onClick={() => navigate("/profile")}>切換角色</button>}</header><div id="liff-content" tabIndex={-1} className="liff-shell__content"><Routes>
+    <Route path="/" element={home} />
+    <Route path="/courses" element={role.roleCode === "STUDENT" ? <StudentCoursePage token={token} /> : role.roleCode === "COACH" ? <CoachCoursePage token={token} /> : role.organizationId ? <CommitteeCoursePage token={token} organizationId={role.organizationId} /> : home} />
+    <Route path="/demand" element={role.roleCode === "STUDENT" ? <TaskPage title="找課與需求"><StudentOpenEnrollment token={token} /><StudentLessonDemand token={token} /></TaskPage> : <Navigate to="/" replace />} />
+    <Route path="/availability" element={role.roleCode === "COACH" ? <TaskPage title="可授課時段"><CoachSupply token={token} /></TaskPage> : <Navigate to="/" replace />} />
+    <Route path="/operations" element={role.roleCode === "COMMITTEE" && role.organizationId ? <TaskPage title="營運"><CommitteeOpenEnrollment token={token} organizationId={role.organizationId} /></TaskPage> : <Navigate to="/" replace />} />
+    <Route path="/profile" element={<ProfilePage me={me} role={role} roles={switchableRoles} onRoleSwitch={(next) => { onRoleSwitch(next); navigate("/"); }} />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes></div><nav className="liff-shell__nav" aria-label="主要導覽">{navigation.map((item) => <button key={item.path} className={location.pathname === item.path ? "is-active" : ""} aria-current={location.pathname === item.path ? "page" : undefined} onClick={() => navigate(item.path)}>{item.label}</button>)}</nav></div>;
+}
+
+function TaskPage({ title, children }: { title: string; children: ReactNode }) { return <section><h1>{title}</h1>{children}</section>; }
+function StudentCoursePage({ token }: { token: string }) { return <TaskPage title="我的課程"><StudentCourseOperations token={token} /><StudentOpenEnrollment token={token} /></TaskPage>; }
+function CoachCoursePage({ token }: { token: string }) { return <TaskPage title="我的授課"><CoachCourseOperations token={token} /></TaskPage>; }
+function CommitteeCoursePage({ token, organizationId }: { token: string; organizationId: string }) { return <TaskPage title="課程"><CommitteeCourseOperations token={token} organizationId={organizationId} /></TaskPage>; }
+function RoleHome({ role, navigate }: { role: RoleContext; navigate: ReturnType<typeof useNavigate> }) { const primary = role.roleCode === "STUDENT" ? { label: "找課與需求", path: "/demand", message: "查看公開課程，或提出你的找教練需求。" } : role.roleCode === "COACH" ? { label: "管理可授課時段", path: "/availability", message: "管理可授課時段與媒合邀請。" } : { label: "查看營運待辦", path: "/operations", message: "查看公開招生與必要的營運操作。" }; return <section><h1>{roleLabel(role.roleCode)}首頁</h1><p>{primary.message}</p><button onClick={() => navigate(primary.path)}>{primary.label}</button><button onClick={() => navigate("/courses")}>{role.roleCode === "COACH" ? "查看我的授課" : "查看課程"}</button></section>; }
+function ProfilePage({ me, role, roles, onRoleSwitch }: { me: Me | null; role: RoleContext; roles: RoleContext[]; onRoleSwitch: (role: RoleContext) => void }) { return <section><h1>我的</h1><p>目前身分：{roleLabel(role.roleCode)}</p><p>顯示名稱：{me?.displayName ?? "尚未提供"}</p><p>電子郵件：{me?.email ?? "未設定"}</p>{roles.length > 1 && <section aria-label="切換角色"><h2>切換角色</h2>{roles.filter((item) => item.roleCode !== role.roleCode || item.organizationId !== role.organizationId).map((item) => <button key={`${item.roleCode}-${item.organizationId ?? "global"}`} onClick={() => onRoleSwitch(item)}>{roleLabel(item.roleCode)}</button>)}</section>}</section>; }
 
 function StudentOpenEnrollment({ token }: { token: string }) {
   const [offerings, setOfferings] = useState<CourseOfferingSummary[]>([]);
