@@ -1,0 +1,4 @@
+# Created separately by an approved foundation ceremony. Never store state on a
+# developer disk. The bucket belongs to the dedicated production runtime project.
+bucket = "REPLACE_WITH_PRODUCTION_TERRAFORM_STATE_BUCKET"
+prefix = "terraform/production"
