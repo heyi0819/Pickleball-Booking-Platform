@@ -1,0 +1,22 @@
+# Template only. It contains no secret payload and must never be used to point
+# production at staging identifiers.
+runtime_project_id = "REPLACE_WITH_PRODUCTION_RUNTIME_PROJECT_ID"
+backup_project_id  = "REPLACE_WITH_PRODUCTION_BACKUP_PROJECT_ID"
+region             = "REPLACE_WITH_APPROVED_REGION"
+
+backup_bucket_location = "REPLACE_WITH_APPROVED_BACKUP_LOCATION"
+backup_writer_identity = "REPLACE_WITH_S11_4_BACKUP_WRITER_IDENTITY"
+backup_retention_days  = 35 # proposed, subject to go-live approval
+
+database_tier              = "REPLACE_WITH_APPROVED_CLOUD_SQL_TIER"
+database_availability_type = "ZONAL" # proposed minimum; REGIONAL requires cost approval
+database_disk_size_gb      = 10
+
+runtime_image_digest = "REPLACE_WITH_ARTIFACT_REGISTRY_IMAGE@sha256:REPLACE_WITH_64_HEX_DIGEST"
+api_min_instances    = 0 # proposed cost profile; set after latency/cost approval
+api_max_instances    = 3
+
+api_cors_allowed_origins     = "https://REPLACE_WITH_PROD_LIFF_ORIGIN,https://REPLACE_WITH_PROD_ADMIN_ORIGIN"
+line_login_channel_id        = "REPLACE_WITH_PRODUCTION_LINE_CHANNEL_ID"
+line_login_admin_redirect_uri = "https://REPLACE_WITH_PROD_ADMIN_ORIGIN/auth/line/callback"
+github_repository            = "heyi0819/Pickleball-Booking-Platform"
