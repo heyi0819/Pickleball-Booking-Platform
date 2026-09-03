@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -50,6 +52,7 @@ public class AuditOutboxService {
     }
 
     /** Records an operator action without producing another event for the queue being recovered. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordAudit(
             UUID org,
             UUID actor,

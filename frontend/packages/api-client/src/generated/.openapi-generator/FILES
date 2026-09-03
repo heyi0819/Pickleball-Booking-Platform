@@ -16,6 +16,7 @@ docs/AdminFinanceRefund.md
 docs/AdminFinanceRefundEnvelope.md
 docs/AdminFinanceRefundPage.md
 docs/AdminFinanceRefundPageEnvelope.md
+docs/AdminLineExchangeRequest.md
 docs/AdminNotification.md
 docs/AdminNotificationEnvelope.md
 docs/AdminNotificationPage.md
@@ -230,6 +231,7 @@ src/models/AdminFinanceRefund.ts
 src/models/AdminFinanceRefundEnvelope.ts
 src/models/AdminFinanceRefundPage.ts
 src/models/AdminFinanceRefundPageEnvelope.ts
+src/models/AdminLineExchangeRequest.ts
 src/models/AdminNotification.ts
 src/models/AdminNotificationEnvelope.ts
 src/models/AdminNotificationPage.ts
