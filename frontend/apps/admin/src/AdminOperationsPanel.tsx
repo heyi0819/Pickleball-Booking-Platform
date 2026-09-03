@@ -1,11 +1,11 @@
 import {
-  ApiClientError,
   createApiClient,
   type AdminNotification,
   type AdminOutboxEvent,
 } from "@pickleball/api-client";
 import { ConfirmationDialog } from "@pickleball/ui";
 import { useEffect, useState } from "react";
+import { formatTaipeiDateTime, statusLabel } from "@pickleball/shared";
 
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
 const statuses = ["", "PENDING", "FAILED", "DEAD"] as const;
@@ -30,7 +30,7 @@ export function AdminOperationsPanel({ token, organizationId, platformAdmin, org
   useEffect(() => { if (organizationId) void load(organizationId); }, [organizationId, status, retryDue]);
 
   async function load(requestedScope = scope) {
-    if (!requestedScope.trim()) { setMessage("Organization ID is required."); return; }
+    if (!requestedScope.trim()) { setMessage("請先選擇組織範圍。"); return; }
     setState("loading"); setMessage("");
     const query = { organizationId: requestedScope.trim(), status: status || undefined, retryDue, size: 50 };
     try {
@@ -39,13 +39,13 @@ export function AdminOperationsPanel({ token, organizationId, platformAdmin, org
       ]);
       setOutbox(events.items); setNotifications(deliveries.items); setState("loaded");
     } catch (caught) {
-      setState("error"); setMessage(errorMessage(caught, "Unable to load operational queues."));
+      setState("error"); setMessage(errorMessage(caught, "無法載入營運待辦，請稍後再試。"));
     }
   }
 
   function prepareRecovery(kind: "outbox" | "notification", id: string, action: string) {
     const reason = reasons[id]?.trim();
-    if (!reason) { setMessage("Enter an operator reason before recovery."); return; }
+    if (!reason) { setMessage("請先填寫處理原因。"); return; }
     setPending({ kind, id, reason, action });
   }
 
@@ -59,39 +59,39 @@ export function AdminOperationsPanel({ token, organizationId, platformAdmin, org
       else await api.retryAdminNotification(token, id, key, reason);
       setReasons((current) => ({ ...current, [id]: "" }));
       await load();
-      setMessage("Recovery request accepted and audited.");
+      setMessage("處理請求已送出並留下稽核紀錄。");
       setPending(null);
     } catch (caught) {
-      setMessage(errorMessage(caught, "Recovery request failed."));
+      setMessage(errorMessage(caught, "處理請求失敗，請稍後再試。"));
     }
   }
 
   return <section aria-label="Admin operations recovery">
-    <h2>Operations and failure recovery</h2>
-    <p>Operational queue only; recovery is limited to FAILED or DEAD items and requires an audit reason.</p>
-    {platformAdmin ? <label>Organization scope <select value={scope} onChange={(event) => setScope(event.target.value)}><option value="">Select an authorized organization</option>{organizationOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
-      : <p>Organization scope: <code>{scope}</code></p>}
-    {platformAdmin && !organizationOptions.length && <p role="alert">No readable organization scope is available for this account. An authorized organization context is required before operational data can be loaded.</p>}
-    <label htmlFor="admin-recovery-state">Recovery state</label>
+    <h2>營運待辦與失敗復原</h2>
+    <p>僅處理營運待辦；失敗或無法處理的項目需填寫稽核原因才能復原。</p>
+    {platformAdmin ? <label>組織範圍 <select value={scope} onChange={(event) => setScope(event.target.value)}><option value="">選擇可用的組織</option>{organizationOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+      : <p>組織範圍：<code>{scope}</code></p>}
+    {platformAdmin && !organizationOptions.length && <p role="alert">目前帳號沒有可用的組織範圍，無法載入營運資料。</p>}
+    <label htmlFor="admin-recovery-state">處理狀態</label>
     <select id="admin-recovery-state" value={status} onChange={(event) => setStatus(event.target.value as (typeof statuses)[number])}>
-      {statuses.map((item) => <option key={item || "ALL"} value={item}>{item || "ALL"}</option>)}
+      {statuses.map((item) => <option key={item || "ALL"} value={item}>{item ? statusLabel(item) : "全部"}</option>)}
     </select>
-    <label><input type="checkbox" checked={retryDue} onChange={(event) => setRetryDue(event.target.checked)} /> Retry due only</label>
-    <button disabled={!scope.trim() || state === "loading"} onClick={() => void load()}>{state === "loading" ? "Loading…" : "Refresh operations"}</button>
+    <label><input type="checkbox" checked={retryDue} onChange={(event) => setRetryDue(event.target.checked)} /> 僅顯示到期項目</label>
+    <button disabled={!scope.trim() || state === "loading"} onClick={() => void load()}>{state === "loading" ? "載入中…" : "重新整理營運待辦"}</button>
     {message && <p aria-live="polite">{message}</p>}
-    {state === "error" && <p role="alert">Operational data could not be loaded.</p>}
-    <OperationalTable title="Outbox events" empty="No matching outbox events." rows={outbox.map((item) => ({
+    {state === "error" && <p role="alert">營運資料暫時無法載入。</p>}
+    <OperationalTable title="待處理事件" empty="目前沒有符合條件的事件。" rows={outbox.map((item) => ({
       id: item.id, status: item.status, attempts: item.attemptCount, context: `${item.eventType} · ${item.aggregateType} ${item.aggregateId}`,
       dueAt: item.availableAt, error: item.lastError, recoverable: item.status === "FAILED" || item.status === "DEAD",
-      action: item.status === "DEAD" ? "Requeue event" : "Retry event",
+      action: item.status === "DEAD" ? "重新排入事件" : "重試事件",
     }))} reasons={reasons} setReasons={setReasons} recover={(id, action) => prepareRecovery("outbox", id, action)} />
-    <OperationalTable title="Notifications" empty="No matching notifications." rows={notifications.map((item) => ({
+    <OperationalTable title="通知" empty="目前沒有符合條件的通知。" rows={notifications.map((item) => ({
       id: item.id, status: item.status, attempts: item.attemptCount, context: `${item.templateCode} · ${item.businessType} ${item.businessId}`,
       dueAt: item.nextAttemptAt, error: [item.lastErrorCode, item.lastErrorMessage].filter(Boolean).join(": ") || null,
       recoverable: item.status === "FAILED" || item.status === "DEAD",
-      action: item.status === "DEAD" ? "Requeue notification" : "Redeliver notification",
+      action: item.status === "DEAD" ? "重新排入通知" : "重新傳送通知",
     }))} reasons={reasons} setReasons={setReasons} recover={(id, action) => prepareRecovery("notification", id, action)} />
-    <ConfirmationDialog open={pending !== null} title="Confirm recovery" description={pending ? `${pending.action}: ${pending.reason}` : ""} danger onConfirm={() => void recover()} onCancel={() => setPending(null)} />
+    <ConfirmationDialog open={pending !== null} title="確認復原" description={pending ? `${pending.action}：${pending.reason}` : ""} confirmLabel="確認" cancelLabel="取消" danger onConfirm={() => void recover()} onCancel={() => setPending(null)} />
   </section>;
 }
 
@@ -103,16 +103,16 @@ function OperationalTable({ title, empty, rows, reasons, setReasons, recover }: 
   setReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>; recover: (id: string, action: string) => void;
 }) {
   return <section><h3>{title}</h3>{rows.length === 0 ? <p>{empty}</p> : <table><thead><tr>
-    <th>Status</th><th>Context</th><th>Attempts / due</th><th>Error</th><th>Recovery</th>
+    <th>狀態</th><th>內容</th><th>嘗試次數／到期時間</th><th>錯誤</th><th>復原</th>
   </tr></thead><tbody>{rows.map((row) => <tr key={row.id}>
-    <td>{row.status}</td><td><code>{row.id}</code><br />{row.context}</td>
-    <td>{row.attempts}<br />{row.dueAt ? new Date(row.dueAt).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) : "—"}</td>
+    <td>{statusLabel(row.status)}</td><td>{row.context}</td>
+    <td>{row.attempts}<br />{row.dueAt ? formatTaipeiDateTime(row.dueAt) : "—"}</td>
     <td>{row.error || "—"}</td><td>{row.recoverable ? <><label>Audit reason <input value={reasons[row.id] ?? ""}
-      onChange={(event) => setReasons((current) => ({ ...current, [row.id]: event.target.value }))} maxLength={1000} /></label>
-      <button disabled={!reasons[row.id]?.trim()} onClick={() => recover(row.id, row.action)}>{row.action}</button></> : "Not eligible"}</td>
+      onChange={(event) => setReasons((current) => ({ ...current, [row.id]: event.target.value }))} maxLength={1000} aria-label="稽核原因" /></label>
+      <button disabled={!reasons[row.id]?.trim()} onClick={() => recover(row.id, row.action)}>{row.action}</button></> : "目前不可處理"}</td>
   </tr>)}</tbody></table>}</section>;
 }
 
 function errorMessage(caught: unknown, fallback: string) {
-  return caught instanceof ApiClientError ? `${fallback} ${caught.code}` : fallback;
+  return fallback;
 }

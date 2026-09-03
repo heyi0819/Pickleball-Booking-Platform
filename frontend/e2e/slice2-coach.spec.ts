@@ -18,7 +18,7 @@ test("student submits a coach application and committee approves it", async ({ b
   await admin.route("**/api/v1/coach-applications?organizationId=" + org, route => route.fulfill({ json: envelope([{ ...application, status: approved ? "APPROVED" : "SUBMITTED" }]) }));
   await admin.route("**/api/v1/coach-availability-proposals?organizationId=" + org, route => route.fulfill({ json: envelope([]) })); await admin.route("**/api/v1/lesson-requests?organizationId=" + org, route => route.fulfill({ json: envelope([]) })); await admin.route("**/api/v1/course-matches?organizationId=" + org, route => route.fulfill({ json: envelope([]) }));
   await admin.route("**/api/v1/coach-applications/*/review", route => { approved = true; return route.fulfill({ json: envelope({ ...application, status: "APPROVED" }) }); });
-  await admin.goto("http://127.0.0.1:4174"); await admin.getByRole("button", { name: "View application" }).click(); await expect(admin.getByRole("heading", { name: "Coach application detail" })).toBeVisible(); await admin.getByRole("button", { name: "Approve" }).last().click(); await expect(admin.getByText("Review saved.")).toBeVisible();
+  await admin.goto("http://127.0.0.1:4174"); await admin.getByRole("button", { name: "查看申請" }).click(); await expect(admin.getByRole("heading", { name: "教練申請詳情" })).toBeVisible(); await admin.getByRole("button", { name: "審核通過" }).last().click(); await expect(admin.getByText("審核結果已儲存。")).toBeVisible();
   await student.close(); await committee.close();
 });
 

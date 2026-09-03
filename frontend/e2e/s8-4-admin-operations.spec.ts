@@ -29,14 +29,14 @@ test("platform admin scopes and audits failed outbox recovery", async ({ page })
   } }));
 
   await page.goto("http://127.0.0.1:4174");
-  await page.getByLabel("Organization scope").selectOption("11111111-1111-1111-1111-111111111111");
-  await page.getByRole("button", { name: "Refresh operations" }).click();
+  await page.getByLabel("組織範圍").selectOption("11111111-1111-1111-1111-111111111111");
+  await page.getByRole("button", { name: "重新整理營運待辦" }).click();
   await expect(page.getByText("timeout")).toBeVisible();
-  await page.getByLabel("Audit reason").fill("upstream repaired");
-  await page.getByRole("button", { name: "Retry event" }).click();
-  await expect(page.getByRole("dialog", { name: "Confirm recovery" })).toBeVisible();
+  await page.getByLabel("稽核原因").fill("upstream repaired");
+  await page.getByRole("button", { name: "重試事件" }).click();
+  await expect(page.getByRole("dialog", { name: "確認復原" })).toBeVisible();
   await page.getByRole("button", { name: "確認" }).click();
-  await expect(page.getByText("Recovery request accepted and audited.")).toBeVisible();
+  await expect(page.getByText("處理請求已送出並留下稽核紀錄。")).toBeVisible();
   expect(recovered).toBe(true);
 });
 
