@@ -72,17 +72,17 @@ test("committee prices a ready match and confirms formal course creation", async
   });
 
   await page.goto("http://127.0.0.1:4174");
-  const matching = page.getByRole("region", { name: "Course matching" });
-  await matching.getByRole("button", { name: "Open match" }).click();
-  await expect(matching).toContainText("Pricing confirmed");
-  await matching.getByRole("button", { name: "Preview pricing" }).click();
+  const matching = page.getByRole("region", { name: "課程媒合" });
+  await matching.getByRole("button", { name: "查看媒合" }).click();
+  await expect(matching).toContainText("費用已確認");
+  await matching.getByRole("button", { name: "預覽費用" }).click();
   await expect(matching).toContainText("TWD 1800.00");
-  await matching.getByRole("button", { name: "Confirm this price" }).click();
-  await expect(matching.getByRole("button", { name: "Form course" })).toBeEnabled();
-  await matching.getByRole("button", { name: "Form course" }).click();
-  await page.getByRole("dialog", { name: "Confirm course formation" }).getByRole("button", { name: "Confirm formation" }).click();
+  await matching.getByRole("button", { name: "確認此費用" }).click();
+  await expect(matching.getByRole("button", { name: "確認成班" })).toBeEnabled();
+  await matching.getByRole("button", { name: "確認成班" }).click();
+  await page.getByRole("dialog", { name: "確認成班" }).getByRole("button", { name: "確認成班" }).click();
 
-  await expect(matching.getByRole("status")).toContainText("Course formed: course-1");
+  await expect(matching.getByRole("status")).toContainText(/課程已成班：\s*course-1/);
   expect(formed).toBe(true);
   expect(idempotencyKeys).toHaveLength(2);
   expect(idempotencyKeys[0]).toBe(`match-price-${matchId}-${fingerprint}`);

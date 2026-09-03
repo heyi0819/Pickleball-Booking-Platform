@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { App } from "./App";
 
@@ -37,7 +37,7 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
   it("allows committee users", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
-    render(<App />); expect(await screen.findByRole("heading", { name: "管理後台" })).toBeTruthy(); expect(await screen.findByRole("navigation", { name: "管理後台導覽" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course matching" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Open enrollment" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "Course operations" })).toBeTruthy();
+    render(<App />); expect(await screen.findByRole("heading", { name: "管理後台" })).toBeTruthy(); expect(await screen.findByRole("navigation", { name: "管理後台導覽" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "課程媒合" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "公開招生" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "課程營運" })).toBeTruthy();
   });
 
   it("denies non-admin roles", async () => {
@@ -65,11 +65,11 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     render(<App />);
     expect(await screen.findByText("dependency timeout")).toBeTruthy();
     expect(screen.queryByLabelText("Organization ID")).toBeNull();
-    fireEvent.change(screen.getByLabelText("Audit reason"), { target: { value: "dependency restored" } });
-    fireEvent.click(screen.getByRole("button", { name: "Retry event" }));
-    expect(await screen.findByRole("dialog", { name: "Confirm recovery" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("稽核原因"), { target: { value: "dependency restored" } });
+    fireEvent.click(screen.getByRole("button", { name: "重試事件" }));
+    expect(await screen.findByRole("dialog", { name: "確認復原" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "確認" }));
-    expect(await screen.findByText("Recovery request accepted and audited.")).toBeTruthy();
+    expect(await screen.findByText("處理請求已送出並留下稽核紀錄。")).toBeTruthy();
     await waitFor(() => expect(recovered).toBe(true));
   });
 
@@ -77,8 +77,8 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "pa", displayName: "Platform Admin", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] }, meta: { requestId: "test" } })));
     render(<App />);
-    await screen.findByLabelText("Organization scope");
-    expect(screen.getByRole("button", { name: "Refresh operations" }).hasAttribute("disabled")).toBe(true);
+    await screen.findByText("組織範圍");
+    expect(screen.getByRole("button", { name: "重新整理營運待辦" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("alert")).toBeTruthy();
   });
 
@@ -94,16 +94,16 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
       http.post("/api/v1/course-matches/m1/confirmation", () => { formed = true; return HttpResponse.json({ data: { courseMatchId: "m1", courseMatchStatus: "CONFIRMED", courseId: "c1", courseStatus: "ACTIVE", sessionIds: ["cs1"], receivableIds: ["r1"] }, meta: { requestId: "test" } }, { status: 201 }); })
     );
     render(<App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Open match" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Preview pricing" }));
+    fireEvent.click(await screen.findByRole("button", { name: "查看媒合" }));
+    fireEvent.click(await screen.findByRole("button", { name: "預覽費用" }));
     expect(await screen.findByText("TWD 1800.00")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm this price" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Form course" }).hasAttribute("disabled")).toBe(false));
-    fireEvent.click(screen.getByRole("button", { name: "Form course" }));
-    expect(await screen.findByRole("dialog", { name: "Confirm course formation" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm formation" }));
+    fireEvent.click(screen.getByRole("button", { name: "確認此費用" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "確認成班" }).hasAttribute("disabled")).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: "確認成班" }));
+    const formationDialog = await screen.findByRole("dialog", { name: "確認成班" });
+    fireEvent.click(within(formationDialog).getByRole("button", { name: "確認成班" }));
     await waitFor(() => expect(formed).toBe(true));
-    expect(await screen.findByText("Course formed: c1")).toBeTruthy();
+    expect(await screen.findByText(/課程已成班：\s*c1/)).toBeTruthy();
   });
 
   it("runs the committee offering pricing, publish, close, and formation workflow", async () => {
@@ -126,21 +126,21 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
       http.post("/api/v1/course-offerings/o1/confirmation", () => { status = "CONFIRMED"; formed = true; return HttpResponse.json({ data: { offeringId: "o1", offeringStatus: "CONFIRMED", courseId: "course-1", courseStatus: "ACTIVE", sessionIds: ["cs1"], membershipIds: ["m1", "m2", "m3"], enrollmentIds: ["e1", "e2", "e3"], receivableIds: ["rv1", "rv2", "rv3"] }, meta: { requestId: "test" } }, { status: 201 }); })
     );
     render(<App />);
-    fireEvent.click(await screen.findByRole("button", { name: "Open offering" }));
-    fireEvent.change(await screen.findByLabelText("Price per participant"), { target: { value: "1200" } });
-    fireEvent.click(screen.getByRole("button", { name: "Preview offering price" }));
-    expect(await screen.findByText(/TWD 1200\.00 per participant/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm offering price" }));
+    fireEvent.click(await screen.findByRole("button", { name: "查看招生課程" }));
+    fireEvent.change(await screen.findByLabelText("每人費用"), { target: { value: "1200" } });
+    fireEvent.click(screen.getByRole("button", { name: "預覽招生課程費用" }));
+    expect(await screen.findByText(/TWD 1200\.00/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "確認招生課程費用" }));
     await waitFor(() => expect(priceConfirmed).toBe(true));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Publish offering" }).hasAttribute("disabled")).toBe(false));
-    fireEvent.click(screen.getByRole("button", { name: "Publish offering" }));
-    expect(await screen.findByRole("button", { name: "Close registration" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Close registration" }));
-    expect(await screen.findByRole("button", { name: "Form course from offering" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Form course from offering" }));
-    expect(await screen.findByRole("dialog", { name: "Confirm offering formation" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm formation" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "發布招生課程" }).hasAttribute("disabled")).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: "發布招生課程" }));
+    expect(await screen.findByRole("button", { name: "關閉報名" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "關閉報名" }));
+    expect(await screen.findByRole("button", { name: "確認招生課程成班" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "確認招生課程成班" }));
+    const offeringFormationDialog = await screen.findByRole("dialog", { name: "確認招生課程成班" });
+    fireEvent.click(within(offeringFormationDialog).getByRole("button", { name: "確認成班" }));
     await waitFor(() => expect(formed).toBe(true));
-    expect(await screen.findByText("Course formed from offering: course-1")).toBeTruthy();
+    expect(await screen.findByText(/招生課程已成班：\s*course-1/)).toBeTruthy();
   });
 });

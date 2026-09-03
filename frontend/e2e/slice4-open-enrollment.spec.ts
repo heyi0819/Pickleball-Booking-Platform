@@ -219,42 +219,42 @@ test("committee Admin creates, prices, publishes, closes, and forms an open enro
 
   await page.goto("http://127.0.0.1:4174");
   await expect(page.getByRole("heading", { name: "管理後台" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Open enrollment" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "公開招生" })).toBeVisible();
 
-  await page.getByLabel("Title").fill("Weekend Group");
-  await page.getByLabel("Description").fill("Weekend beginner class");
-  await page.getByLabel("Coach").selectOption("cp1");
-  await page.getByLabel("Skill level").fill("BEGINNER");
-  await page.getByLabel("Registration opens").fill("2026-08-26T08:00");
-  await page.getByLabel("Registration closes").fill("2026-09-11T08:00");
-  await page.getByLabel("Start").fill("2026-09-12T10:00");
-  await page.getByLabel("End").fill("2026-09-12T11:00");
-  await page.getByLabel("Venue name").fill("Court A");
-  await page.getByLabel("Venue address").fill("Taipei");
-  await page.getByRole("button", { name: "Create offering draft" }).click();
+  await page.getByLabel("標題").fill("Weekend Group");
+  await page.getByLabel("說明").fill("Weekend beginner class");
+  await page.getByLabel("教練").selectOption("cp1");
+  await page.getByLabel("程度").fill("BEGINNER");
+  await page.getByLabel("報名開始時間").fill("2026-08-26T08:00");
+  await page.getByLabel("報名截止時間").fill("2026-09-11T08:00");
+  await page.getByLabel("開始時間", { exact: true }).fill("2026-09-12T10:00");
+  await page.getByLabel("結束時間", { exact: true }).fill("2026-09-12T11:00");
+  await page.getByLabel("場地名稱").fill("Court A");
+  await page.getByLabel("場地地址").fill("Taipei");
+  await page.getByRole("button", { name: "建立招生課程草稿" }).click();
 
   await expect(page.getByRole("heading", { name: "Weekend Group", level: 3 })).toBeVisible();
-  await expect(page.getByText("Status: DRAFT")).toBeVisible();
-  await page.getByLabel("Price per participant").fill("1500");
-  await page.getByRole("button", { name: "Preview offering price" }).click();
-  await expect(page.getByLabel("Offering pricing preview")).toContainText("TWD 1500.00 per participant");
-  await page.getByRole("button", { name: "Confirm offering price" }).click();
-  await expect(page.getByText("Offering price confirmed.")).toBeVisible();
+  await expect(page.getByText(/狀態：\s*草稿/)).toBeVisible();
+  await page.getByLabel("每人費用").fill("1500");
+  await page.getByRole("button", { name: "預覽招生課程費用" }).click();
+  await expect(page.getByLabel("招生課程費用預覽")).toContainText("TWD 1500.00");
+  await page.getByRole("button", { name: "確認招生課程費用" }).click();
+  await expect(page.getByText("招生課程費用已確認。")).toBeVisible();
 
-  await page.getByRole("button", { name: "Publish offering" }).click();
-  await expect(page.getByText("Offering published and registration is available during the configured window.")).toBeVisible();
-  await expect(page.getByText("Status: OPEN")).toBeVisible();
+  await page.getByRole("button", { name: "發布招生課程" }).click();
+  await expect(page.getByText("招生課程已發布，將於設定的報名期間開放。")).toBeVisible();
+  await expect(page.getByText(/狀態：\s*開放報名/)).toBeVisible();
 
-  await page.getByRole("button", { name: "Close registration" }).click();
-  await expect(page.getByText("Offering registration closed.")).toBeVisible();
-  await expect(page.getByText("Status: CLOSED")).toBeVisible();
-  await expect(page.getByText(/Student One · ACTIVE/)).toBeVisible();
+  await page.getByRole("button", { name: "關閉報名" }).click();
+  await expect(page.getByText("招生課程報名已關閉。")).toBeVisible();
+  await expect(page.getByText(/狀態：\s*已關閉/)).toBeVisible();
+  await expect(page.getByText(/Student One · 有效/)).toBeVisible();
 
-  await page.getByRole("button", { name: "Form course from offering" }).click();
-  await expect(page.getByRole("dialog", { name: "Confirm offering formation" })).toBeVisible();
-  await page.getByRole("button", { name: "Confirm formation" }).click();
-  await expect(page.getByRole("status")).toContainText("Course formed from offering: course-1");
-  await expect(page.getByText("Status: CONFIRMED")).toBeVisible();
+  await page.getByRole("button", { name: "確認招生課程成班" }).click();
+  await expect(page.getByRole("dialog", { name: "確認招生課程成班" })).toBeVisible();
+  await page.getByRole("button", { name: "確認成班" }).click();
+  await expect(page.getByRole("status")).toContainText(/招生課程已成班：\s*course-1/);
+  await expect(page.getByText(/狀態：\s*已確認/)).toBeVisible();
 
   expect(idempotencyKeys).toHaveLength(4);
   for (const key of idempotencyKeys) expect(key).not.toBe("");
