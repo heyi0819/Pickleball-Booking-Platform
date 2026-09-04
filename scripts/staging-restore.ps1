@@ -49,7 +49,7 @@ try {
     & pg_restore --clean --if-exists --no-owner --no-privileges --dbname=$env:PGDATABASE $plain
     if ($LASTEXITCODE -ne 0) { throw 'pg_restore failed.' }
 
-    $restoredFlywayVersion = (& psql -X -At -v ON_ERROR_STOP=1 -c "select max(version)::int from flyway_schema_history where success = true;").Trim()
+    $restoredFlywayVersion = (& psql -X -At -v ON_ERROR_STOP=1 -c "select max(version::int) from flyway_schema_history where success = true and version is not null;").Trim()
     if ($LASTEXITCODE -ne 0 -or $restoredFlywayVersion -ne [string]$expectedFlywayVersion) { throw 'Restored Flyway history does not match the repository migration level.' }
 
     $criticalTables = @('users', 'organizations', 'user_role_assignments', 'coach_availability_proposals', 'lesson_requests', 'course_offerings', 'course_sessions', 'course_offering_registrations', 'receivables', 'payments', 'refunds', 'audit_logs', 'outbox_events')

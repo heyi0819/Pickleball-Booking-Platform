@@ -60,7 +60,7 @@ $encrypted = Join-Path $backupRoot "$prefix.dump.age"
 $metadata = Join-Path $backupRoot "$prefix.metadata.json"
 
 try {
-    $flywayVersion = & psql -X -At -v ON_ERROR_STOP=1 -c "select coalesce(max(version), 'baseline') from flyway_schema_history where success = true;"
+    $flywayVersion = & psql -X -At -v ON_ERROR_STOP=1 -c "select coalesce(max(version::int)::text, 'baseline') from flyway_schema_history where success = true and version is not null;"
     if ($LASTEXITCODE -ne 0) { throw 'Unable to query Flyway history.' }
     $flywayVersion = $flywayVersion.Trim()
 
