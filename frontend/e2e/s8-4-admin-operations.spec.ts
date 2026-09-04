@@ -11,6 +11,10 @@ test("platform admin scopes and audits failed outbox recovery", async ({ page })
       ] },
     meta: { requestId: "e2e" },
   } }));
+  await page.route("**/api/v1/admin/organizations", route => route.fulfill({ json: {
+    data: [{ id: "11111111-1111-1111-1111-111111111111", code: "MVP", name: "MVP" }],
+    meta: { requestId: "e2e" },
+  } }));
   await page.route("**/api/v1/admin/outbox-events**", async route => {
     if (route.request().method() === "POST") {
       expect(route.request().headers()["idempotency-key"]).toMatch(/^admin-recovery-outbox-1-/);
@@ -29,7 +33,7 @@ test("platform admin scopes and audits failed outbox recovery", async ({ page })
   } }));
 
   await page.goto("http://127.0.0.1:4174");
-  await page.getByLabel("組織範圍").selectOption("11111111-1111-1111-1111-111111111111");
+  await page.getByLabel("目前組織範圍").selectOption("11111111-1111-1111-1111-111111111111");
   await page.getByRole("button", { name: "重新整理營運待辦" }).click();
   await expect(page.getByText("timeout")).toBeVisible();
   await page.getByLabel("稽核原因").fill("upstream repaired");
