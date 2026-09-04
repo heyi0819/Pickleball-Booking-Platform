@@ -103,6 +103,7 @@ resource "google_sql_database_instance" "postgres" {
 
   settings {
     tier              = var.database_tier
+    edition           = var.database_edition
     availability_type = var.database_availability_type
     disk_size         = var.database_disk_size_gb
     disk_autoresize   = var.database_disk_autoresize
@@ -112,6 +113,7 @@ resource "google_sql_database_instance" "postgres" {
     backup_configuration {
       enabled                        = var.database_backups_enabled
       point_in_time_recovery_enabled = var.database_pitr_enabled
+      transaction_log_retention_days = var.database_retained_transaction_log_days
       start_time                     = var.database_backup_start_time_utc
 
       backup_retention_settings {
