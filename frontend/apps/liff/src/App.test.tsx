@@ -90,6 +90,26 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     await waitFor(() => expect(screen.queryByRole("button", { name: "接受媒合" })).toBeNull());
   });
 
+  it("renders an approved availability for the student demand flow and sends it as the selected proposal", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    let selectedAvailabilityProposalId: string | null = null;
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { ...member, profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/coach-availability-proposals/available", () => HttpResponse.json({ data: [{ id: "availability-1", coachProfileId: "coach-1", startAt: "2026-09-10T02:00:00Z", endAt: "2026-09-10T03:00:00Z", preferredVenueId: null, status: "APPROVED", submittedAt: "2026-09-01T00:00:00Z", reviewedBy: "committee-1", reviewedAt: "2026-09-01T01:00:00Z", reviewNote: "Approved" }], meta: { requestId: "test" } })),
+      http.get("/api/v1/lesson-requests/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+      http.get("/api/v1/course-offerings", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
+      http.get("/api/v1/me/course-offering-registrations", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
+      http.post("/api/v1/lesson-requests", async ({ request }) => { selectedAvailabilityProposalId = (await request.json() as { selectedAvailabilityProposalId: string }).selectedAvailabilityProposalId; return HttpResponse.json({ data: { id: "request-1" }, meta: { requestId: "test" } }, { status: 201 }); })
+    );
+    render(<App />);
+    fireEvent.click(within(await screen.findByRole("navigation", { name: "主要導覽" })).getByRole("button", { name: "找課與需求" }));
+    const selection = await screen.findByLabelText("可選時段");
+    expect(within(selection).getByRole("option", { name: /2026/ })).toBeTruthy();
+    fireEvent.change(selection, { target: { value: "availability-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "建立需求草稿" }));
+    await waitFor(() => expect(selectedAvailabilityProposalId).toBe("availability-1"));
+  });
+
   it("lets a student inspect, register, and cancel an open enrollment offering", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     let registrationStatus: "NONE" | "ACTIVE" | "CANCELLED" = "NONE";
