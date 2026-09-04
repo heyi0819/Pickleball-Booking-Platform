@@ -20,4 +20,5 @@ public class RoleAssignmentEntity {
     public RoleAssignmentEntity(PlatformUserEntity user, OrganizationEntity organization, RoleCode roleCode) { this.id = UUID.randomUUID(); this.user = user; this.organization = organization; this.roleCode = roleCode; this.status = RoleAssignmentStatus.ACTIVE; this.grantedAt = Instant.now(); }
     public RoleCode getRoleCode() { return roleCode; } public RoleAssignmentStatus getStatus() { return status; } public OrganizationEntity getOrganization() { return organization; } public PlatformUserEntity getUser() { return user; }
     public void changeStatus(RoleAssignmentStatus status) { this.status = status; this.revokedAt = status == RoleAssignmentStatus.REVOKED ? Instant.now() : null; }
+    public UUID getId() { return id; }
 }

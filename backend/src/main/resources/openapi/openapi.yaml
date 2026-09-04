@@ -1245,6 +1245,59 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 
+  /admin/users:
+    get:
+      operationId: searchAdminUsers
+      tags: [Admin role delegation]
+      summary: Search active users for committee delegation
+      description: PLATFORM_ADMIN only. Search has a two-character minimum and never changes roles.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: query, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 100 } }
+      responses:
+        '200': { description: Matching active users, content: { application/json: { schema: { $ref: '#/components/schemas/AdminUserListEnvelope' } } } }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /admin/organizations:
+    get:
+      operationId: listAdminOrganizations
+      tags: [Admin role delegation]
+      summary: List active organizations for global administration
+      description: PLATFORM_ADMIN only. The returned list is used to choose an explicit organization context.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Active organizations, content: { application/json: { schema: { $ref: '#/components/schemas/AdminOrganizationListEnvelope' } } } }
+        '401': { $ref: '#/components/responses/InvalidToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /admin/organizations/{organizationId}/committee-members/{userId}:
+    post:
+      operationId: grantCommitteeMember
+      tags: [Admin role delegation]
+      summary: Grant an organization-scoped COMMITTEE role
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '201': { description: Committee assignment, content: { application/json: { schema: { $ref: '#/components/schemas/CommitteeMembershipEnvelope' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      operationId: revokeCommitteeMember
+      tags: [Admin role delegation]
+      summary: Revoke an organization-scoped COMMITTEE role
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: organizationId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Committee assignment revoked }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
@@ -2974,4 +3027,44 @@ components:
       required: [data, meta]
       properties:
         data: { $ref: '#/components/schemas/AdminNotificationPage' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    AdminUser:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+    AdminOrganization:
+      type: object
+      required: [id, code, name]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+    CommitteeMembership:
+      type: object
+      required: [id, userId, organizationId, status]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        status: { type: string, enum: [ACTIVE, REVOKED] }
+    AdminUserListEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/AdminUser' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+    AdminOrganizationListEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/AdminOrganization' } }
+        meta: { $ref: '#/components/schemas/Meta' }
+    CommitteeMembershipEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/CommitteeMembership' }
         meta: { $ref: '#/components/schemas/Meta' }

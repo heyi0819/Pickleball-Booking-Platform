@@ -65,7 +65,7 @@ class RefundLedgerTest {
 
     private static RefundLedger pending(UUID refundId, String amount) {
         return new RefundLedger(
-                refundId, UUID.randomUUID(), UUID.randomUUID(), new BigDecimal(amount), "student withdrawal",
+                refundId, UUID.randomUUID(), UUID.randomUUID(), new BigDecimal(amount), "student withdrawal", UUID.randomUUID(),
                 "PENDING_APPROVAL", null, null, null, null, null, null, null, null);
     }
 

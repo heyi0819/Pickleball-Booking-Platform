@@ -46,6 +46,7 @@ class Slice6FinanceHttpEndToEndIT {
     void financeCommandsEnforceJwtRoleScopeAndRefundLifecycleThroughRealHttpAndPostgres() throws Exception {
         Fixture fixture = seedFixture();
         String committee = token(fixture.committeeId());
+        String reviewer = token(fixture.reviewerId());
         String student = token(fixture.payerId());
         String foreignCommittee = token(fixture.foreignCommitteeId());
         String platformAdmin = token(fixture.platformAdminId());
@@ -93,10 +94,10 @@ class Slice6FinanceHttpEndToEndIT {
 
         JsonNode approved = expectData(request(
                 "POST", "/api/v1/refunds/" + refundId + "/review",
-                committee, "s6-refund-review-" + UUID.randomUUID(),
+                reviewer, "s6-refund-review-" + UUID.randomUUID(),
                 "{\"decision\":\"APPROVE\",\"reason\":\"Approved in closure acceptance\"}", 200));
         assertThat(approved.get("status").asText()).isEqualTo("APPROVED");
-        assertThat(approved.get("approvedBy").asText()).isEqualTo(fixture.committeeId().toString());
+        assertThat(approved.get("approvedBy").asText()).isEqualTo(fixture.reviewerId().toString());
 
         String executionKey = "s6-refund-execution-" + UUID.randomUUID();
         String refundedAt = Instant.now().minusSeconds(10).toString();
@@ -146,6 +147,7 @@ class Slice6FinanceHttpEndToEndIT {
         UUID foreignOrganizationId = UUID.randomUUID();
         UUID payerId = UUID.randomUUID();
         UUID committeeId = UUID.randomUUID();
+        UUID reviewerId = UUID.randomUUID();
         UUID foreignCommitteeId = UUID.randomUUID();
         UUID platformAdminId = UUID.randomUUID();
 
@@ -155,10 +157,12 @@ class Slice6FinanceHttpEndToEndIT {
                 foreignOrganizationId, "s6-foreign-" + compact(foreignOrganizationId), "Slice 6 Foreign Org");
         jdbc.update("insert into users(id, display_name) values (?, 'Slice 6 payer')", payerId);
         jdbc.update("insert into users(id, display_name) values (?, 'Slice 6 committee')", committeeId);
+        jdbc.update("insert into users(id, display_name) values (?, 'Slice 6 reviewer')", reviewerId);
         jdbc.update("insert into users(id, display_name) values (?, 'Slice 6 foreign committee')", foreignCommitteeId);
         jdbc.update("insert into users(id, display_name) values (?, 'Slice 6 platform admin')", platformAdminId);
         role(organizationId, payerId, "STUDENT", committeeId);
         role(organizationId, committeeId, "COMMITTEE", committeeId);
+        role(organizationId, reviewerId, "COMMITTEE", committeeId);
         role(foreignOrganizationId, foreignCommitteeId, "COMMITTEE", foreignCommitteeId);
         role(null, platformAdminId, "PLATFORM_ADMIN", platformAdminId);
 
@@ -168,6 +172,7 @@ class Slice6FinanceHttpEndToEndIT {
                 organizationId,
                 payerId,
                 committeeId,
+                reviewerId,
                 foreignCommitteeId,
                 platformAdminId,
                 receivableId,
@@ -287,6 +292,7 @@ class Slice6FinanceHttpEndToEndIT {
             UUID organizationId,
             UUID payerId,
             UUID committeeId,
+            UUID reviewerId,
             UUID foreignCommitteeId,
             UUID platformAdminId,
             UUID receivableId,

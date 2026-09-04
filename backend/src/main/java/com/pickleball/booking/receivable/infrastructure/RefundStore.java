@@ -79,7 +79,7 @@ public class RefundStore {
 
     public Optional<RefundLedger> findRefundLocked(UUID refundId) {
         List<RefundLedger> rows = jdbc.query("""
-                select id, organization_id, payment_id, amount, reason, status,
+                select id, organization_id, payment_id, amount, reason, requested_by, status,
                        approved_by, approved_at, approval_note,
                        processed_by, refunded_at, refund_method, reference_no, failure_reason
                 from refunds where id = ? for update
@@ -89,6 +89,7 @@ public class RefundStore {
                 rs.getObject("payment_id", UUID.class),
                 rs.getBigDecimal("amount"),
                 rs.getString("reason"),
+                rs.getObject("requested_by", UUID.class),
                 rs.getString("status"),
                 rs.getObject("approved_by", UUID.class),
                 instant(rs.getTimestamp("approved_at")),
@@ -103,7 +104,7 @@ public class RefundStore {
 
     public Optional<RefundLedger> findRefund(UUID refundId) {
         List<RefundLedger> rows = jdbc.query("""
-                select id, organization_id, payment_id, amount, reason, status,
+                select id, organization_id, payment_id, amount, reason, requested_by, status,
                        approved_by, approved_at, approval_note,
                        processed_by, refunded_at, refund_method, reference_no, failure_reason
                 from refunds where id = ?
@@ -111,7 +112,7 @@ public class RefundStore {
                 rs.getObject("id", UUID.class),
                 rs.getObject("organization_id", UUID.class),
                 rs.getObject("payment_id", UUID.class),
-                rs.getBigDecimal("amount"), rs.getString("reason"), rs.getString("status"),
+                rs.getBigDecimal("amount"), rs.getString("reason"), rs.getObject("requested_by", UUID.class), rs.getString("status"),
                 rs.getObject("approved_by", UUID.class), instant(rs.getTimestamp("approved_at")),
                 rs.getString("approval_note"), rs.getObject("processed_by", UUID.class),
                 instant(rs.getTimestamp("refunded_at")), paymentMethod(rs.getString("refund_method")),
