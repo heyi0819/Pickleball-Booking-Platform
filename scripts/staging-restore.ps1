@@ -54,7 +54,8 @@ try {
 
     $criticalTables = @('users', 'organizations', 'user_role_assignments', 'coach_availability_proposals', 'lesson_requests', 'course_offerings', 'course_sessions', 'course_offering_registrations', 'receivables', 'payments', 'refunds', 'audit_logs', 'outbox_events')
     $tableValues = ($criticalTables | ForEach-Object { "('$($_)')" }) -join ','
-    $missing = (& psql -X -At -v ON_ERROR_STOP=1 -c "with expected(table_name) as (values $tableValues) select expected.table_name from expected left join information_schema.tables actual on actual.table_schema = 'public' and actual.table_name = expected.table_name where actual.table_name is null order by expected.table_name;").Trim()
+    $missingRows = @(& psql -X -At -v ON_ERROR_STOP=1 -c "with expected(table_name) as (values $tableValues) select expected.table_name from expected left join information_schema.tables actual on actual.table_schema = 'public' and actual.table_name = expected.table_name where actual.table_name is null order by expected.table_name;")
+    $missing = [string]::Join([Environment]::NewLine, $missingRows).Trim()
     if ($LASTEXITCODE -ne 0 -or $missing) { throw "Critical table validation failed: $missing" }
 
     $shapeCount = (& psql -X -At -v ON_ERROR_STOP=1 -c "select count(*) from information_schema.columns where table_schema = 'public' and ((table_name = 'users' and column_name = 'id' and data_type = 'uuid') or (table_name = 'course_sessions' and column_name = 'scheduled_start_at' and data_type = 'timestamp with time zone') or (table_name = 'receivables' and column_name = 'total_amount' and data_type = 'numeric'));").Trim()
