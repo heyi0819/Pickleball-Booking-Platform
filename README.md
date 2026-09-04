@@ -1,6 +1,6 @@
 # Pickleball Booking Platform
 
-The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). **Slices 0–9**, Repository Governance, and **S10.1–S10.5** are sealed. The current non-production staging operational runbook is [S10.5 Operational / Release Closure](./docs/reference/s10.5-operational-release-closure.md); it records the canonical Render, Cloudflare Pages, Neon, LINE/LIFF, UptimeRobot, deployment, recovery, backup, and smoke boundaries without recording secrets.
+The approved product and engineering baseline is recorded in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md). **Slices 0–9**, Repository Governance, **S10.1–S10.5**, and **S11.1** are sealed. S11.1 records the active zero-cost pilot runtime (Cloudflare Pages Free → Render Free → Neon Free) and a separately deferred future paid GCP Terraform upgrade path; its authoritative main commit is `799dff5bdaaef5098a1b5a784b05243709b11cb0` with post-merge CI run `33830846230` successful. The current non-production staging operational runbook is [S10.5 Operational / Release Closure](./docs/reference/s10.5-operational-release-closure.md); it records the canonical Render, Cloudflare Pages, Neon, LINE/LIFF, UptimeRobot, deployment, recovery, backup, and smoke boundaries without recording secrets.
 
 ## Prerequisites
 
