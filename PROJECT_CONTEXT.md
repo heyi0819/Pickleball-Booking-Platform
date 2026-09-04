@@ -4,11 +4,11 @@
 
 > Last synchronized project status: 2026-09-04
 >
-> Current phase: **S11.1 — Runtime Architecture & Production Infrastructure Foundation**
+> Current phase: **S11.2 — Zero-Cost Pilot Identity / Runtime Readiness**
 >
-> Current gate: **Slices 0–9, Repository Governance, S10.1–S10.5, S11.1A, and S11.1B are SEALED. S11.1 closure is PASS at authoritative main commit `799dff5bdaaef5098a1b5a784b05243709b11cb0`; post-merge main CI Run `33830846230` is GREEN. The active runtime is Cloudflare Pages Free → Render Free → Neon Free; the GCP Cloud Run / Cloud SQL Terraform foundation is a future paid upgrade path only, and S11.1C is DEFERRED.**
+> Current gate: **S11.1 is SEALED / closure record merged at authoritative main commit `a7bf35c8943bf4d714f11c3c1f1d4fd6a5988f96`; post-merge main CI Run `33834629055` is GREEN. S11.2 has repository and public-endpoint readiness evidence, but remains IN PROGRESS / NOT READY TO SEAL until the documented maintainer dashboard, real LINE authentication, database-role/quota, and cold-start acceptance checks are complete. Backup procedure readiness is recorded; full restore proof is deferred to S11.4. Frontend monitoring coverage is a P1 improvement, not a P0 seal blocker. The active runtime remains Cloudflare Pages Free → Render Free → Neon Free; S11.1C is DEFERRED.**
 >
-> Next task: **S11.2 Zero-Cost Pilot Identity / Runtime Readiness is UNBLOCKED / NOT STARTED. Do not provision GCP, upgrade any provider plan, purchase a domain, create production LINE resources, or begin S11.2 implementation without its separate authorization.**
+> Next task: **Complete the documented S11.2 maintainer manual evidence gate. Do not start S11.3, provision GCP, upgrade any provider plan, purchase a domain, add paid monitoring, create production LINE resources, or modify pilot runtime configuration without separate authorization.**
 >
 > Codex model / reasoning policy is canonical in repository-root `AGENTS.md`: routine approved implementation defaults to **GPT-5.6 Terra / Low**; Codex must explicitly warn the maintainer before tasks that materially benefit from higher reasoning; major project planning and architecture decisions return to ChatGPT using **GPT-5.6 with the highest available reasoning effort**. Quality and verification take priority over execution speed.
 >
