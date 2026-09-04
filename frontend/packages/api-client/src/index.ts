@@ -10,6 +10,7 @@ import {
   type AdminFinanceRefundPage,
   type ListAdminRefundsRequest,
   AdminOperationsApi,
+  AdminRoleDelegationApi,
   AuthenticationApi,
   CoachApplicationsApi,
   CoachAvailabilityApi,
@@ -24,6 +25,9 @@ import {
   LessonRequestsApi,
   ResponseError,
   type AdminNotification,
+  type AdminOrganization,
+  type AdminUser,
+  type CommitteeMembership,
   type AdminNotificationPage,
   type AdminOutboxEvent,
   type AdminOutboxEventPage,
@@ -97,6 +101,9 @@ export type {
   AdminFinanceRefundPage,
   ListAdminRefundsRequest,
   AdminNotification,
+  AdminOrganization,
+  AdminUser,
+  CommitteeMembership,
   AdminNotificationPage,
   AdminOutboxEvent,
   AdminOutboxEventPage,
@@ -217,6 +224,7 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
   const courseOperations = (token: string) => new CourseOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const finance = (token: string) => new FinanceApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const adminOperations = (token: string) => new AdminOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
+  const roleDelegation = (token: string) => new AdminRoleDelegationApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
     async exchangeAdminLineAuthorizationCode(authorizationCode: string, codeVerifier: string, nonce: string): Promise<LoginData> {
       try { return (await anonymous.exchangeAdminLineAuthorizationCode({ adminLineExchangeRequest: { authorizationCode, codeVerifier, nonce } })).data; }
@@ -309,5 +317,9 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
     async retryAdminOutboxEvent(token: string, eventId: string, idempotencyKey: string, reason: string): Promise<AdminOutboxEvent> { try { return (await adminOperations(token).retryAdminOutboxEvent({ eventId, idempotencyKey, adminRecoveryRequest: { reason } })).data; } catch (caught) { return mapError(caught); } },
     async listAdminNotifications(token: string, query: AdminOperationsQuery): Promise<AdminNotificationPage> { try { return (await adminOperations(token).listAdminNotifications({ ...query, status: query.status as "PENDING" | "SENDING" | "SENT" | "FAILED" | "DEAD" | undefined })).data; } catch (caught) { return mapError(caught); } },
     async retryAdminNotification(token: string, notificationId: string, idempotencyKey: string, reason: string): Promise<AdminNotification> { try { return (await adminOperations(token).retryAdminNotification({ notificationId, idempotencyKey, adminRecoveryRequest: { reason } })).data; } catch (caught) { return mapError(caught); } },
+    async listAdminOrganizations(token: string): Promise<AdminOrganization[]> { try { return (await roleDelegation(token).listAdminOrganizations()).data; } catch (caught) { return mapError(caught); } },
+    async searchAdminUsers(token: string, query: string): Promise<AdminUser[]> { try { return (await roleDelegation(token).searchAdminUsers({ query })).data; } catch (caught) { return mapError(caught); } },
+    async grantCommitteeMember(token: string, organizationId: string, userId: string): Promise<CommitteeMembership> { try { return (await roleDelegation(token).grantCommitteeMember({ organizationId, userId })).data; } catch (caught) { return mapError(caught); } },
+    async revokeCommitteeMember(token: string, organizationId: string, userId: string): Promise<void> { try { await roleDelegation(token).revokeCommitteeMember({ organizationId, userId }); } catch (caught) { return mapError(caught); } },
   };
 }

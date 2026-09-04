@@ -12,6 +12,7 @@ public final class RefundLedger {
     private final UUID paymentId;
     private final BigDecimal amount;
     private final String reason;
+    private final UUID requestedBy;
     private String status;
     private UUID approvedBy;
     private Instant approvedAt;
@@ -28,6 +29,7 @@ public final class RefundLedger {
             UUID paymentId,
             BigDecimal amount,
             String reason,
+            UUID requestedBy,
             String status,
             UUID approvedBy,
             Instant approvedAt,
@@ -42,6 +44,7 @@ public final class RefundLedger {
         this.paymentId = paymentId;
         this.amount = requirePositiveMoney(amount);
         this.reason = requireReason(reason);
+        this.requestedBy = requestedBy;
         this.status = status;
         this.approvedBy = approvedBy;
         this.approvedAt = approvedAt;
@@ -134,6 +137,7 @@ public final class RefundLedger {
     public UUID paymentId() { return paymentId; }
     public BigDecimal amount() { return amount; }
     public String reason() { return reason; }
+    public UUID requestedBy() { return requestedBy; }
     public String status() { return status; }
     public UUID approvedBy() { return approvedBy; }
     public Instant approvedAt() { return approvedAt; }

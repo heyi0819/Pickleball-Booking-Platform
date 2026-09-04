@@ -3,6 +3,7 @@ import { setupServer } from "msw/node";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { App } from "./App";
+import { RoleDelegationPanel } from "./RoleDelegationPanel";
 
 const readiness = (ready: boolean) => ({ lessonRequestApproved: true, coachesAccepted: true, sessionsFuture: true, scheduleConflictFree: true, venueReady: true, pricingConfirmed: ready, participantCountValid: true, readyToConfirm: ready });
 const server = setupServer(
@@ -16,6 +17,7 @@ const server = setupServer(
   http.get("/api/v1/coach-cancellation-requests", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
   http.get("/api/v1/admin/outbox-events", () => HttpResponse.json({ data: { items: [], page: 0, size: 50, totalElements: 0 }, meta: { requestId: "test" } })),
   http.get("/api/v1/admin/notifications", () => HttpResponse.json({ data: { items: [], page: 0, size: 50, totalElements: 0 }, meta: { requestId: "test" } }))
+  ,http.get("/api/v1/admin/organizations", () => HttpResponse.json({ data: [], meta: { requestId: "test" } }))
   ,http.get("/api/v1/admin/receivables", () => HttpResponse.json({ data: { items: [], page: 0, size: 20, totalElements: 0 }, meta: { requestId: "test" } }))
   ,http.get("/api/v1/admin/payments", () => HttpResponse.json({ data: { items: [], page: 0, size: 20, totalElements: 0 }, meta: { requestId: "test" } }))
   ,http.get("/api/v1/admin/refunds", () => HttpResponse.json({ data: { items: [], page: 0, size: 20, totalElements: 0 }, meta: { requestId: "test" } }))
@@ -77,9 +79,34 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "pa", displayName: "Platform Admin", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] }, meta: { requestId: "test" } })));
     render(<App />);
-    await screen.findByText("組織範圍");
+    await screen.findByLabelText("目前組織範圍");
     expect(screen.getByRole("button", { name: "重新整理營運待辦" }).hasAttribute("disabled")).toBe(true);
-    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
+  });
+
+  it("loads a platform administrator's active organizations and blocks scoped work until one is selected", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "pa", displayName: "Platform Admin", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "PLATFORM_ADMIN", organizationId: null, organizationCode: null, organizationName: null }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/admin/organizations", () => HttpResponse.json({ data: [{ id: "org-a", code: "A", name: "Organization A" }], meta: { requestId: "test" } }))
+    );
+    render(<App />);
+    expect((await screen.findAllByRole("option", { name: "Organization A" })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("請先在營運總覽選擇組織範圍。")).length).toBeGreaterThan(0);
+  });
+
+  it("delegates committee through the generated API for the selected global organization", async () => {
+    let granted = false;
+    server.use(
+      http.get("/api/v1/admin/users", ({ request }) => { expect(new URL(request.url).searchParams.get("query")).toBe("Lin"); return HttpResponse.json({ data: [{ id: "user-a", displayName: "Lin" }], meta: { requestId: "test" } }); }),
+      http.post("/api/v1/admin/organizations/org-a/committee-members/user-a", () => { granted = true; return HttpResponse.json({ data: { id: "role-a", userId: "user-a", organizationId: "org-a", status: "ACTIVE" }, meta: { requestId: "test" } }, { status: 201 }); })
+    );
+    render(<RoleDelegationPanel token="token" organizationId="org-a" />);
+    fireEvent.change(screen.getByLabelText("使用者名稱"), { target: { value: "Lin" } });
+    fireEvent.click(screen.getByRole("button", { name: "搜尋使用者" }));
+    fireEvent.click(await screen.findByRole("button", { name: "授與委員會" }));
+    await waitFor(() => expect(granted).toBe(true));
+    expect(await screen.findByText("已授與組織委員會角色，並已留下稽核紀錄。")).toBeTruthy();
   });
 
   it("previews and confirms pricing before secondary course formation confirmation", async () => {

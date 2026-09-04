@@ -66,6 +66,10 @@ All URIs are relative to */api/v1*
 *AdminOperationsApi* | [**listAdminOutboxEvents**](docs/AdminOperationsApi.md#listadminoutboxevents) | **GET** /admin/outbox-events |
 *AdminOperationsApi* | [**retryAdminNotification**](docs/AdminOperationsApi.md#retryadminnotification) | **POST** /admin/notifications/{notificationId}/retry |
 *AdminOperationsApi* | [**retryAdminOutboxEvent**](docs/AdminOperationsApi.md#retryadminoutboxevent) | **POST** /admin/outbox-events/{eventId}/retry |
+*AdminRoleDelegationApi* | [**grantCommitteeMember**](docs/AdminRoleDelegationApi.md#grantcommitteemember) | **POST** /admin/organizations/{organizationId}/committee-members/{userId} | Grant an organization-scoped COMMITTEE role
+*AdminRoleDelegationApi* | [**listAdminOrganizations**](docs/AdminRoleDelegationApi.md#listadminorganizations) | **GET** /admin/organizations | List active organizations for global administration
+*AdminRoleDelegationApi* | [**revokeCommitteeMember**](docs/AdminRoleDelegationApi.md#revokecommitteemember) | **DELETE** /admin/organizations/{organizationId}/committee-members/{userId} | Revoke an organization-scoped COMMITTEE role
+*AdminRoleDelegationApi* | [**searchAdminUsers**](docs/AdminRoleDelegationApi.md#searchadminusers) | **GET** /admin/users | Search active users for committee delegation
 *AuthenticationApi* | [**exchangeAdminLineAuthorizationCode**](docs/AuthenticationApi.md#exchangeadminlineauthorizationcode) | **POST** /auth/line/admin/exchange |
 *AuthenticationApi* | [**loginWithLine**](docs/AuthenticationApi.md#loginwithline) | **POST** /auth/line/login |
 *CoachApplicationsApi* | [**createCoachApplication**](docs/CoachApplicationsApi.md#createcoachapplication) | **POST** /coach-applications |
@@ -157,11 +161,15 @@ All URIs are relative to */api/v1*
 - [AdminNotificationEnvelope](docs/AdminNotificationEnvelope.md)
 - [AdminNotificationPage](docs/AdminNotificationPage.md)
 - [AdminNotificationPageEnvelope](docs/AdminNotificationPageEnvelope.md)
+- [AdminOrganization](docs/AdminOrganization.md)
+- [AdminOrganizationListEnvelope](docs/AdminOrganizationListEnvelope.md)
 - [AdminOutboxEvent](docs/AdminOutboxEvent.md)
 - [AdminOutboxEventEnvelope](docs/AdminOutboxEventEnvelope.md)
 - [AdminOutboxEventPage](docs/AdminOutboxEventPage.md)
 - [AdminOutboxEventPageEnvelope](docs/AdminOutboxEventPageEnvelope.md)
 - [AdminRecoveryRequest](docs/AdminRecoveryRequest.md)
+- [AdminUser](docs/AdminUser.md)
+- [AdminUserListEnvelope](docs/AdminUserListEnvelope.md)
 - [AvailabilityProposal](docs/AvailabilityProposal.md)
 - [AvailabilityProposalEnvelope](docs/AvailabilityProposalEnvelope.md)
 - [AvailabilityProposalListEnvelope](docs/AvailabilityProposalListEnvelope.md)
@@ -182,6 +190,8 @@ All URIs are relative to */api/v1*
 - [CoachSettlementSelfItem](docs/CoachSettlementSelfItem.md)
 - [CoachSettlementSelfList](docs/CoachSettlementSelfList.md)
 - [CoachSettlementSelfListEnvelope](docs/CoachSettlementSelfListEnvelope.md)
+- [CommitteeMembership](docs/CommitteeMembership.md)
+- [CommitteeMembershipEnvelope](docs/CommitteeMembershipEnvelope.md)
 - [CourseDetail](docs/CourseDetail.md)
 - [CourseDetailEnvelope](docs/CourseDetailEnvelope.md)
 - [CourseMatch](docs/CourseMatch.md)

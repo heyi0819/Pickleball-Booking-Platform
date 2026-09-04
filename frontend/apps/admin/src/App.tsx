@@ -2,6 +2,7 @@ import {
   ApiClientError,
   createApiClient,
   type AvailabilityProposal,
+  type AdminOrganization,
   type CoachApplication,
   type CourseMatch,
   type CourseMatchPricingPreview,
@@ -19,20 +20,25 @@ import { PageShell } from "@pickleball/ui";
 import { useEffect, useState } from "react";
 import { CourseOperationsWorkQueue } from "./CourseOperationsWorkQueue";
 import { AdminOperationsPanel } from "./AdminOperationsPanel";
+import { RoleDelegationPanel } from "./RoleDelegationPanel";
 
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
 
 export function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [state, setState] = useState<"loading" | "allowed" | "forbidden">("loading");
+  const [platformOrganizations, setPlatformOrganizations] = useState<AdminOrganization[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
   useEffect(() => { const token = sessionStorage.getItem("platform.access-token"); if (!token) { setState("forbidden"); return; } void api.me(token).then((current) => { setMe(current); setState(current.roles.some((role) => role.roleCode === "COMMITTEE" || role.roleCode === "PLATFORM_ADMIN") ? "allowed" : "forbidden"); }).catch(() => { sessionStorage.removeItem("platform.access-token"); setState("forbidden"); }); }, []);
   const committeeRole = me?.roles.find((role) => role.roleCode === "COMMITTEE" && role.organizationId);
-  const organizationOptions = [...new Map((me?.roles ?? []).filter((role) => role.organizationId)
-    .map((role) => [role.organizationId!, { id: role.organizationId!, name: role.organizationName ?? role.organizationCode ?? role.organizationId! }])).values()];
   const token = sessionStorage.getItem("platform.access-token") ?? "";
   const platformAdmin = me?.roles.some((role) => role.roleCode === "PLATFORM_ADMIN") ?? false;
+  useEffect(() => { if (state !== "allowed" || !platformAdmin) return; void api.listAdminOrganizations(token).then(setPlatformOrganizations).catch(() => setPlatformOrganizations([])); }, [state, platformAdmin, token]);
+  const organizationOptions = platformAdmin ? platformOrganizations.map((organization) => ({ id: organization.id, name: organization.name })) : [...new Map((me?.roles ?? []).filter((role) => role.organizationId).map((role) => [role.organizationId!, { id: role.organizationId!, name: role.organizationName ?? role.organizationCode ?? role.organizationId! }])).values()];
+  const activeOrganizationId = platformAdmin ? selectedOrganizationId : committeeRole?.organizationId;
   useEffect(() => localizeAdminPresentation(), []);
-  return <PageShell><div className="admin-shell">{state === "forbidden" ? <AdminLogin exchange={api.exchangeAdminLineAuthorizationCode} onAuthenticated={() => location.assign("/")} /> : <><header className="admin-shell__header"><div><p className="admin-shell__eyebrow">{platformName}</p><h1>管理後台</h1>{committeeRole?.organizationName && <p>組織範圍：{committeeRole.organizationName}</p>}</div>{me && <p className="admin-shell__identity">{me.displayName} · {platformAdmin ? roleLabel("PLATFORM_ADMIN") : roleLabel("COMMITTEE")}</p>}<button onClick={() => { ["platform.access-token", "admin.line.state", "admin.line.verifier", "admin.line.nonce"].forEach((key) => sessionStorage.removeItem(key)); location.assign("/"); }}>登出</button></header><nav className="admin-shell__nav" aria-label="管理後台導覽"><a href="#overview">總覽</a><a href="#operations">營運待辦</a><a href="#reviews">審核與課程</a></nav><div className="admin-shell__content" id="app-content" tabIndex={-1}>{state === "loading" && <p aria-live="polite">正在確認存取權限…</p>}{state === "allowed" && <><section id="overview" className="admin-shell__summary"><h2>營運總覽</h2><p>已登入為 {me?.displayName}。請由下方工作區處理待辦事項；高風險動作均需再次確認。</p></section><div id="operations"><AdminOperationsPanel token={token} organizationId={committeeRole?.organizationId ?? undefined} platformAdmin={platformAdmin} organizationOptions={organizationOptions} /></div>{committeeRole?.organizationId ? <div id="reviews"><CommitteeReview token={token} organizationId={committeeRole.organizationId} /></div> : <p>需要具組織範圍的委員會角色，才能處理該組織的審核與課程工作。</p>}</>}</div></>}</div></PageShell>;
+  const selectOrganization = (organizationId: string) => setSelectedOrganizationId(organizationId);
+  return <PageShell><div className="admin-shell">{state === "forbidden" ? <AdminLogin exchange={api.exchangeAdminLineAuthorizationCode} onAuthenticated={() => location.assign("/")} /> : <><header className="admin-shell__header"><div><p className="admin-shell__eyebrow">{platformName}</p><h1>管理後台</h1>{committeeRole?.organizationName && !platformAdmin && <p>組織範圍：{committeeRole.organizationName}</p>}</div>{me && <p className="admin-shell__identity">{me.displayName} · {platformAdmin ? roleLabel("PLATFORM_ADMIN") : roleLabel("COMMITTEE")}</p>}<button onClick={() => { ["platform.access-token", "admin.line.state", "admin.line.verifier", "admin.line.nonce"].forEach((key) => sessionStorage.removeItem(key)); location.assign("/"); }}>登出</button></header><nav className="admin-shell__nav" aria-label="管理後台導覽"><a href="#overview">總覽</a><a href="#operations">營運待辦</a><a href="#reviews">審核與課程</a>{platformAdmin && <a href="#delegation">角色委派</a>}</nav><div className="admin-shell__content" id="app-content" tabIndex={-1}>{state === "loading" && <p aria-live="polite">正在確認存取權限…</p>}{state === "allowed" && <><section id="overview" className="admin-shell__summary"><h2>營運總覽</h2><p>已登入為 {me?.displayName}。請由下方工作區處理待辦事項；高風險動作均需再次確認。</p>{platformAdmin && <label>目前組織範圍 <select value={selectedOrganizationId} onChange={(event) => selectOrganization(event.target.value)} onInput={(event) => selectOrganization(event.currentTarget.value)}><option value="">選擇組織</option>{organizationOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>}</section>{platformAdmin && <div id="delegation"><RoleDelegationPanel token={token} organizationId={selectedOrganizationId} /></div>}<div id="operations"><AdminOperationsPanel token={token} organizationId={activeOrganizationId || undefined} platformAdmin={platformAdmin} organizationOptions={organizationOptions} /></div>{activeOrganizationId ? <div id="reviews"><CommitteeReview token={token} organizationId={activeOrganizationId} /></div> : <p>請先選擇組織範圍，才能處理審核與課程工作。</p>}</>}</div></>}</div></PageShell>;
 }
 
 function localizeAdminPresentation() {

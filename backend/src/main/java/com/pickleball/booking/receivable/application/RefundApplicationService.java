@@ -104,6 +104,9 @@ public class RefundApplicationService {
         RefundLedger refund = store.findRefundLocked(refundId)
                 .orElseThrow(() -> new BusinessException("REFUND_NOT_FOUND", "Refund was not found"));
         requireFinancePermission(actor, refund.organizationId());
+        if (actor.userId().equals(refund.requestedBy())) {
+            throw new BusinessException("REVIEWER_SELF_APPROVAL_FORBIDDEN", "A reviewer cannot approve their own refund request");
+        }
 
         String reviewReason = normalize(command.reason());
         String requestIdentity = String.join("|",

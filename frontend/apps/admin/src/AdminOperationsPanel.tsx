@@ -69,7 +69,7 @@ export function AdminOperationsPanel({ token, organizationId, platformAdmin, org
   return <section aria-label="Admin operations recovery">
     <h2>營運待辦與失敗復原</h2>
     <p>僅處理營運待辦；失敗或無法處理的項目需填寫稽核原因才能復原。</p>
-    {platformAdmin ? <label>組織範圍 <select value={scope} onChange={(event) => setScope(event.target.value)}><option value="">選擇可用的組織</option>{organizationOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+    {platformAdmin ? <>{organizationId ? <p>目前組織範圍已由營運總覽選定。</p> : <p role="alert">請先在營運總覽選擇組織範圍。</p>}</>
       : <p>組織範圍：<code>{scope}</code></p>}
     {platformAdmin && !organizationOptions.length && <p role="alert">目前帳號沒有可用的組織範圍，無法載入營運資料。</p>}
     <label htmlFor="admin-recovery-state">處理狀態</label>

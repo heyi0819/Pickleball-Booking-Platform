@@ -2,6 +2,7 @@
 /* eslint-disable */
 export * from './AdminFinanceApi';
 export * from './AdminOperationsApi';
+export * from './AdminRoleDelegationApi';
 export * from './AuthenticationApi';
 export * from './CoachApplicationsApi';
 export * from './CoachAvailabilityApi';

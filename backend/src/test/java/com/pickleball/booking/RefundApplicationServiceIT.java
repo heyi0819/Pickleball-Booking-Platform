@@ -45,6 +45,7 @@ class RefundApplicationServiceIT {
     void refundRequiresApprovalAndPartialExecutionUpdatesLedgerWithoutOverwritingPaymentAmount() {
         Fixture fixture = seedPaidFixture();
         AuthenticatedPrincipal actor = new AuthenticatedPrincipal(fixture.committeeUserId());
+        AuthenticatedPrincipal reviewer = new AuthenticatedPrincipal(fixture.reviewerUserId());
 
         var requested = refundService.requestRefund(
                 actor,
@@ -64,14 +65,14 @@ class RefundApplicationServiceIT {
                 "refund-exec-before-approve"), "REFUND_NOT_APPROVED");
 
         var approved = refundService.reviewRefund(
-                actor,
+                reviewer,
                 requested.refundId(),
                 new RefundApplicationService.ReviewRefundCommand(
                         RefundApplicationService.ReviewDecision.APPROVE, "approved by committee"),
                 "refund-review-" + compact(requested.refundId()),
                 "refund-review-1");
         assertThat(approved.status()).isEqualTo("APPROVED");
-        assertThat(approved.approvedBy()).isEqualTo(fixture.committeeUserId());
+        assertThat(approved.approvedBy()).isEqualTo(fixture.reviewerUserId());
         assertThat(approved.approvedAt()).isNotNull();
 
         var completed = refundService.executeRefund(
@@ -115,6 +116,7 @@ class RefundApplicationServiceIT {
     void refundRequestAndExecutionAreIdempotent() {
         Fixture fixture = seedPaidFixture();
         AuthenticatedPrincipal actor = new AuthenticatedPrincipal(fixture.committeeUserId());
+        AuthenticatedPrincipal reviewer = new AuthenticatedPrincipal(fixture.reviewerUserId());
         var requestCommand = new RefundApplicationService.RequestRefundCommand(
                 fixture.paymentId(), new BigDecimal("500.00"), "idempotent refund");
         String requestKey = "refund-idem-request-" + compact(fixture.receivableId());
@@ -129,7 +131,7 @@ class RefundApplicationServiceIT {
                 .isEqualTo(1);
 
         refundService.reviewRefund(
-                actor,
+                reviewer,
                 first.refundId(),
                 new RefundApplicationService.ReviewRefundCommand(
                         RefundApplicationService.ReviewDecision.APPROVE, "approved"),
@@ -155,9 +157,31 @@ class RefundApplicationServiceIT {
     }
 
     @Test
+    void requesterCannotReviewTheirOwnRefund() {
+        Fixture fixture = seedPaidFixture();
+        AuthenticatedPrincipal requester = new AuthenticatedPrincipal(fixture.committeeUserId());
+        var requested = refundService.requestRefund(
+                requester,
+                fixture.receivableId(),
+                new RefundApplicationService.RequestRefundCommand(
+                        fixture.paymentId(), new BigDecimal("100.00"), "separation of duties"),
+                "refund-self-review-request-" + compact(fixture.receivableId()),
+                "refund-self-review-request");
+
+        assertBusinessCode(() -> refundService.reviewRefund(
+                requester,
+                requested.refundId(),
+                new RefundApplicationService.ReviewRefundCommand(
+                        RefundApplicationService.ReviewDecision.APPROVE, "not permitted"),
+                "refund-self-review-" + compact(requested.refundId()),
+                "refund-self-review"), "REVIEWER_SELF_APPROVAL_FORBIDDEN");
+    }
+
+    @Test
     void pendingAndApprovedRefundsReserveCapacityAndRejectedRefundReleasesIt() {
         Fixture fixture = seedPaidFixture();
         AuthenticatedPrincipal actor = new AuthenticatedPrincipal(fixture.committeeUserId());
+        AuthenticatedPrincipal reviewer = new AuthenticatedPrincipal(fixture.reviewerUserId());
 
         var first = refundService.requestRefund(
                 actor,
@@ -176,7 +200,7 @@ class RefundApplicationServiceIT {
                 "refund-cap-over"), "REFUND_EXCEEDS_REFUNDABLE");
 
         refundService.reviewRefund(
-                actor,
+                reviewer,
                 first.refundId(),
                 new RefundApplicationService.ReviewRefundCommand(
                         RefundApplicationService.ReviewDecision.REJECT, "policy rejected"),
@@ -197,6 +221,7 @@ class RefundApplicationServiceIT {
     void fullRefundMarksPaymentAndReceivableRefunded() {
         Fixture fixture = seedPaidFixture();
         AuthenticatedPrincipal actor = new AuthenticatedPrincipal(fixture.committeeUserId());
+        AuthenticatedPrincipal reviewer = new AuthenticatedPrincipal(fixture.reviewerUserId());
         var requested = refundService.requestRefund(
                 actor,
                 fixture.receivableId(),
@@ -205,7 +230,7 @@ class RefundApplicationServiceIT {
                 "refund-full-request-" + compact(fixture.receivableId()),
                 "refund-full-request");
         refundService.reviewRefund(
-                actor,
+                reviewer,
                 requested.refundId(),
                 new RefundApplicationService.ReviewRefundCommand(
                         RefundApplicationService.ReviewDecision.APPROVE, "approved"),
@@ -237,6 +262,7 @@ class RefundApplicationServiceIT {
         UUID organizationId = UUID.randomUUID();
         UUID payerUserId = UUID.randomUUID();
         UUID committeeUserId = UUID.randomUUID();
+        UUID reviewerUserId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
         UUID courseSessionId = UUID.randomUUID();
         UUID membershipId = UUID.randomUUID();
@@ -249,11 +275,17 @@ class RefundApplicationServiceIT {
                 organizationId, "s6rf-" + compact(organizationId), "Slice 6 refund test");
         jdbc.update("insert into users(id, display_name) values (?, 'slice6 refund payer')", payerUserId);
         jdbc.update("insert into users(id, display_name) values (?, 'slice6 refund committee')", committeeUserId);
+        jdbc.update("insert into users(id, display_name) values (?, 'slice6 refund reviewer')", reviewerUserId);
         jdbc.update("""
                 insert into user_role_assignments(
                     id, organization_id, user_id, role_code, status, granted_by, granted_at)
                 values (?, ?, ?, 'COMMITTEE', 'ACTIVE', ?, now())
                 """, UUID.randomUUID(), organizationId, committeeUserId, committeeUserId);
+        jdbc.update("""
+                insert into user_role_assignments(
+                    id, organization_id, user_id, role_code, status, granted_by, granted_at)
+                values (?, ?, ?, 'COMMITTEE', 'ACTIVE', ?, now())
+                """, UUID.randomUUID(), organizationId, reviewerUserId, committeeUserId);
         jdbc.update("""
                 insert into courses(
                     id, organization_id, course_no, created_by_user_id, course_type,
@@ -306,7 +338,7 @@ class RefundApplicationServiceIT {
                 "payment-before-refund-" + compact(receivableId),
                 "payment-before-refund");
         return new Fixture(
-                organizationId, payerUserId, committeeUserId,
+                organizationId, payerUserId, committeeUserId, reviewerUserId,
                 receivableId, receivableItemId, payment.paymentId());
     }
 
@@ -323,6 +355,7 @@ class RefundApplicationServiceIT {
             UUID organizationId,
             UUID payerUserId,
             UUID committeeUserId,
+            UUID reviewerUserId,
             UUID receivableId,
             UUID receivableItemId,
             UUID paymentId) {}

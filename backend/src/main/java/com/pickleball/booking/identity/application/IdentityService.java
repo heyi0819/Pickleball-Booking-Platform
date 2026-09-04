@@ -59,6 +59,14 @@ public class IdentityService {
                 .toList();
         return organizationAccess.permits(assignments, requiredRole, organizationId);
     }
+    @Transactional
+    public void requirePlatformAdministrator(AuthenticatedPrincipal principal) {
+        requireActiveUser(principal.userId());
+        boolean platformAdmin = roles.findByUserId(principal.userId()).stream()
+                .anyMatch(role -> role.getStatus() == RoleAssignmentStatus.ACTIVE
+                        && role.getRoleCode() == RoleCode.PLATFORM_ADMIN && role.getOrganization() == null);
+        if (!platformAdmin) throw new AccessForbiddenException("Global platform administrator permission is required");
+    }
     public PlatformUserEntity requireActiveUser(UUID userId) { var user = users.findById(userId).orElseThrow(() -> new AccessForbiddenException("User not found")); if (user.getStatus() != UserStatus.ACTIVE) throw new AccessForbiddenException("User is not active"); return user; }
     private MeView toMe(PlatformUserEntity user) { var profile = new UserProfile(user.getDisplayName(), user.getEmail(), user.getLocale()); return new MeView(user.getId(), user.getDisplayName(), user.getEmail(), user.getLocale(), profile.isComplete(), activeRoles(user.getId())); }
     private List<RoleView> activeRoles(UUID userId) { return roles.findByUserId(userId).stream().filter(r -> r.getStatus() == RoleAssignmentStatus.ACTIVE).filter(r -> r.getOrganization() == null || r.getOrganization().getStatus() == OrganizationStatus.ACTIVE).map(r -> new RoleView(r.getRoleCode(), r.getOrganization() == null ? null : r.getOrganization().getId(), r.getOrganization() == null ? null : r.getOrganization().getCode(), r.getOrganization() == null ? null : r.getOrganization().getName())).toList(); }
