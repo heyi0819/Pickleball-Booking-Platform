@@ -20,6 +20,14 @@ variable "backup_bucket_location" { type = string }
 variable "backup_writer_identity" { type = string }
 variable "backup_retention_days" { type = number }
 variable "region" { type = string }
+variable "database_edition" {
+  description = "Cloud SQL edition. The approved MVP production profile uses ENTERPRISE."
+  type        = string
+  validation {
+    condition     = contains(["ENTERPRISE", "ENTERPRISE_PLUS"], var.database_edition)
+    error_message = "database_edition must be ENTERPRISE or ENTERPRISE_PLUS."
+  }
+}
 variable "database_tier" { type = string }
 variable "database_disk_size_gb" { type = number }
 variable "api_min_instances" { type = number }
@@ -68,6 +76,14 @@ variable "database_pitr_enabled" {
 variable "database_retained_backups" {
   type    = number
   default = 7
+}
+variable "database_retained_transaction_log_days" {
+  description = "Cloud SQL PostgreSQL Enterprise PITR transaction-log retention, in days."
+  type        = number
+  validation {
+    condition     = var.database_retained_transaction_log_days >= 1 && var.database_retained_transaction_log_days <= 7
+    error_message = "database_retained_transaction_log_days must be between 1 and 7 days for Cloud SQL Enterprise."
+  }
 }
 variable "database_backup_start_time_utc" {
   type    = string

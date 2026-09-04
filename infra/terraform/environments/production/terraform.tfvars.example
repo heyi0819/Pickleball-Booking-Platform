@@ -2,19 +2,26 @@
 # production at staging identifiers.
 runtime_project_id = "REPLACE_WITH_PRODUCTION_RUNTIME_PROJECT_ID"
 backup_project_id  = "REPLACE_WITH_PRODUCTION_BACKUP_PROJECT_ID"
-region             = "REPLACE_WITH_APPROVED_REGION"
+region             = "asia-east1"
 
 backup_bucket_location = "REPLACE_WITH_APPROVED_BACKUP_LOCATION"
 backup_writer_identity = "REPLACE_WITH_S11_4_BACKUP_WRITER_IDENTITY"
-backup_retention_days  = 35 # proposed, subject to go-live approval
+backup_retention_days  = 35
 
-database_tier              = "REPLACE_WITH_APPROVED_CLOUD_SQL_TIER"
-database_availability_type = "ZONAL" # proposed minimum; REGIONAL requires cost approval
-database_disk_size_gb      = 10
+database_edition                       = "ENTERPRISE"
+database_tier                          = "db-custom-1-3840"
+database_availability_type             = "ZONAL"
+database_disk_size_gb                  = 20
+database_retained_backups              = 14
+database_retained_transaction_log_days = 7
 
-runtime_image_digest = "REPLACE_WITH_ARTIFACT_REGISTRY_IMAGE@sha256:REPLACE_WITH_64_HEX_DIGEST"
-api_min_instances    = 0 # proposed cost profile; set after latency/cost approval
-api_max_instances    = 3
+runtime_image_digest         = "REPLACE_WITH_ARTIFACT_REGISTRY_IMAGE@sha256:REPLACE_WITH_64_HEX_DIGEST"
+api_cpu                      = "1"
+api_memory                   = "1Gi"
+api_min_instances            = 1
+api_max_instances            = 3
+api_concurrency              = 40
+api_request_timeout_seconds = 60
 
 api_cors_allowed_origins     = "https://REPLACE_WITH_PROD_LIFF_ORIGIN,https://REPLACE_WITH_PROD_ADMIN_ORIGIN"
 line_login_channel_id        = "REPLACE_WITH_PRODUCTION_LINE_CHANNEL_ID"
