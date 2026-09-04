@@ -2,13 +2,13 @@
 
 # Pickleball Booking Platform — Codex Handoff Context
 
-> Last synchronized project status: 2026-09-01
+> Last synchronized project status: 2026-09-04
 >
-> Current phase: **Phase 10 — Slice 10 Closure Review**
+> Current phase: **S11.1 — Runtime Architecture & Production Infrastructure Foundation**
 >
-> Current gate: **Slices 0–9, Repository Governance, and S10.1–S10.5 SEALED; authoritative main merge commit `0773b074e1e8bd5fb6cbb024da44b4dedb91c249`; post-merge main CI Run `33518568596` GREEN. Slice 10 closure confirmation may proceed.**
+> Current gate: **Slices 0–9, Repository Governance, S10.1–S10.5, S11.1A, and S11.1B are SEALED. S11.1 closure is PASS at authoritative main commit `799dff5bdaaef5098a1b5a784b05243709b11cb0`; post-merge main CI Run `33830846230` is GREEN. The active runtime is Cloudflare Pages Free → Render Free → Neon Free; the GCP Cloud Run / Cloud SQL Terraform foundation is a future paid upgrade path only, and S11.1C is DEFERRED.**
 >
-> Next task: **Complete Slice 10 closure confirmation, then perform MVP Closure Review only. Do not begin UI/UX production polish, S11, Phase 2, production infrastructure, production LINE resources, or a Future Extension until their separate gates are approved.**
+> Next task: **S11.2 Zero-Cost Pilot Identity / Runtime Readiness is UNBLOCKED / NOT STARTED. Do not provision GCP, upgrade any provider plan, purchase a domain, create production LINE resources, or begin S11.2 implementation without its separate authorization.**
 >
 > Codex model / reasoning policy is canonical in repository-root `AGENTS.md`: routine approved implementation defaults to **GPT-5.6 Terra / Low**; Codex must explicitly warn the maintainer before tasks that materially benefit from higher reasoning; major project planning and architecture decisions return to ChatGPT using **GPT-5.6 with the highest available reasoning effort**. Quality and verification take priority over execution speed.
 >
