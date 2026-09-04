@@ -6,7 +6,7 @@
 >
 > Current phase: **S11.2 — Zero-Cost Pilot Identity / Runtime Readiness**
 >
-> Current gate: **S11.1 is SEALED / closure record merged at authoritative main commit `a7bf35c8943bf4d714f11c3c1f1d4fd6a5988f96`; post-merge main CI Run `33834629055` is GREEN. S11.2 has repository and public-endpoint readiness evidence, but remains IN PROGRESS / NOT READY TO SEAL until the documented maintainer dashboard, real LINE authentication, database-role/quota, backup, monitoring, and cold-start checks are complete. The active runtime remains Cloudflare Pages Free → Render Free → Neon Free; S11.1C is DEFERRED.**
+> Current gate: **S11.1 is SEALED / closure record merged at authoritative main commit `a7bf35c8943bf4d714f11c3c1f1d4fd6a5988f96`; post-merge main CI Run `33834629055` is GREEN. S11.2 has repository and public-endpoint readiness evidence, but remains IN PROGRESS / NOT READY TO SEAL until the documented maintainer dashboard, real LINE authentication, database-role/quota, and cold-start acceptance checks are complete. Backup procedure readiness is recorded; full restore proof is deferred to S11.4. Frontend monitoring coverage is a P1 improvement, not a P0 seal blocker. The active runtime remains Cloudflare Pages Free → Render Free → Neon Free; S11.1C is DEFERRED.**
 >
 > Next task: **Complete the documented S11.2 maintainer manual evidence gate. Do not start S11.3, provision GCP, upgrade any provider plan, purchase a domain, add paid monitoring, create production LINE resources, or modify pilot runtime configuration without separate authorization.**
 >
