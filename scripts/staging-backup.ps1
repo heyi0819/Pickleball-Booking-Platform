@@ -25,8 +25,8 @@ function Resolve-AgeExecutable {
 }
 
 function Test-ChildPath([string] $Child, [string] $Parent) {
-    $relative = [System.IO.Path]::GetRelativePath($Parent, $Child)
-    return $relative -ne '' -and $relative -ne '..' -and -not $relative.StartsWith("..$([System.IO.Path]::DirectorySeparatorChar)") -and -not [System.IO.Path]::IsPathRooted($relative)
+    $normalizedParent = $Parent.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    return $Child.Equals($normalizedParent, [System.StringComparison]::OrdinalIgnoreCase) -or $Child.StartsWith("$normalizedParent$([System.IO.Path]::DirectorySeparatorChar)", [System.StringComparison]::OrdinalIgnoreCase)
 }
 
 $expectedConfirmation = if ($EnvironmentName -eq 'staging') { 'BACKUP_STAGING' } else { 'BACKUP_REHEARSAL' }
