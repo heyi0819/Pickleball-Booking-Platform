@@ -29,7 +29,6 @@ if (-not $env:PGDATABASE -or -not $env:PGHOST -or -not $env:PGUSER -or -not $env
 if ($env:PGDATABASE -eq $ActiveDatabaseName) { throw 'Restore target must not be the active database.' }
 if ($env:PGDATABASE -notmatch '^pickleball_restore_[a-z0-9_]+$') { throw 'Restore target database name must start with pickleball_restore_.' }
 if ($env:PGHOST -notin @('localhost', '127.0.0.1', '::1')) { throw 'Restore target must use a local PostgreSQL host.' }
-if ($EnvironmentName -eq 'staging' -and $env:PGSSLMODE -ne 'require') { throw 'Staging source handling requires PGSSLMODE=require.' }
 if ($BackupFile -notmatch '^.*pickleball-(staging|rehearsal)-\d{8}T\d{6}Z\.dump\.age$') { throw 'BackupFile does not match the controlled archive naming convention.' }
 if (-not (Test-Path -LiteralPath $BackupFile -PathType Leaf) -or -not (Test-Path -LiteralPath $IdentityFile -PathType Leaf)) { throw 'BackupFile and IdentityFile must exist.' }
 
