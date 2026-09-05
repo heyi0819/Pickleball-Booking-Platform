@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const liff = vi.hoisted(() => ({ init: vi.fn(async () => undefined), isLoggedIn: vi.fn(() => true), login: vi.fn(), getIDToken: vi.fn(() => "line-id-token") }));
 vi.mock("@line/liff", () => ({ default: liff }));
-import { App, BACKEND_AUTHENTICATION_TIMEOUT_MS, BOOTSTRAP_TIMEOUT_MS } from "./App";
+import { App, BACKEND_AUTHENTICATION_TIMEOUT_MS, BOOTSTRAP_TIMEOUT_MS, COACH_SUPPLY_TIMEOUT_MS } from "./App";
 const member = { id: "00000000-0000-0000-0000-000000000001", displayName: "Test member", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }, { roleCode: "COACH", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] };
 const server = setupServer(
   http.post("/api/v1/auth/line/login", () => HttpResponse.json({ data: { accessToken: "token", tokenType: "Bearer", expiresIn: 1800, user: { id: member.id, displayName: member.displayName, roles: [] } }, meta: { requestId: "test" } })),
@@ -16,6 +16,57 @@ const server = setupServer(
 beforeAll(() => server.listen({ onUnhandledRequest: "error" })); beforeEach(() => { window.history.replaceState({}, "", "/"); vi.stubEnv("VITE_LIFF_ID", "test-liff"); liff.init.mockResolvedValue(undefined); liff.isLoggedIn.mockReturnValue(true); liff.getIDToken.mockReturnValue("line-id-token"); }); afterEach(() => { cleanup(); server.resetHandlers(); sessionStorage.clear(); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllEnvs(); vi.useRealTimers(); }); afterAll(() => server.close());
 
 describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment", () => {
+  it("bounds a stalled coach supply read and offers retry", async () => {
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => { release = resolve; });
+    server.use(http.get("/api/v1/coach-availability-proposals/mine", async () => {
+      await pending;
+      return HttpResponse.json({ data: [], meta: { requestId: "test" } });
+    }));
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "教練" }));
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: "可授課時段" }));
+    try {
+      await act(async () => { await vi.advanceTimersByTimeAsync(COACH_SUPPLY_TIMEOUT_MS + 1); });
+      expect(screen.getByRole("button", { name: "重新載入教練工作內容" })).toBeTruthy();
+      expect(screen.queryByText("正在載入教練工作內容…")).toBeNull();
+      expect(screen.queryByText("尚未建立可授課時段。")).toBeNull();
+    } finally { release(); vi.useRealTimers(); }
+  });
+
+  it("does not report empty coach supply before the request completes", async () => {
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => { release = resolve; });
+    server.use(http.get("/api/v1/coach-availability-proposals/mine", async () => {
+      await pending;
+      return HttpResponse.json({ data: [], meta: { requestId: "test" } });
+    }));
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "教練" }));
+    fireEvent.click(screen.getByRole("button", { name: "可授課時段" }));
+    try {
+      expect(await screen.findByText("正在載入教練工作內容…")).toBeTruthy();
+      expect(screen.queryByText("尚未建立可授課時段。")).toBeNull();
+      expect(screen.queryByText("目前沒有待回覆的媒合邀請。")).toBeNull();
+    } finally { release(); }
+    expect(await screen.findByText("尚未建立可授課時段。")).toBeTruthy();
+    expect(screen.queryByText("正在載入教練工作內容…")).toBeNull();
+  });
+
+  it("lets a coach retry a failed supply read without showing an empty result", async () => {
+    server.use(http.get("/api/v1/coach-availability-proposals/mine", () => new HttpResponse(null, { status: 503 })));
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "教練" }));
+    fireEvent.click(screen.getByRole("button", { name: "可授課時段" }));
+    expect(await screen.findByRole("button", { name: "重新載入教練工作內容" })).toBeTruthy();
+    expect(screen.queryByText("尚未建立可授課時段。")).toBeNull();
+    server.use(http.get("/api/v1/coach-availability-proposals/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })));
+    fireEvent.click(screen.getByRole("button", { name: "重新載入教練工作內容" }));
+    expect(await screen.findByText("尚未建立可授課時段。")).toBeTruthy();
+    expect(screen.queryByText("無法載入教練工作內容，請稍後再試。")).toBeNull();
+  });
+
   it("logs in with LIFF without optional contact data and selects a role", async () => {
     render(<App />); expect(await screen.findByRole("heading", { name: "選擇使用身分" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Complete your profile" })).toBeNull(); expect(screen.queryByLabelText("Phone")).toBeNull();

@@ -20,6 +20,7 @@ import { CoachCourseOperations, CommitteeCourseOperations, StudentCourseOperatio
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
 const TOKEN_KEY = "platform.access-token";
 export const BOOTSTRAP_TIMEOUT_MS = 15_000;
+export const COACH_SUPPLY_TIMEOUT_MS = 60_000;
 export const BACKEND_AUTHENTICATION_TIMEOUT_MS = 60_000;
 const liffClient = import.meta.env.VITE_E2E_LIFF === "true"
   ? { init: async () => undefined, isLoggedIn: () => true, login: () => undefined, getIDToken: () => "e2e-line-id-token" }
@@ -221,10 +222,23 @@ function CoachSupply({ token }: { token: string }) {
   const [proposals, setProposals] = useState<AvailabilityProposal[]>([]);
   const [invitations, setInvitations] = useState<CourseMatchInvitationSummary[]>([]);
   const [message, setMessage] = useState("");
-  const refresh = async () => { const [availability, matchInvitations] = await Promise.all([api.myAvailability(token), api.myCourseMatchInvitations(token)]); setProposals(availability); setInvitations(matchInvitations); };
+  const [loadState, setLoadState] = useState<"loading" | "loaded" | "error">("loading");
+  const refresh = async () => {
+    setLoadState("loading");
+    let timeout: ReturnType<typeof globalThis.setTimeout> | undefined;
+    try {
+      const [availability, matchInvitations] = await Promise.race([
+        Promise.all([api.myAvailability(token), api.myCourseMatchInvitations(token)]),
+        new Promise<never>((_, reject) => { timeout = globalThis.setTimeout(() => reject(new Error("Coach supply read timed out")), COACH_SUPPLY_TIMEOUT_MS); }),
+      ]);
+      setProposals(availability); setInvitations(matchInvitations); setLoadState("loaded");
+    } catch (error) { setLoadState("error"); throw error; }
+    finally { globalThis.clearTimeout(timeout); }
+  };
+  const retry = () => { setMessage(""); void refresh().catch(() => setMessage("無法載入教練工作內容，請稍後再試。")); };
   useEffect(() => { void refresh().catch(() => setMessage("無法載入教練工作內容，請稍後再試。")); }, [token]);
   async function create(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); const form = new FormData(event.currentTarget); try { await api.createAvailability(token, { startAt: new Date(String(form.get("startAt"))), endAt: new Date(String(form.get("endAt"))), preferredVenueId: null }); setMessage("可授課時段草稿已建立。"); await refresh(); } catch { setMessage("無法建立可授課時段。"); } }
   async function submit(id: string) { try { await api.submitAvailability(token, id); setMessage("可授課時段已送審。"); await refresh(); } catch { setMessage("無法送出可授課時段。"); } }
   async function respond(invitationId: string, status: "ACCEPTED" | "REJECTED") { try { await api.respondCourseMatchInvitation(token, invitationId, { status, responseNote: status === "ACCEPTED" ? "Accepted via Coach LIFF" : "Rejected via Coach LIFF" }); setMessage(status === "ACCEPTED" ? "已接受媒合邀請。" : "已婉拒媒合邀請。"); await refresh(); } catch (error) { setMessage(safeApiError(error, "無法回覆媒合邀請。")); } }
-  return <section><h3>媒合邀請</h3>{message && <p role="status">{message}</p>}{invitations.length === 0 ? <p>目前沒有待回覆的媒合邀請。</p> : <ul>{invitations.map((invitation) => <li key={invitation.invitationId}><strong>第 {invitation.sessionIndex} 堂</strong> · {formatDate(invitation.startAt)} · {invitation.venueName || "場地待確認"} · {statusLabel(invitation.status)}{invitation.status === "INVITED" && <><button onClick={() => void respond(invitation.invitationId, "ACCEPTED")}>接受媒合</button><button onClick={() => void respond(invitation.invitationId, "REJECTED")}>婉拒媒合</button></>}{invitation.respondedAt && <span> · 已於 {formatDate(invitation.respondedAt)} 回覆</span>}</li>)}</ul>}<h3>我的可授課時段</h3><form onSubmit={create}><label>開始時間 <input name="startAt" type="datetime-local" required /></label><label>結束時間 <input name="endAt" type="datetime-local" required /></label><button>建立時段草稿</button></form>{proposals.length === 0 ? <p>尚未建立可授課時段。</p> : <ul>{proposals.map((proposal) => <li key={proposal.id}>{formatDate(proposal.startAt)} — {statusLabel(proposal.status)}{proposal.status === "DRAFT" && <button onClick={() => void submit(proposal.id)}>送審</button>}</li>)}</ul>}</section>;
+  return <section><h3>媒合邀請</h3>{message && <p role="status">{message}</p>}{loadState === "loading" && <p role="status">正在載入教練工作內容…</p>}{loadState === "error" && <button onClick={retry}>重新載入教練工作內容</button>}{loadState === "loaded" && (invitations.length === 0 ? <p>目前沒有待回覆的媒合邀請。</p> : <ul>{invitations.map((invitation) => <li key={invitation.invitationId}><strong>第 {invitation.sessionIndex} 堂</strong> · {formatDate(invitation.startAt)} · {invitation.venueName || "場地待確認"} · {statusLabel(invitation.status)}{invitation.status === "INVITED" && <><button onClick={() => void respond(invitation.invitationId, "ACCEPTED")}>接受媒合</button><button onClick={() => void respond(invitation.invitationId, "REJECTED")}>婉拒媒合</button></>}{invitation.respondedAt && <span> · 已於 {formatDate(invitation.respondedAt)} 回覆</span>}</li>)}</ul>)}<h3>我的可授課時段</h3><form onSubmit={create}><label>開始時間 <input name="startAt" type="datetime-local" required /></label><label>結束時間 <input name="endAt" type="datetime-local" required /></label><button>建立時段草稿</button></form>{loadState === "loaded" && (proposals.length === 0 ? <p>尚未建立可授課時段。</p> : <ul>{proposals.map((proposal) => <li key={proposal.id}>{formatDate(proposal.startAt)} — {statusLabel(proposal.status)}{proposal.status === "DRAFT" && <button onClick={() => void submit(proposal.id)}>送審</button>}</li>)}</ul>)}</section>;
 }
