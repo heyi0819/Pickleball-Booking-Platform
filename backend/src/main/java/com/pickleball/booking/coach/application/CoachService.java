@@ -34,7 +34,20 @@ public class CoachService {
     @Transactional public AvailabilityProposalEntity reviewAvailability(AuthenticatedPrincipal actor, UUID id, boolean approve, String note) { var proposal=availability.findById(id).orElseThrow(()->new BusinessException("RESOURCE_NOT_FOUND","Availability proposal was not found"));requireCommittee(actor,proposal.getOrganizationId()); var profile=profiles.findById(proposal.getCoachProfileId()).orElseThrow(()->new BusinessException("RESOURCE_NOT_FOUND","Coach profile was not found")); if (actor.userId().equals(profile.getUserId())) throw new BusinessException("REVIEWER_SELF_APPROVAL_FORBIDDEN","A reviewer cannot review their own availability proposal"); proposal.review(approve,actor.userId(),note);audit.record(proposal.getOrganizationId(),actor.userId(),approve?"AVAILABILITY_APPROVED":"AVAILABILITY_REJECTED","AvailabilityProposal",proposal.getId(),note);return proposal; }
     @Transactional public AvailabilityProposalEntity closeAvailability(AuthenticatedPrincipal actor, UUID id) { var proposal=ownProposal(actor,id);proposal.close();return proposal; }
     @Transactional public List<CoachApplicationEntity> myApplications(AuthenticatedPrincipal actor) { identity.requireActiveUser(actor.userId()); UUID org=scopes.activeOrganizationFor(actor.userId(),RoleCode.STUDENT); return profiles.findByOrganizationIdAndUserId(org,actor.userId()).map(p->applications.findByCoachProfileIdOrderBySubmittedAtDesc(p.getId())).orElse(List.of()); }
-    @Transactional public List<CoachApplicationEntity> applicationsForReview(AuthenticatedPrincipal actor, UUID org) { requireCommittee(actor,org);return applications.findByOrganizationIdOrderBySubmittedAtDesc(org); }
+    @Transactional public List<ReviewApplication> applicationsForReview(AuthenticatedPrincipal actor, UUID org) {
+        requireCommittee(actor,org);
+        var reviewApplications = applications.findByOrganizationIdOrderBySubmittedAtDesc(org);
+        var profilesById = new HashMap<UUID, CoachProfileEntity>();
+        profiles.findAllById(reviewApplications.stream().map(CoachApplicationEntity::getCoachProfileId).toList())
+                .forEach(profile -> profilesById.put(profile.getId(), profile));
+        var displayNamesByUserId = new HashMap<UUID, String>();
+        users.findAllById(profilesById.values().stream().map(CoachProfileEntity::getUserId).toList())
+                .forEach(user -> displayNamesByUserId.put(user.getId(), user.getDisplayName()));
+        return reviewApplications.stream()
+                .map(application -> new ReviewApplication(application, Optional.ofNullable(profilesById.get(application.getCoachProfileId()))
+                        .map(CoachProfileEntity::getUserId).map(displayNamesByUserId::get).orElse(null)))
+                .toList();
+    }
     @Transactional public List<AvailabilityProposalEntity> myAvailability(AuthenticatedPrincipal actor) { return availability.findByCoachProfileIdOrderByStartAtDesc(requireApprovedCoach(actor).getId()); }
     @Transactional public List<AvailabilityProposalEntity> approvedAvailability(AuthenticatedPrincipal actor) { identity.requireActiveUser(actor.userId()); UUID org=scopes.activeOrganizationFor(actor.userId(),RoleCode.STUDENT); return availability.findByOrganizationIdAndStatusAndStartAtAfterOrderByStartAtAsc(org,AvailabilityProposalStatus.APPROVED,Instant.now()); }
     @Transactional public List<AvailabilityProposalEntity> availabilityForReview(AuthenticatedPrincipal actor, UUID org) { requireCommittee(actor,org);return availability.findByOrganizationIdOrderByStartAtDesc(org); }
@@ -42,4 +55,5 @@ public class CoachService {
     private CoachProfileEntity requireApprovedCoach(AuthenticatedPrincipal actor) { identity.requireActiveUser(actor.userId()); UUID org=scopes.activeOrganizationFor(actor.userId(),RoleCode.COACH);if(!identity.isAuthorizedForOrganization(actor,RoleCode.COACH,org))throw new BusinessException("AUTH_FORBIDDEN","An active coach role is required");var p=profiles.findByOrganizationIdAndUserId(org,actor.userId()).orElseThrow(()->new BusinessException("COACH_NOT_APPROVED","Coach profile was not found"));if(p.getApprovalStatus()!=CoachProfileApprovalStatus.APPROVED)throw new BusinessException("COACH_NOT_APPROVED","An approved coach profile is required");return p; }
     private void requireCommittee(AuthenticatedPrincipal actor, UUID org) { identity.requireActiveUser(actor.userId());if(!identity.isAuthorizedForOrganization(actor,RoleCode.COMMITTEE,org))throw new BusinessException("AUTH_FORBIDDEN","Committee role is required for this organization"); }
     private void ensureActiveCoachRole(CoachProfileEntity profile, UUID grantedBy) { var current=roles.findByUserIdAndOrganizationIdAndRoleCode(profile.getUserId(),profile.getOrganizationId(),RoleCode.COACH);if(current.isPresent()) { current.get().changeStatus(RoleAssignmentStatus.ACTIVE); return; } roles.save(new RoleAssignmentEntity(users.getReferenceById(profile.getUserId()),organizations.getReferenceById(profile.getOrganizationId()),RoleCode.COACH)); }
+    public record ReviewApplication(CoachApplicationEntity application, String applicantDisplayName) {}
 }

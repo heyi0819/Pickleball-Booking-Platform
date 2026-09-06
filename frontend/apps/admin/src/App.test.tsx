@@ -56,6 +56,22 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     expect(await screen.findByText("無法儲存審核結果，請稍後再試。 REVIEWER_SELF_APPROVAL_FORBIDDEN")).toBeTruthy();
   });
 
+  it("shows the applicant display name to committee reviewers instead of raw identifiers", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/coach-applications", () => HttpResponse.json({ data: [{ id: "application-id", coachProfileId: "coach-profile-id", applicantDisplayName: "LINE 暱稱", status: "SUBMITTED", applicationNote: "申請說明", submittedAt: "2026-09-06T12:00:00Z", reviewedBy: null, reviewedAt: null, reviewNote: null }], meta: { requestId: "test" } }))
+    );
+    render(<App />);
+    expect(await screen.findByText("LINE 暱稱")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "查看申請" }));
+    const detail = await screen.findByLabelText("Review detail");
+    expect(within(detail).getByText("申請人顯示名稱")).toBeTruthy();
+    expect(within(detail).getByText("LINE 暱稱")).toBeTruthy();
+    expect(within(detail).queryByText("application-id")).toBeNull();
+    expect(within(detail).queryByText("coach-profile-id")).toBeNull();
+  });
+
   it("denies non-admin roles", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Student", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));

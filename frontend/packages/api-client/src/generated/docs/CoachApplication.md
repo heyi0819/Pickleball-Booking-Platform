@@ -14,6 +14,7 @@ Name | Type
 `reviewedBy` | string
 `reviewedAt` | Date
 `reviewNote` | string
+`applicantDisplayName` | string
 
 ## Example
 
@@ -30,6 +31,7 @@ const example = {
   "reviewedBy": null,
   "reviewedAt": null,
   "reviewNote": null,
+  "applicantDisplayName": null,
 } satisfies CoachApplication
 
 console.log(example)

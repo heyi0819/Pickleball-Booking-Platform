@@ -2507,6 +2507,7 @@ components:
         reviewedBy: { type: [string, 'null'], format: uuid }
         reviewedAt: { type: [string, 'null'], format: date-time }
         reviewNote: { type: [string, 'null'] }
+        applicantDisplayName: { type: [string, 'null'], description: Applicant display name, returned only to authorized committee reviewers. }
 
     AvailabilityProposalRequest:
       type: object
