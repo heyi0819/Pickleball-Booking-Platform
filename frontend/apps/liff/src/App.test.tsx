@@ -161,6 +161,22 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
     await waitFor(() => expect(selectedAvailabilityProposalId).toBe("availability-1"));
   });
 
+  it("explains when an existing coach application blocks another submission", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { ...member, profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/coach-availability-proposals/available", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+      http.get("/api/v1/lesson-requests/mine", () => HttpResponse.json({ data: [], meta: { requestId: "test" } })),
+      http.get("/api/v1/course-offerings", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
+      http.get("/api/v1/me/course-offering-registrations", () => HttpResponse.json({ data: { items: [], page: 0, size: 100, total: 0 }, meta: { requestId: "test" } })),
+      http.post("/api/v1/coach-applications", () => HttpResponse.json({ error: { code: "STATE_TRANSITION_INVALID" } }, { status: 409 }))
+    );
+    render(<App />);
+    fireEvent.click(within(await screen.findByRole("navigation", { name: "主要導覽" })).getByRole("button", { name: "找課與需求" }));
+    fireEvent.click(await screen.findByRole("button", { name: "申請成為教練" }));
+    expect(await screen.findByText("已有進行中的教練申請，無法再次送出。（STATE_TRANSITION_INVALID）")).toBeTruthy();
+  });
+
   it("lets a student inspect, register, and cancel an open enrollment offering", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     let registrationStatus: "NONE" | "ACTIVE" | "CANCELLED" = "NONE";

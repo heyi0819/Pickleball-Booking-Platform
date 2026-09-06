@@ -194,6 +194,11 @@ function studentOfferingError(caught: unknown) {
   return presentApiError(caught.code);
 }
 function safeApiError(caught: unknown, fallback: string) { return caught instanceof ApiClientError ? presentApiError(caught.code) : fallback; }
+function coachApplicationError(caught: unknown) {
+  if (!(caught instanceof ApiClientError)) return "無法送出教練申請。";
+  if (caught.code === "STATE_TRANSITION_INVALID") return "已有進行中的教練申請，無法再次送出。（STATE_TRANSITION_INVALID）";
+  return `無法送出教練申請。(${caught.code})`;
+}
 function formatDate(value?: Date | null) { return formatTaipeiDateTime(value); }
 function formatPrice(offering: CourseOfferingSummary) { return offering.pricePerParticipant == null ? "價格待確認" : formatTwd(offering.pricePerParticipant); }
 function registrationLabel(state: CourseOfferingSummary["registrationState"]) { return state === "OPEN" ? "可報名" : state === "REGISTERED" ? "已報名" : state === "FULL" ? "已額滿" : state === "NOT_OPEN" ? "尚未開放" : "已截止"; }
@@ -214,7 +219,7 @@ function StudentLessonDemand({ token }: { token: string }) {
     try { await api.submitLessonRequest(token, id, `lesson-submit-${id}`); setMessage("Lesson request submitted."); await refresh(); }
     catch (error) { if (error instanceof ApiClientError && error.code === "AVAILABILITY_ALREADY_CLAIMED") { setMessage("該時段已被其他需求取得，請重新整理並選擇其他時段。"); await refresh(); return; } setMessage(safeApiError(error, "無法送出找教練需求。")); }
   }
-  async function applyAsCoach() { try { await api.applyForCoach(token, { applicationNote: "Coach application from LIFF", skillLevel: null, bio: null }); setMessage("教練申請已送出，等待委員會審核。"); } catch { setMessage("無法送出教練申請。"); } }
+  async function applyAsCoach() { try { await api.applyForCoach(token, { applicationNote: "Coach application from LIFF", skillLevel: null, bio: null }); setMessage("教練申請已送出，等待委員會審核。"); } catch (caught) { setMessage(coachApplicationError(caught)); } }
   return <section><h3>找教練時段</h3>{message && <p role="status">{message}</p>}<button onClick={() => void applyAsCoach()}>申請成為教練</button><form onSubmit={createDraft}><label>可選時段 <select name="availabilityId" required defaultValue=""><option value="" disabled>請選擇時段</option>{availability.map((slot) => <option key={slot.id} value={slot.id}>{formatDate(slot.startAt)}</option>)}</select></label><button>建立需求草稿</button></form><h3>我的找教練需求</h3>{drafts.length === 0 ? <p>目前沒有需求草稿。</p> : <ul>{drafts.map((draft) => <li key={draft.id}>{statusLabel(draft.status)} — {draft.selectedAvailabilityProposalId ? "已選擇時段" : "尚未選擇時段"}{draft.status === "DRAFT" && <button onClick={() => void submitDraft(draft.id)}>送出需求</button>}</li>)}</ul>}</section>;
 }
 
