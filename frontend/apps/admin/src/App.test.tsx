@@ -42,6 +42,20 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     render(<App />); expect(await screen.findByRole("heading", { name: "管理後台" })).toBeTruthy(); expect(await screen.findByRole("navigation", { name: "管理後台導覽" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "課程媒合" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "公開招生" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "課程營運" })).toBeTruthy();
   });
 
+  it("shows a self-review denial code and localizes review statuses", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/coach-availability-proposals", () => HttpResponse.json({ data: [{ id: "availability-1", coachProfileId: "coach-1", startAt: "2026-09-20T01:00:00Z", endAt: "2026-09-20T02:00:00Z", preferredVenueId: null, status: "SUBMITTED", submittedAt: "2026-09-01T00:00:00Z", reviewedBy: null, reviewedAt: null, reviewNote: null }, { id: "availability-2", coachProfileId: "coach-2", startAt: "2026-09-21T01:00:00Z", endAt: "2026-09-21T02:00:00Z", preferredVenueId: null, status: "APPROVED", submittedAt: "2026-09-01T00:00:00Z", reviewedBy: "u", reviewedAt: "2026-09-02T00:00:00Z", reviewNote: null }, { id: "availability-3", coachProfileId: "coach-3", startAt: "2026-09-22T01:00:00Z", endAt: "2026-09-22T02:00:00Z", preferredVenueId: null, status: "REJECTED", submittedAt: "2026-09-01T00:00:00Z", reviewedBy: "u", reviewedAt: "2026-09-02T00:00:00Z", reviewNote: null }], meta: { requestId: "test" } })),
+      http.post("/api/v1/coach-availability-proposals/availability-1/review", () => HttpResponse.json({ error: { code: "REVIEWER_SELF_APPROVAL_FORBIDDEN" } }, { status: 403 }))
+    );
+    render(<App />);
+    expect(await screen.findByText("已通過")).toBeTruthy();
+    expect(await screen.findByText("已退回")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "審核通過" }));
+    expect(await screen.findByText("無法儲存審核結果，請稍後再試。 REVIEWER_SELF_APPROVAL_FORBIDDEN")).toBeTruthy();
+  });
+
   it("denies non-admin roles", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Student", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
