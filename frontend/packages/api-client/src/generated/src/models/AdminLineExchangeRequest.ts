@@ -38,11 +38,11 @@ export interface AdminLineExchangeRequest {
      */
     nonce: string;
     /**
-     *
+     * Optional only for backward compatibility with the canonical Admin asset; absent values use the configured canonical callback.
      * @type {string}
      * @memberof AdminLineExchangeRequest
      */
-    redirectUri: string;
+    redirectUri?: string;
 }
 
 /**
@@ -52,7 +52,6 @@ export function instanceOfAdminLineExchangeRequest(value: object): value is Admi
     if (!('authorizationCode' in value) || value['authorizationCode'] === undefined) return false;
     if (!('codeVerifier' in value) || value['codeVerifier'] === undefined) return false;
     if (!('nonce' in value) || value['nonce'] === undefined) return false;
-    if (!('redirectUri' in value) || value['redirectUri'] === undefined) return false;
     return true;
 }
 
@@ -69,7 +68,7 @@ export function AdminLineExchangeRequestFromJSONTyped(json: any, ignoreDiscrimin
         'authorizationCode': json['authorizationCode'],
         'codeVerifier': json['codeVerifier'],
         'nonce': json['nonce'],
-        'redirectUri': json['redirectUri'],
+        'redirectUri': json['redirectUri'] == null ? undefined : json['redirectUri'],
     };
 }
 

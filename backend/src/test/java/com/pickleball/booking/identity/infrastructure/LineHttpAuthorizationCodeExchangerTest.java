@@ -4,7 +4,6 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.pickleball.booking.identity.application.LineCredentialInvalidException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import org.junit.jupiter.api.*;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -23,7 +22,7 @@ class LineHttpAuthorizationCodeExchangerTest {
         line.resetAll();
         line.resetRequests();
         configureFor("localhost", line.port());
-        exchanger = new LineHttpAuthorizationCodeExchanger("channel", "secret", List.of(CANONICAL, PREVIEW), line.baseUrl() + "/oauth2/v2.1/token", 3000);
+        exchanger = new LineHttpAuthorizationCodeExchanger("channel", "secret", CANONICAL, CANONICAL + ", " + PREVIEW, line.baseUrl() + "/oauth2/v2.1/token", 3000);
     }
 
     @Test void exchangesUsingTheSameExactAllowedRedirectUri() {
@@ -38,10 +37,16 @@ class LineHttpAuthorizationCodeExchangerTest {
         assertThat(exchanger.exchange("authorization-code", "verifier", PREVIEW)).isEqualTo("id-token");
     }
 
-    @Test void deniesArbitraryAndMissingRedirectUrisBeforeCallingLine() {
+    @Test void fallsBackToTheConfiguredCanonicalRedirectUriForTheOldCanonicalClient() {
+        stubTokenExchange();
+        assertThat(exchanger.exchange("authorization-code", "verifier", null)).isEqualTo("id-token");
+        assertThat(line.getAllServeEvents()).singleElement().satisfies(event ->
+                assertThat(event.getRequest().getBodyAsString()).contains("redirect_uri=" + encoded(CANONICAL)));
+    }
+
+    @Test void deniesArbitraryRedirectUrisBeforeCallingLine() {
         assertThatThrownBy(() -> exchanger.exchange("authorization-code", "verifier", "https://random.pickleball-stg-admin.pages.dev/auth/line/callback")).isInstanceOf(LineCredentialInvalidException.class);
         assertThatThrownBy(() -> exchanger.exchange("authorization-code", "verifier", "https://unknown.example/auth/line/callback")).isInstanceOf(LineCredentialInvalidException.class);
-        assertThatThrownBy(() -> exchanger.exchange("authorization-code", "verifier", null)).isInstanceOf(LineCredentialInvalidException.class);
         verify(0, postRequestedFor(urlEqualTo("/oauth2/v2.1/token")));
     }
 

@@ -23,7 +23,7 @@ public class IdentityController {
     private AuthenticatedPrincipal principal(Authentication auth) { return (AuthenticatedPrincipal) auth.getPrincipal(); }
     private <T> ApiResponse<T> ok(T data, HttpServletRequest request) { return ApiResponse.of(data, (String) request.getAttribute("requestId")); }
     public record LineLoginRequest(@NotBlank @Size(max = 10000) String idToken) {}
-    public record AdminLineExchangeRequest(@NotBlank @Size(max = 2048) String authorizationCode, @NotBlank @Size(min = 43, max = 128) String codeVerifier, @NotBlank @Size(max = 256) String nonce, @NotBlank @Size(max = 2048) String redirectUri) {}
+    public record AdminLineExchangeRequest(@NotBlank @Size(max = 2048) String authorizationCode, @NotBlank @Size(min = 43, max = 128) String codeVerifier, @NotBlank @Size(max = 256) String nonce, @Size(max = 2048) String redirectUri) {}
     public record ProfileRequest(@NotBlank @Size(max = 100) String displayName, @Email @Size(max = 254) String email, @NotBlank @Size(max = 10) String locale) {}
     public record LoginResponse(String accessToken, String tokenType, long expiresIn, LoginUser user) {}
     public record LoginUser(UUID id, String displayName, List<?> roles) {}

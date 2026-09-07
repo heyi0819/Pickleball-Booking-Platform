@@ -2406,12 +2406,12 @@ components:
 
     AdminLineExchangeRequest:
       type: object
-      required: [authorizationCode, codeVerifier, nonce, redirectUri]
+      required: [authorizationCode, codeVerifier, nonce]
       properties:
         authorizationCode: { type: string, minLength: 1, maxLength: 2048 }
         codeVerifier: { type: string, minLength: 43, maxLength: 128 }
         nonce: { type: string, minLength: 1, maxLength: 256 }
-        redirectUri: { type: string, minLength: 1, maxLength: 2048, format: uri }
+        redirectUri: { type: string, minLength: 1, maxLength: 2048, format: uri, description: Optional only for backward compatibility with the canonical Admin asset; absent values use the configured canonical callback. }
 
     ProfileUpdateRequest:
       type: object
