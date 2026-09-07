@@ -36,6 +36,25 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     expect(document.body.textContent).not.toContain("provider-detail");
   });
 
+  it("sends the exact callback origin used for LINE authorization during code exchange", async () => {
+    const verifier = "v".repeat(43);
+    let exchanged = false;
+    sessionStorage.setItem("admin.line.state", "state");
+    sessionStorage.setItem("admin.line.verifier", verifier);
+    sessionStorage.setItem("admin.line.nonce", "nonce");
+    history.replaceState({}, "", "/auth/line/callback?code=authorization-code&state=state");
+    server.use(
+      http.post("/api/v1/auth/line/admin/exchange", async ({ request }) => {
+        expect(await request.json()).toEqual({ authorizationCode: "authorization-code", codeVerifier: verifier, nonce: "nonce", redirectUri: `${location.origin}/auth/line/callback` });
+        exchanged = true;
+        return HttpResponse.json({ data: { accessToken: "token", tokenType: "Bearer", expiresIn: 1800, user: { id: "u", displayName: "Committee", roles: ["COMMITTEE"] } }, meta: { requestId: "test" } });
+      }),
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } }))
+    );
+    render(<App />);
+    await waitFor(() => expect(exchanged).toBe(true));
+  });
+
   it("allows committee users", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));

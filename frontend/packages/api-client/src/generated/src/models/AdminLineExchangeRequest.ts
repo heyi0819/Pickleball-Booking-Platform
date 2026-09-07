@@ -37,6 +37,12 @@ export interface AdminLineExchangeRequest {
      * @memberof AdminLineExchangeRequest
      */
     nonce: string;
+    /**
+     *
+     * @type {string}
+     * @memberof AdminLineExchangeRequest
+     */
+    redirectUri: string;
 }
 
 /**
@@ -46,6 +52,7 @@ export function instanceOfAdminLineExchangeRequest(value: object): value is Admi
     if (!('authorizationCode' in value) || value['authorizationCode'] === undefined) return false;
     if (!('codeVerifier' in value) || value['codeVerifier'] === undefined) return false;
     if (!('nonce' in value) || value['nonce'] === undefined) return false;
+    if (!('redirectUri' in value) || value['redirectUri'] === undefined) return false;
     return true;
 }
 
@@ -62,6 +69,7 @@ export function AdminLineExchangeRequestFromJSONTyped(json: any, ignoreDiscrimin
         'authorizationCode': json['authorizationCode'],
         'codeVerifier': json['codeVerifier'],
         'nonce': json['nonce'],
+        'redirectUri': json['redirectUri'],
     };
 }
 
@@ -79,5 +87,6 @@ export function AdminLineExchangeRequestToJSONTyped(value?: AdminLineExchangeReq
         'authorizationCode': value['authorizationCode'],
         'codeVerifier': value['codeVerifier'],
         'nonce': value['nonce'],
+        'redirectUri': value['redirectUri'],
     };
 }

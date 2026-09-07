@@ -226,8 +226,8 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
   const adminOperations = (token: string) => new AdminOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const roleDelegation = (token: string) => new AdminRoleDelegationApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
-    async exchangeAdminLineAuthorizationCode(authorizationCode: string, codeVerifier: string, nonce: string): Promise<LoginData> {
-      try { return (await anonymous.exchangeAdminLineAuthorizationCode({ adminLineExchangeRequest: { authorizationCode, codeVerifier, nonce } })).data; }
+    async exchangeAdminLineAuthorizationCode(authorizationCode: string, codeVerifier: string, nonce: string, redirectUri: string): Promise<LoginData> {
+      try { return (await anonymous.exchangeAdminLineAuthorizationCode({ adminLineExchangeRequest: { authorizationCode, codeVerifier, nonce, redirectUri } })).data; }
       catch (caught) { return mapError(caught); }
     },
     async listAdminReceivables(token: string, query: ListAdminReceivablesRequest): Promise<AdminFinanceReceivablePage> {

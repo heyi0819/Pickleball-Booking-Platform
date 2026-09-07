@@ -25,8 +25,8 @@ public class IdentityService {
         return new LoginResult(token.value(), token.expiresIn(), user.getId(), user.getDisplayName(), activeRoles.stream().map(RoleView::roleCode).distinct().toList());
     }
     @Transactional
-    public LoginResult adminLogin(String authorizationCode, String codeVerifier, String nonce) {
-        var credential = lineVerifier.verify(codeExchanger.exchange(authorizationCode, codeVerifier), nonce);
+    public LoginResult adminLogin(String authorizationCode, String codeVerifier, String nonce, String redirectUri) {
+        var credential = lineVerifier.verify(codeExchanger.exchange(authorizationCode, codeVerifier, redirectUri), nonce);
         var user = identities.findByProviderAndProviderSubjectAndRevokedAtIsNull("LINE", credential.identity().subject()).map(ExternalIdentityEntity::getUser).orElseThrow(() -> new AccessForbiddenException("Admin access is not permitted"));
         if (user.getStatus() != UserStatus.ACTIVE) { audit.recordAudit(null, user.getId(), "ADMIN_LOGIN_DENIED", "USER", user.getId(), "inactive user", null, null, null); throw new AccessForbiddenException("Admin access is not permitted"); }
         var activeRoles = activeRoles(user.getId());
