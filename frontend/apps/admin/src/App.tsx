@@ -23,6 +23,7 @@ import { AdminOperationsPanel } from "./AdminOperationsPanel";
 import { RoleDelegationPanel } from "./RoleDelegationPanel";
 
 const api = createApiClient({ baseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1" });
+const offeringPricingIdempotencyKey = (offeringId: string, pricingFingerprint: string) => `offering-price-${offeringId}-${pricingFingerprint.slice(0, 40)}`;
 
 export function App() {
   const [me, setMe] = useState<Me | null>(null);
@@ -117,7 +118,7 @@ function OfferingWorkQueue({ token, organizationId, approvedCoaches }: { token: 
   }
   async function confirmPrice() {
     if (!selected || !pricingPreview) return;
-    try { await api.confirmCourseOfferingPricing(token, selected.summary.id, `offering-price-${selected.summary.id}-${pricingPreview.pricingFingerprint}`, { acceptedPricePerParticipant: Number(pricingPreview.pricePerParticipant), currency: pricingPreview.currency, pricingFingerprint: pricingPreview.pricingFingerprint, confirmationNote: "Confirmed via Committee Admin" }); setPricingPreview(null); setMessage("Offering price confirmed."); await reloadSelected(selected.summary.id); }
+    try { await api.confirmCourseOfferingPricing(token, selected.summary.id, offeringPricingIdempotencyKey(selected.summary.id, pricingPreview.pricingFingerprint), { acceptedPricePerParticipant: Number(pricingPreview.pricePerParticipant), currency: pricingPreview.currency, pricingFingerprint: pricingPreview.pricingFingerprint, confirmationNote: "Confirmed via Committee Admin" }); setPricingPreview(null); setMessage("Offering price confirmed."); await reloadSelected(selected.summary.id); }
     catch (caught) { if (caught instanceof ApiClientError && caught.code === "PRICE_CHANGED_RECALC_REQUIRED") { setPricingPreview(null); setMessage("Offering inputs changed. Recalculate the pricing preview before confirming."); return; } setMessage(commandError(caught, "Unable to confirm offering price.")); }
   }
   async function publish() { if (!selected) return; try { await api.publishCourseOffering(token, selected.summary.id, `offering-publish-${selected.summary.id}-${selected.summary.version}`); setMessage("Offering published and registration is available during the configured window."); await reloadSelected(selected.summary.id); } catch (caught) { setMessage(commandError(caught, "Unable to publish offering.")); } }
