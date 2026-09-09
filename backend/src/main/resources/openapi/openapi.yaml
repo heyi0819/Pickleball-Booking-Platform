@@ -2399,10 +2399,11 @@ components:
         meta: { $ref: '#/components/schemas/Meta' }
 
     LineLoginRequest:
+      description: Exactly one server-verifiable LINE credential is required.
       type: object
-      required: [idToken]
       properties:
-        idToken: { type: string, minLength: 1, maxLength: 10000 }
+        idToken: { type: string, maxLength: 10000 }
+        accessToken: { type: string, maxLength: 10000 }
 
     AdminLineExchangeRequest:
       type: object

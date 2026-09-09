@@ -255,7 +255,7 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
       catch (caught) { return mapError(caught); }
     },
     baseUrl,
-    async loginWithLine(idToken: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken } })).data; } catch (caught) { return mapError(caught); } },
+    async loginWithLine(idToken?: string, accessToken?: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken, accessToken } })).data; } catch (caught) { return mapError(caught); } },
     async me(token: string): Promise<Me> { try { return (await authenticated(token).getCurrentUser()).data; } catch (caught) { return mapError(caught); } },
     async roles(token: string): Promise<RoleContext[]> { try { return (await authenticated(token).getCurrentUserRoles()).data; } catch (caught) { return mapError(caught); } },
     async updateProfile(token: string, profile: ProfileUpdateRequest): Promise<Me> { try { return (await authenticated(token).updateCurrentUserProfile({ profileUpdateRequest: profile })).data; } catch (caught) { return mapError(caught); } },

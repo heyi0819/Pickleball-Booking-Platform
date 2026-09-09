@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-const liff = vi.hoisted(() => ({ init: vi.fn(async () => undefined), isLoggedIn: vi.fn(() => true), login: vi.fn(), getIDToken: vi.fn(() => "line-id-token") }));
+const liff = vi.hoisted(() => ({ init: vi.fn(async () => undefined), isLoggedIn: vi.fn(() => true), login: vi.fn(), getIDToken: vi.fn(() => "line-id-token"), getAccessToken: vi.fn(() => "line-access-token") }));
 vi.mock("@line/liff", () => ({ default: liff }));
 import { App, BACKEND_AUTHENTICATION_TIMEOUT_MS, BOOTSTRAP_TIMEOUT_MS, COACH_SUPPLY_TIMEOUT_MS } from "./App";
 const member = { id: "00000000-0000-0000-0000-000000000001", displayName: "Test member", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "STUDENT", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }, { roleCode: "COACH", organizationId: "org", organizationCode: "MVP", organizationName: "MVP" }] };
@@ -70,7 +70,7 @@ describe("LIFF authentication, role, Slice 3 coach flow, and Slice 4 enrollment"
   it("logs in with LIFF without optional contact data and selects a role", async () => {
     render(<App />); expect(await screen.findByRole("heading", { name: "選擇使用身分" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Complete your profile" })).toBeNull(); expect(screen.queryByLabelText("Phone")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "教練" })); expect(await screen.findByRole("heading", { name: "教練首頁" })).toBeTruthy(); await waitFor(() => expect(liff.getIDToken).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "教練" })); expect(await screen.findByRole("heading", { name: "教練首頁" })).toBeTruthy(); await waitFor(() => expect(liff.getAccessToken).toHaveBeenCalled());
   });
 
   it("switches an authorized role from 我的 and returns to its role home", async () => {

@@ -12,7 +12,7 @@ class LineHttpCredentialVerifierTest {
     private LineHttpCredentialVerifier verifier;
     @BeforeAll static void start() { line.start(); }
     @AfterAll static void stop() { line.stop(); }
-    @BeforeEach void setUp() { line.resetAll(); verifier = new LineHttpCredentialVerifier("channel", line.baseUrl() + "/oauth2/v2.1/verify", 100); }
+    @BeforeEach void setUp() { line.resetAll(); verifier = new LineHttpCredentialVerifier("channel", line.baseUrl() + "/oauth2/v2.1/verify", line.baseUrl() + "/v2/profile", 100); }
     @Test void acceptsValidCredential() { stubJson(200, valid(1_900_000_000L)); assertThat(verifier.verify("token").identity().subject()).isEqualTo("line-subject"); }
     @Test void rejectsExpiredCredential() { stubJson(200, valid(1L)); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); }
     @Test void rejectsWrongAudience() { stubJson(200, valid(1_900_000_000L).replace("channel", "other")); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); }
@@ -24,6 +24,19 @@ class LineHttpCredentialVerifierTest {
         assertThat(LineHttpCredentialVerifier.lineErrorCategory("{\"error_description\":\"Invalid ID token\"}"))
                 .isEqualTo("id-token");
         assertThat(LineHttpCredentialVerifier.lineErrorCategory(" ")).isEqualTo("empty-response");
+    }
+    @Test void verifiesAccessTokenBeforeUsingProviderProfile() {
+        line.stubFor(get(urlEqualTo("/oauth2/v2.1/verify")).withHeader("Authorization", equalTo("Bearer access-token")).willReturn(okJson("{\"client_id\":\"channel\",\"expires_in\":3600}")));
+        line.stubFor(get(urlEqualTo("/v2/profile")).withHeader("Authorization", equalTo("Bearer access-token")).willReturn(okJson("{\"userId\":\"line-subject\",\"displayName\":\"Member\"}")));
+        assertThat(verifier.verifyAccessToken("access-token").identity().subject()).isEqualTo("line-subject");
+    }
+    @Test void deniesWrongChannelExpiredAndProfileFailure() {
+        line.stubFor(get(urlEqualTo("/oauth2/v2.1/verify")).willReturn(okJson("{\"client_id\":\"other\",\"expires_in\":3600}")));
+        assertThatThrownBy(() -> verifier.verifyAccessToken("access-token")).isInstanceOf(LineCredentialInvalidException.class);
+        line.resetAll(); line.stubFor(get(urlEqualTo("/oauth2/v2.1/verify")).willReturn(okJson("{\"client_id\":\"channel\",\"expires_in\":0}")));
+        assertThatThrownBy(() -> verifier.verifyAccessToken("access-token")).isInstanceOf(LineCredentialInvalidException.class);
+        line.resetAll(); line.stubFor(get(urlEqualTo("/oauth2/v2.1/verify")).willReturn(okJson("{\"client_id\":\"channel\",\"expires_in\":3600}"))); line.stubFor(get(urlEqualTo("/v2/profile")).willReturn(aResponse().withStatus(500)));
+        assertThatThrownBy(() -> verifier.verifyAccessToken("access-token")).isInstanceOf(LineCredentialInvalidException.class);
     }
     @Test void rejectsMalformedResponseAndTimeout() { stubJson(200, "{bad json"); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); line.resetAll(); line.stubFor(post(urlEqualTo("/oauth2/v2.1/verify")).willReturn(aResponse().withFixedDelay(300).withStatus(200).withBody(valid(1_900_000_000L)))); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); }
     private void stubJson(int status, String body) { line.stubFor(post(urlEqualTo("/oauth2/v2.1/verify")).withRequestBody(containing("id_token=token")).withRequestBody(containing("client_id=channel")).willReturn(aResponse().withStatus(status).withHeader("Content-Type", "application/json").withBody(body))); }

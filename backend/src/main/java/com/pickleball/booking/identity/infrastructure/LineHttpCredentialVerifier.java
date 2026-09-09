@@ -19,13 +19,26 @@ import java.util.Map;
 @Component
 public class LineHttpCredentialVerifier implements LineCredentialVerifier {
     private static final Logger log = LoggerFactory.getLogger(LineHttpCredentialVerifier.class);
-    private final RestClient client; private final String channelId;
-    public LineHttpCredentialVerifier(@Value("${line.login.channel-id:}") String channelId, @Value("${line.login.verify-url:https://api.line.me/oauth2/v2.1/verify}") String verifyUrl, @Value("${line.login.timeout-millis:10000}") int timeoutMillis) {
+    private final RestClient client; private final RestClient profileClient; private final String channelId;
+    public LineHttpCredentialVerifier(@Value("${line.login.channel-id:}") String channelId, @Value("${line.login.verify-url:https://api.line.me/oauth2/v2.1/verify}") String verifyUrl, @Value("${line.login.profile-url:https://api.line.me/v2/profile}") String profileUrl, @Value("${line.login.timeout-millis:10000}") int timeoutMillis) {
         this.channelId = channelId;
         var factory = new SimpleClientHttpRequestFactory(); factory.setConnectTimeout(timeoutMillis); factory.setReadTimeout(timeoutMillis);
         this.client = RestClient.builder().baseUrl(verifyUrl).requestFactory(factory).build();
+        this.profileClient = RestClient.builder().baseUrl(profileUrl).requestFactory(factory).build();
     }
     @Override public VerifiedLineCredential verify(String idToken) { return verify(idToken, null); }
+    @Override public VerifiedLineCredential verifyAccessToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank() || channelId.isBlank()) throw new LineCredentialInvalidException("LINE access token cannot be verified");
+        try {
+            @SuppressWarnings("unchecked") var verification = client.get().header("Authorization", "Bearer " + accessToken).retrieve().body(Map.class);
+            if (verification == null || !channelId.equals(String.valueOf(verification.get("client_id")))) throw new LineCredentialInvalidException("LINE access token channel is invalid");
+            var expires = Long.parseLong(String.valueOf(verification.getOrDefault("expires_in", 0)));
+            if (expires <= 0) throw new LineCredentialInvalidException("LINE access token is expired");
+            @SuppressWarnings("unchecked") var profile = profileClient.get().header("Authorization", "Bearer " + accessToken).retrieve().body(Map.class);
+            if (profile == null || profile.get("userId") == null) throw new LineCredentialInvalidException("LINE profile verification failed");
+            return new VerifiedLineCredential(new LineIdentity(String.valueOf(profile.get("userId")), string(profile, "displayName"), null, string(profile, "pictureUrl")), "https://access.line.me", channelId, Instant.now().plusSeconds(expires).getEpochSecond());
+        } catch (RestClientException | NumberFormatException exception) { throw new LineCredentialInvalidException("LINE access token verification failed"); }
+    }
     @Override public VerifiedLineCredential verify(String idToken, String nonce) {
         if (idToken == null || idToken.isBlank() || channelId.isBlank()) throw new LineCredentialInvalidException("LINE credential cannot be verified");
         try {

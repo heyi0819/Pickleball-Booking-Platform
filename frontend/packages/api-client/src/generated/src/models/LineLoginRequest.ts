@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- *
+ * Exactly one server-verifiable LINE credential is required.
  * @export
  * @interface LineLoginRequest
  */
@@ -24,14 +24,19 @@ export interface LineLoginRequest {
      * @type {string}
      * @memberof LineLoginRequest
      */
-    idToken: string;
+    idToken?: string;
+    /**
+     *
+     * @type {string}
+     * @memberof LineLoginRequest
+     */
+    accessToken?: string;
 }
 
 /**
  * Check if a given object implements the LineLoginRequest interface.
  */
 export function instanceOfLineLoginRequest(value: object): value is LineLoginRequest {
-    if (!('idToken' in value) || value['idToken'] === undefined) return false;
     return true;
 }
 
@@ -45,7 +50,8 @@ export function LineLoginRequestFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
 
-        'idToken': json['idToken'],
+        'idToken': json['idToken'] == null ? undefined : json['idToken'],
+        'accessToken': json['accessToken'] == null ? undefined : json['accessToken'],
     };
 }
 
@@ -61,5 +67,6 @@ export function LineLoginRequestToJSONTyped(value?: LineLoginRequest | null, ign
     return {
 
         'idToken': value['idToken'],
+        'accessToken': value['accessToken'],
     };
 }

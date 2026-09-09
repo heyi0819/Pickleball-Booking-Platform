@@ -23,7 +23,7 @@ export const BOOTSTRAP_TIMEOUT_MS = 15_000;
 export const COACH_SUPPLY_TIMEOUT_MS = 60_000;
 export const BACKEND_AUTHENTICATION_TIMEOUT_MS = 60_000;
 const liffClient = import.meta.env.VITE_E2E_LIFF === "true"
-  ? { init: async () => undefined, isLoggedIn: () => true, login: () => undefined, getIDToken: () => "e2e-line-id-token" }
+  ? { init: async () => undefined, isLoggedIn: () => true, login: () => undefined, getIDToken: () => "e2e-line-id-token", getAccessToken: () => "e2e-line-access-token" }
   : liff;
 
 type State = "loading" | "redirecting" | "roles" | "home" | "no-roles" | "error";
@@ -69,9 +69,9 @@ export function App() {
       setStage("LINE login state");
       if (!liffClient.isLoggedIn()) { liffClient.login(); setState("redirecting"); return; }
       setStage("LINE ID token retrieval");
-      const idToken = liffClient.getIDToken(); if (!idToken) throw new Error("LINE did not provide an ID token");
+      const accessToken = liffClient.getAccessToken(); if (!accessToken) throw new Error("LINE did not provide an access token");
       setStage("backend authentication");
-      const login = await withinBootstrapTimeout("backend authentication", api.loginWithLine(idToken));
+      const login = await withinBootstrapTimeout("backend authentication", api.loginWithLine(undefined, accessToken));
       setStage("platform token storage");
       sessionStorage.setItem(TOKEN_KEY, login.accessToken);
       await loadMe(login.accessToken, setStage);
