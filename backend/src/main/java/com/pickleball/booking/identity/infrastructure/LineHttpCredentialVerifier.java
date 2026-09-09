@@ -35,12 +35,19 @@ public class LineHttpCredentialVerifier implements LineCredentialVerifier {
             if (body == null || body.get("sub") == null || exp <= Instant.now().getEpochSecond() || !channelId.equals(String.valueOf(body.get("aud"))) || !"https://access.line.me".equals(body.get("iss")) || (nonce != null && !nonce.equals(String.valueOf(body.get("nonce"))))) throw new LineCredentialInvalidException("Invalid LINE credential");
             return new VerifiedLineCredential(new LineIdentity(String.valueOf(body.get("sub")), string(body, "name"), string(body, "email"), string(body, "picture")), string(body, "iss"), string(body, "aud"), exp);
         } catch (RestClientResponseException exception) {
-            log.warn("LINE credential verification was rejected with HTTP status {}", exception.getStatusCode());
+            log.warn("LINE credential verification was rejected with HTTP status {} ({})", exception.getStatusCode(), lineErrorCategory(exception.getResponseBodyAsString()));
             throw new LineCredentialInvalidException("Invalid LINE credential");
         } catch (ResourceAccessException exception) {
             log.warn("LINE credential verification was unavailable ({})", exception.getClass().getSimpleName());
             throw new LineCredentialInvalidException("Unavailable LINE credential verification");
         } catch (RestClientException | NumberFormatException exception) { throw new LineCredentialInvalidException("Invalid or unavailable LINE credential"); }
+    }
+    private String lineErrorCategory(String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) return "empty-response";
+        if (responseBody.contains("id_token")) return "id-token";
+        if (responseBody.contains("client_id")) return "client-id";
+        if (responseBody.contains("nonce")) return "nonce";
+        return "other-response";
     }
     private String string(Map<?, ?> body, String key) { var value = body.get(key); return value == null ? null : String.valueOf(value); }
 }
