@@ -49,7 +49,9 @@ app:
     coach-reminder-cron: ${COACH_REMINDER_CRON:0 0 18 * * *}
     coach-reminder-zone: ${COACH_REMINDER_ZONE:Asia/Taipei}
   pilot:
-    # Requires both this explicit flag and the zero-cost-pilot profile; absent is deny.
+    # Both explicit pilot controls are required; absent is deny.
+    zero-cost-pilot:
+      enabled: ${APP_PILOT_ZERO_COST_PILOT:false}
     refund-self-review:
       enabled: ${APP_PILOT_ALLOW_PLATFORM_ADMIN_REFUND_SELF_REVIEW:false}
 
