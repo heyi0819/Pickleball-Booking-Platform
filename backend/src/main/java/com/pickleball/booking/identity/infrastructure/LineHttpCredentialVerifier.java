@@ -7,12 +7,17 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.Map;
 
 @Component
 public class LineHttpCredentialVerifier implements LineCredentialVerifier {
+    private static final Logger log = LoggerFactory.getLogger(LineHttpCredentialVerifier.class);
     private final RestClient client; private final String channelId;
     public LineHttpCredentialVerifier(@Value("${line.login.channel-id:}") String channelId, @Value("${line.login.verify-url:https://api.line.me/oauth2/v2.1/verify}") String verifyUrl, @Value("${line.login.timeout-millis:10000}") int timeoutMillis) {
         this.channelId = channelId;
@@ -29,6 +34,12 @@ public class LineHttpCredentialVerifier implements LineCredentialVerifier {
             var exp = Long.parseLong(String.valueOf(body == null ? 0 : body.getOrDefault("exp", 0)));
             if (body == null || body.get("sub") == null || exp <= Instant.now().getEpochSecond() || !channelId.equals(String.valueOf(body.get("aud"))) || !"https://access.line.me".equals(body.get("iss")) || (nonce != null && !nonce.equals(String.valueOf(body.get("nonce"))))) throw new LineCredentialInvalidException("Invalid LINE credential");
             return new VerifiedLineCredential(new LineIdentity(String.valueOf(body.get("sub")), string(body, "name"), string(body, "email"), string(body, "picture")), string(body, "iss"), string(body, "aud"), exp);
+        } catch (RestClientResponseException exception) {
+            log.warn("LINE credential verification was rejected with HTTP status {}", exception.getStatusCode());
+            throw new LineCredentialInvalidException("Invalid LINE credential");
+        } catch (ResourceAccessException exception) {
+            log.warn("LINE credential verification was unavailable ({})", exception.getClass().getSimpleName());
+            throw new LineCredentialInvalidException("Unavailable LINE credential verification");
         } catch (RestClientException | NumberFormatException exception) { throw new LineCredentialInvalidException("Invalid or unavailable LINE credential"); }
     }
     private String string(Map<?, ?> body, String key) { var value = body.get(key); return value == null ? null : String.valueOf(value); }
