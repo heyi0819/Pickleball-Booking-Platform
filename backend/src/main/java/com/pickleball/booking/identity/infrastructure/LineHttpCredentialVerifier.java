@@ -13,6 +13,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 
 @Component
@@ -42,11 +43,14 @@ public class LineHttpCredentialVerifier implements LineCredentialVerifier {
             throw new LineCredentialInvalidException("Unavailable LINE credential verification");
         } catch (RestClientException | NumberFormatException exception) { throw new LineCredentialInvalidException("Invalid or unavailable LINE credential"); }
     }
-    private String lineErrorCategory(String responseBody) {
+    static String lineErrorCategory(String responseBody) {
         if (responseBody == null || responseBody.isBlank()) return "empty-response";
-        if (responseBody.contains("id_token")) return "id-token";
-        if (responseBody.contains("client_id")) return "client-id";
-        if (responseBody.contains("nonce")) return "nonce";
+        var normalized = responseBody.toLowerCase(Locale.ROOT);
+        if (normalized.contains("id_token") || normalized.contains("id token") || normalized.contains("idtoken")) return "id-token";
+        if (normalized.contains("client_id") || normalized.contains("client id") || normalized.contains("clientid")) return "client-id";
+        if (normalized.contains("nonce")) return "nonce";
+        var errorCode = java.util.regex.Pattern.compile("\\\"error\\\"\\s*:\\s*\\\"([a-z0-9_-]{1,64})\\\"").matcher(normalized);
+        if (errorCode.find()) return "error-code-" + errorCode.group(1);
         return "other-response";
     }
     private String string(Map<?, ?> body, String key) { var value = body.get(key); return value == null ? null : String.valueOf(value); }

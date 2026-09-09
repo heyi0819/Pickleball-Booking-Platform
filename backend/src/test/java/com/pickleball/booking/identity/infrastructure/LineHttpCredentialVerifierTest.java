@@ -18,6 +18,13 @@ class LineHttpCredentialVerifierTest {
     @Test void rejectsWrongAudience() { stubJson(200, valid(1_900_000_000L).replace("channel", "other")); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); }
     @Test void requiresExpectedNonceForWebLogin() { stubJson(200, valid(1_900_000_000L).replace("}", ",\"nonce\":\"expected\"}")); assertThat(verifier.verify("token", "expected").identity().subject()).isEqualTo("line-subject"); assertThatThrownBy(() -> verifier.verify("token", "wrong")).isInstanceOf(LineCredentialInvalidException.class); }
     @Test void mapsLine4xxAnd5xxToInvalidCredential() { stubJson(400, "{}"); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); line.resetAll(); stubJson(500, "{}"); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); }
+    @Test void classifiesProviderErrorsWithoutLoggingTheirBodies() {
+        assertThat(LineHttpCredentialVerifier.lineErrorCategory("{\"error\":\"invalid_request\"}"))
+                .isEqualTo("error-code-invalid_request");
+        assertThat(LineHttpCredentialVerifier.lineErrorCategory("{\"error_description\":\"Invalid ID token\"}"))
+                .isEqualTo("id-token");
+        assertThat(LineHttpCredentialVerifier.lineErrorCategory(" ")).isEqualTo("empty-response");
+    }
     @Test void rejectsMalformedResponseAndTimeout() { stubJson(200, "{bad json"); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); line.resetAll(); line.stubFor(post(urlEqualTo("/oauth2/v2.1/verify")).willReturn(aResponse().withFixedDelay(300).withStatus(200).withBody(valid(1_900_000_000L)))); assertThatThrownBy(() -> verifier.verify("token")).isInstanceOf(LineCredentialInvalidException.class); }
     private void stubJson(int status, String body) { line.stubFor(post(urlEqualTo("/oauth2/v2.1/verify")).withRequestBody(containing("id_token=token")).withRequestBody(containing("client_id=channel")).willReturn(aResponse().withStatus(status).withHeader("Content-Type", "application/json").withBody(body))); }
     private String valid(long exp) { return "{\"sub\":\"line-subject\",\"name\":\"Member\",\"email\":\"member@example.test\",\"iss\":\"https://access.line.me\",\"aud\":\"channel\",\"exp\":" + exp + "}"; }
