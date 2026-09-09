@@ -14,7 +14,7 @@ import java.util.Map;
 @Component
 public class LineHttpCredentialVerifier implements LineCredentialVerifier {
     private final RestClient client; private final String channelId;
-    public LineHttpCredentialVerifier(@Value("${line.login.channel-id:}") String channelId, @Value("${line.login.verify-url:https://api.line.me/oauth2/v2.1/verify}") String verifyUrl, @Value("${line.login.timeout-millis:3000}") int timeoutMillis) {
+    public LineHttpCredentialVerifier(@Value("${line.login.channel-id:}") String channelId, @Value("${line.login.verify-url:https://api.line.me/oauth2/v2.1/verify}") String verifyUrl, @Value("${line.login.timeout-millis:10000}") int timeoutMillis) {
         this.channelId = channelId;
         var factory = new SimpleClientHttpRequestFactory(); factory.setConnectTimeout(timeoutMillis); factory.setReadTimeout(timeoutMillis);
         this.client = RestClient.builder().baseUrl(verifyUrl).requestFactory(factory).build();

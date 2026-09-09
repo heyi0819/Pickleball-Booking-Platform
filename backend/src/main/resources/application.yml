@@ -28,7 +28,7 @@ line:
     admin-redirect-uris: ${LINE_LOGIN_ADMIN_REDIRECT_URIS:${LINE_LOGIN_ADMIN_REDIRECT_URI:}}
     token-url: ${LINE_TOKEN_URL:https://api.line.me/oauth2/v2.1/token}
     verify-url: ${LINE_VERIFY_URL:https://api.line.me/oauth2/v2.1/verify}
-    timeout-millis: ${LINE_VERIFY_TIMEOUT_MILLIS:3000}
+    timeout-millis: ${LINE_VERIFY_TIMEOUT_MILLIS:10000}
   messaging:
     channel-access-token: ${LINE_MESSAGING_CHANNEL_ACCESS_TOKEN:}
     push-url: ${LINE_MESSAGING_PUSH_URL:https://api.line.me/v2/bot/message/push}
