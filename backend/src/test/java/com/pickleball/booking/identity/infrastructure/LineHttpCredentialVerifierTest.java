@@ -26,7 +26,7 @@ class LineHttpCredentialVerifierTest {
         assertThat(LineHttpCredentialVerifier.lineErrorCategory(" ")).isEqualTo("empty-response");
     }
     @Test void verifiesAccessTokenBeforeUsingProviderProfile() {
-        line.stubFor(get(urlEqualTo("/oauth2/v2.1/verify")).withHeader("Authorization", equalTo("Bearer access-token")).willReturn(okJson("{\"client_id\":\"channel\",\"expires_in\":3600}")));
+        line.stubFor(get(urlPathEqualTo("/oauth2/v2.1/verify")).withQueryParam("access_token", equalTo("access-token")).willReturn(okJson("{\"client_id\":\"channel\",\"expires_in\":3600}")));
         line.stubFor(get(urlEqualTo("/v2/profile")).withHeader("Authorization", equalTo("Bearer access-token")).willReturn(okJson("{\"userId\":\"line-subject\",\"displayName\":\"Member\"}")));
         assertThat(verifier.verifyAccessToken("access-token").identity().subject()).isEqualTo("line-subject");
     }

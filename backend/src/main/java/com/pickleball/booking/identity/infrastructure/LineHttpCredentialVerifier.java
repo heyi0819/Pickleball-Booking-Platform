@@ -30,13 +30,19 @@ public class LineHttpCredentialVerifier implements LineCredentialVerifier {
     @Override public VerifiedLineCredential verifyAccessToken(String accessToken) {
         if (accessToken == null || accessToken.isBlank() || channelId.isBlank()) throw new LineCredentialInvalidException("LINE access token cannot be verified");
         try {
-            @SuppressWarnings("unchecked") var verification = client.get().header("Authorization", "Bearer " + accessToken).retrieve().body(Map.class);
+            @SuppressWarnings("unchecked") var verification = client.get().uri(builder -> builder.queryParam("access_token", accessToken).build()).retrieve().body(Map.class);
             if (verification == null || !channelId.equals(String.valueOf(verification.get("client_id")))) throw new LineCredentialInvalidException("LINE access token channel is invalid");
             var expires = Long.parseLong(String.valueOf(verification.getOrDefault("expires_in", 0)));
             if (expires <= 0) throw new LineCredentialInvalidException("LINE access token is expired");
             @SuppressWarnings("unchecked") var profile = profileClient.get().header("Authorization", "Bearer " + accessToken).retrieve().body(Map.class);
             if (profile == null || profile.get("userId") == null) throw new LineCredentialInvalidException("LINE profile verification failed");
             return new VerifiedLineCredential(new LineIdentity(String.valueOf(profile.get("userId")), string(profile, "displayName"), null, string(profile, "pictureUrl")), "https://access.line.me", channelId, Instant.now().plusSeconds(expires).getEpochSecond());
+        } catch (RestClientResponseException exception) {
+            log.warn("LINE access token verification was rejected with HTTP status {} ({})", exception.getStatusCode(), lineErrorCategory(exception.getResponseBodyAsString()));
+            throw new LineCredentialInvalidException("LINE access token verification failed");
+        } catch (ResourceAccessException exception) {
+            log.warn("LINE access token verification was unavailable ({})", exception.getClass().getSimpleName());
+            throw new LineCredentialInvalidException("LINE access token verification failed");
         } catch (RestClientException | NumberFormatException exception) { throw new LineCredentialInvalidException("LINE access token verification failed"); }
     }
     @Override public VerifiedLineCredential verify(String idToken, String nonce) {
