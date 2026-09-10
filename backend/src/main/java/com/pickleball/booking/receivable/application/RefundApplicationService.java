@@ -29,16 +29,19 @@ public class RefundApplicationService {
     private final IdentityService identity;
     private final IdempotencyService idempotency;
     private final AuditOutboxService audit;
+    private final PilotRefundSelfReviewPolicy pilotRefundSelfReview;
 
     public RefundApplicationService(
             RefundStore store,
             IdentityService identity,
             IdempotencyService idempotency,
-            AuditOutboxService audit) {
+            AuditOutboxService audit,
+            PilotRefundSelfReviewPolicy pilotRefundSelfReview) {
         this.store = store;
         this.identity = identity;
         this.idempotency = idempotency;
         this.audit = audit;
+        this.pilotRefundSelfReview = pilotRefundSelfReview;
     }
 
     @Transactional
@@ -104,7 +107,10 @@ public class RefundApplicationService {
         RefundLedger refund = store.findRefundLocked(refundId)
                 .orElseThrow(() -> new BusinessException("REFUND_NOT_FOUND", "Refund was not found"));
         requireFinancePermission(actor, refund.organizationId());
-        if (actor.userId().equals(refund.requestedBy())) {
+        boolean pilotSelfReviewBypass = actor.userId().equals(refund.requestedBy())
+                && pilotRefundSelfReview.permits(
+                        identity.isAuthorizedForOrganization(actor, RoleCode.PLATFORM_ADMIN, refund.organizationId()));
+        if (actor.userId().equals(refund.requestedBy()) && !pilotSelfReviewBypass) {
             throw new BusinessException("REVIEWER_SELF_APPROVAL_FORBIDDEN", "A reviewer cannot approve their own refund request");
         }
 
@@ -139,6 +145,12 @@ public class RefundApplicationService {
             throw business(ex);
         }
         store.saveReview(refund);
+        if (pilotSelfReviewBypass) {
+            audit.record(
+                    refund.organizationId(), actor.userId(), "PLATFORM_ADMIN_REFUND_SELF_REVIEW_BYPASS_USED",
+                    "Refund", refund.id(), "PILOT_ACCEPTANCE", null,
+                    Map.of("bypassUsed", true, "operation", "REFUND_APPROVAL"), requestId);
+        }
         String action = command.decision() == ReviewDecision.APPROVE ? "REFUND_APPROVED" : "REFUND_REJECTED";
         audit.record(
                 refund.organizationId(), actor.userId(), action, "Refund", refund.id(),

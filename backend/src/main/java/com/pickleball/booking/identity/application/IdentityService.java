@@ -14,8 +14,8 @@ public class IdentityService {
     private final LineCredentialVerifier lineVerifier; private final LineAuthorizationCodeExchanger codeExchanger; private final FirstLoginProvisioningPolicy provisioning; private final ExternalIdentityRepository identities; private final PlatformUserRepository users; private final RoleAssignmentRepository roles; private final PlatformTokenService tokens; private final OrganizationAccessPolicy organizationAccess; private final AuditOutboxService audit;
     public IdentityService(LineCredentialVerifier lineVerifier, LineAuthorizationCodeExchanger codeExchanger, FirstLoginProvisioningPolicy provisioning, ExternalIdentityRepository identities, PlatformUserRepository users, RoleAssignmentRepository roles, PlatformTokenService tokens, OrganizationAccessPolicy organizationAccess, AuditOutboxService audit) { this.lineVerifier = lineVerifier; this.codeExchanger = codeExchanger; this.provisioning = provisioning; this.identities = identities; this.users = users; this.roles = roles; this.tokens = tokens; this.organizationAccess = organizationAccess; this.audit = audit; }
     @Transactional
-    public LoginResult login(String idToken) {
-        var credential = lineVerifier.verify(idToken);
+    public LoginResult login(String idToken, String accessToken) {
+        var credential = accessToken == null || accessToken.isBlank() ? lineVerifier.verify(idToken) : lineVerifier.verifyAccessToken(accessToken);
         var existing = identities.findByProviderAndProviderSubjectAndRevokedAtIsNull("LINE", credential.identity().subject());
         var user = existing.map(ExternalIdentityEntity::getUser).orElseGet(() -> provisionOrResolveRaceWinner(credential.identity()));
         if (user.getStatus() != UserStatus.ACTIVE) throw new AccessForbiddenException("User is not active");
@@ -25,8 +25,8 @@ public class IdentityService {
         return new LoginResult(token.value(), token.expiresIn(), user.getId(), user.getDisplayName(), activeRoles.stream().map(RoleView::roleCode).distinct().toList());
     }
     @Transactional
-    public LoginResult adminLogin(String authorizationCode, String codeVerifier, String nonce) {
-        var credential = lineVerifier.verify(codeExchanger.exchange(authorizationCode, codeVerifier), nonce);
+    public LoginResult adminLogin(String authorizationCode, String codeVerifier, String nonce, String redirectUri) {
+        var credential = lineVerifier.verify(codeExchanger.exchange(authorizationCode, codeVerifier, redirectUri), nonce);
         var user = identities.findByProviderAndProviderSubjectAndRevokedAtIsNull("LINE", credential.identity().subject()).map(ExternalIdentityEntity::getUser).orElseThrow(() -> new AccessForbiddenException("Admin access is not permitted"));
         if (user.getStatus() != UserStatus.ACTIVE) { audit.recordAudit(null, user.getId(), "ADMIN_LOGIN_DENIED", "USER", user.getId(), "inactive user", null, null, null); throw new AccessForbiddenException("Admin access is not permitted"); }
         var activeRoles = activeRoles(user.getId());

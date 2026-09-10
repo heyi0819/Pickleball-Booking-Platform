@@ -24,10 +24,11 @@ line:
   login:
     channel-id: ${LINE_LOGIN_CHANNEL_ID:${LINE_CHANNEL_ID:}}
     channel-secret: ${LINE_LOGIN_CHANNEL_SECRET:}
-    admin-redirect-uri: ${LINE_LOGIN_ADMIN_REDIRECT_URI:}
+    admin-canonical-redirect-uri: ${LINE_LOGIN_ADMIN_REDIRECT_URI:}
+    admin-redirect-uris: ${LINE_LOGIN_ADMIN_REDIRECT_URIS:${LINE_LOGIN_ADMIN_REDIRECT_URI:}}
     token-url: ${LINE_TOKEN_URL:https://api.line.me/oauth2/v2.1/token}
     verify-url: ${LINE_VERIFY_URL:https://api.line.me/oauth2/v2.1/verify}
-    timeout-millis: ${LINE_VERIFY_TIMEOUT_MILLIS:3000}
+    timeout-millis: ${LINE_VERIFY_TIMEOUT_MILLIS:10000}
   messaging:
     channel-access-token: ${LINE_MESSAGING_CHANNEL_ACCESS_TOKEN:}
     push-url: ${LINE_MESSAGING_PUSH_URL:https://api.line.me/v2/bot/message/push}
@@ -47,6 +48,12 @@ app:
     notification-delay-ms: ${NOTIFICATION_WORKER_DELAY_MS:5000}
     coach-reminder-cron: ${COACH_REMINDER_CRON:0 0 18 * * *}
     coach-reminder-zone: ${COACH_REMINDER_ZONE:Asia/Taipei}
+  pilot:
+    # Both explicit pilot controls are required; absent is deny.
+    zero-cost-pilot:
+      enabled: ${APP_PILOT_ZERO_COST_PILOT:false}
+    refund-self-review:
+      enabled: ${APP_PILOT_ALLOW_PLATFORM_ADMIN_REFUND_SELF_REVIEW:false}
 
 management:
   endpoints:

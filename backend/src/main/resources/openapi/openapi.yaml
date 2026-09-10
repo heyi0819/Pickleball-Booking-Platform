@@ -2399,10 +2399,11 @@ components:
         meta: { $ref: '#/components/schemas/Meta' }
 
     LineLoginRequest:
+      description: Exactly one server-verifiable LINE credential is required.
       type: object
-      required: [idToken]
       properties:
-        idToken: { type: string, minLength: 1, maxLength: 10000 }
+        idToken: { type: string, maxLength: 10000 }
+        accessToken: { type: string, maxLength: 10000 }
 
     AdminLineExchangeRequest:
       type: object
@@ -2411,6 +2412,7 @@ components:
         authorizationCode: { type: string, minLength: 1, maxLength: 2048 }
         codeVerifier: { type: string, minLength: 43, maxLength: 128 }
         nonce: { type: string, minLength: 1, maxLength: 256 }
+        redirectUri: { type: string, minLength: 1, maxLength: 2048, format: uri, description: Optional only for backward compatibility with the canonical Admin asset; absent values use the configured canonical callback. }
 
     ProfileUpdateRequest:
       type: object
@@ -2507,6 +2509,7 @@ components:
         reviewedBy: { type: [string, 'null'], format: uuid }
         reviewedAt: { type: [string, 'null'], format: date-time }
         reviewNote: { type: [string, 'null'] }
+        applicantDisplayName: { type: [string, 'null'], description: Applicant display name, returned only to authorized committee reviewers. }
 
     AvailabilityProposalRequest:
       type: object

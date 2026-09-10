@@ -37,6 +37,12 @@ export interface AdminLineExchangeRequest {
      * @memberof AdminLineExchangeRequest
      */
     nonce: string;
+    /**
+     * Optional only for backward compatibility with the canonical Admin asset; absent values use the configured canonical callback.
+     * @type {string}
+     * @memberof AdminLineExchangeRequest
+     */
+    redirectUri?: string;
 }
 
 /**
@@ -62,6 +68,7 @@ export function AdminLineExchangeRequestFromJSONTyped(json: any, ignoreDiscrimin
         'authorizationCode': json['authorizationCode'],
         'codeVerifier': json['codeVerifier'],
         'nonce': json['nonce'],
+        'redirectUri': json['redirectUri'] == null ? undefined : json['redirectUri'],
     };
 }
 
@@ -79,5 +86,6 @@ export function AdminLineExchangeRequestToJSONTyped(value?: AdminLineExchangeReq
         'authorizationCode': value['authorizationCode'],
         'codeVerifier': value['codeVerifier'],
         'nonce': value['nonce'],
+        'redirectUri': value['redirectUri'],
     };
 }

@@ -1,12 +1,14 @@
 
 # LineLoginRequest
 
+Exactly one server-verifiable LINE credential is required.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
 `idToken` | string
+`accessToken` | string
 
 ## Example
 
@@ -16,6 +18,7 @@ import type { LineLoginRequest } from '@pickleball/api-client-generated'
 // TODO: Update the object below with actual values
 const example = {
   "idToken": null,
+  "accessToken": null,
 } satisfies LineLoginRequest
 
 console.log(example)
