@@ -4,6 +4,7 @@ import com.pickleball.booking.notification.application.NotificationDeliveryPort.
 import com.pickleball.booking.notification.application.OutboxEventProcessor.OutboxMessage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -57,7 +58,7 @@ public class WorkerQueueRepository {
                 returning e.id, e.organization_id, e.aggregate_type, e.aggregate_id,
                           e.event_type, e.payload::text, e.attempt_count
                 """, new MapSqlParameterSource()
-                        .addValue("createdAtOrAfter", createdAtOrAfter)
+                        .addValue("createdAtOrAfter", Timestamp.from(createdAtOrAfter))
                         .addValue("supportedEventTypes", supportedEventTypes)
                         .addValue("claimTimeoutMs", claimTimeout.toMillis())
                         .addValue("batchSize", batchSize),
