@@ -50,8 +50,9 @@ class WorkerQueueRepositoryIT {
         insertOutbox(staleProcessing, org, "CourseChanged", "PROCESSING", 1,
                 "now() - interval '1 minute'", "now()");
 
+        Instant cutoff = Instant.now().minusSeconds(86_400);
         var claimed = repository.claimOutbox(
-                10, Set.of("CourseChanged"), Instant.now().minusSeconds(86_400), Duration.ofMinutes(5));
+                10, Set.of("CourseChanged"), cutoff, Duration.ofMinutes(5));
 
         assertThat(claimed).extracting(message -> message.id())
                 .containsExactlyInAnyOrder(due, staleProcessing)
@@ -69,7 +70,7 @@ class WorkerQueueRepositoryIT {
 
         jdbc.update("update outbox_events set available_at=now() where id=?", due);
         var retried = repository.claimOutbox(
-                10, Set.of("CourseChanged"), Instant.EPOCH, Duration.ofMinutes(5));
+                10, Set.of("CourseChanged"), cutoff, Duration.ofMinutes(5));
         assertThat(retried).hasSize(1);
         assertThat(retried.getFirst().attemptCount()).isEqualTo(2);
 
