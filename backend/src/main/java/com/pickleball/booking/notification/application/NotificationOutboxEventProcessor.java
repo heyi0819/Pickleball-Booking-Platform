@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,9 @@ public class NotificationOutboxEventProcessor implements OutboxEventProcessor {
     private static final Set<String> SESSION_EVENTS = Set.of(
             "SESSION_RESCHEDULE_APPROVED",
             "SESSION_DIRECT_RESCHEDULED");
+    private static final Set<String> SUPPORTED_EVENTS = Stream
+            .concat(COURSE_EVENTS.stream(), SESSION_EVENTS.stream())
+            .collect(Collectors.toUnmodifiableSet());
 
     private final NotificationProjectionRepository repository;
 
@@ -24,8 +29,8 @@ public class NotificationOutboxEventProcessor implements OutboxEventProcessor {
     }
 
     @Override
-    public boolean supports(String eventType) {
-        return COURSE_EVENTS.contains(eventType) || SESSION_EVENTS.contains(eventType);
+    public Set<String> supportedEventTypes() {
+        return SUPPORTED_EVENTS;
     }
 
     @Override

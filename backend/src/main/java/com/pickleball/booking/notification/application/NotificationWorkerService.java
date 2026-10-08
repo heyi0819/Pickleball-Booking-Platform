@@ -2,8 +2,10 @@ package com.pickleball.booking.notification.application;
 
 import com.pickleball.booking.notification.application.NotificationDeliveryPort.NotificationMessage;
 import com.pickleball.booking.notification.infrastructure.WorkerQueueRepository;
+import java.time.Duration;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -11,18 +13,21 @@ public class NotificationWorkerService {
     private final WorkerQueueRepository repository;
     private final ObjectProvider<NotificationDeliveryPort> deliveryPort;
     private final WorkerRetryPolicy retryPolicy;
+    private final Duration claimTimeout;
 
     public NotificationWorkerService(
             WorkerQueueRepository repository,
             ObjectProvider<NotificationDeliveryPort> deliveryPort,
-            WorkerRetryPolicy retryPolicy) {
+            WorkerRetryPolicy retryPolicy,
+            @Value("${app.workers.claim-timeout-ms:300000}") long claimTimeoutMillis) {
         this.repository = repository;
         this.deliveryPort = deliveryPort;
         this.retryPolicy = retryPolicy;
+        this.claimTimeout = Duration.ofMillis(claimTimeoutMillis);
     }
 
     public int runBatch(int batchSize) {
-        List<NotificationMessage> messages = repository.claimNotifications(batchSize);
+        List<NotificationMessage> messages = repository.claimNotifications(batchSize, claimTimeout);
         NotificationDeliveryPort port = deliveryPort.getIfAvailable();
         for (NotificationMessage message : messages) {
             processOne(message, port);

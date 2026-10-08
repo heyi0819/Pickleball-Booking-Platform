@@ -1,10 +1,15 @@
 package com.pickleball.booking.notification.application;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public interface OutboxEventProcessor {
-    boolean supports(String eventType);
+    Set<String> supportedEventTypes();
+
+    default boolean supports(String eventType) {
+        return supportedEventTypes().contains(eventType);
+    }
 
     void process(OutboxMessage message);
 
