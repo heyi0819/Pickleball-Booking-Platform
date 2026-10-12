@@ -15,6 +15,7 @@ required_suites=(
   "S7 settlement integration|TEST-com.pickleball.booking.SettlementApplicationServiceIT.xml"
   "S7 payout integration|TEST-com.pickleball.booking.PayoutApplicationServiceIT.xml"
   "S8 admin recovery HTTP acceptance|TEST-com.pickleball.booking.notification.api.AdminOperationsHttpIT.xml"
+  "S8 worker queue PostgreSQL evidence|TEST-com.pickleball.booking.notification.infrastructure.WorkerQueueRepositoryIT.xml"
   "S8 notification projection PostgreSQL evidence|TEST-com.pickleball.booking.notification.infrastructure.NotificationProjectionRepositoryIT.xml"
 )
 

@@ -67,6 +67,12 @@ export interface CoachApplication {
      * @memberof CoachApplication
      */
     reviewNote?: string | null;
+    /**
+     * Applicant display name
+     * @type {string}
+     * @memberof CoachApplication
+     */
+    applicantDisplayName?: string | null;
 }
 
 
@@ -111,6 +117,7 @@ export function CoachApplicationFromJSONTyped(json: any, ignoreDiscriminator: bo
         'reviewedBy': json['reviewedBy'] == null ? undefined : json['reviewedBy'],
         'reviewedAt': json['reviewedAt'] == null ? undefined : (new Date(json['reviewedAt'])),
         'reviewNote': json['reviewNote'] == null ? undefined : json['reviewNote'],
+        'applicantDisplayName': json['applicantDisplayName'] == null ? undefined : json['applicantDisplayName'],
     };
 }
 
@@ -133,5 +140,6 @@ export function CoachApplicationToJSONTyped(value?: CoachApplication | null, ign
         'reviewedBy': value['reviewedBy'],
         'reviewedAt': value['reviewedAt'] == null ? value['reviewedAt'] : value['reviewedAt'].toISOString(),
         'reviewNote': value['reviewNote'],
+        'applicantDisplayName': value['applicantDisplayName'],
     };
 }

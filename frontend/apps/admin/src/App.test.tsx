@@ -36,10 +36,59 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
     expect(document.body.textContent).not.toContain("provider-detail");
   });
 
+  it("sends the exact callback origin used for LINE authorization during code exchange", async () => {
+    const verifier = "v".repeat(43);
+    let exchanged = false;
+    sessionStorage.setItem("admin.line.state", "state");
+    sessionStorage.setItem("admin.line.verifier", verifier);
+    sessionStorage.setItem("admin.line.nonce", "nonce");
+    history.replaceState({}, "", "/auth/line/callback?code=authorization-code&state=state");
+    server.use(
+      http.post("/api/v1/auth/line/admin/exchange", async ({ request }) => {
+        expect(await request.json()).toEqual({ authorizationCode: "authorization-code", codeVerifier: verifier, nonce: "nonce", redirectUri: `${location.origin}/auth/line/callback` });
+        exchanged = true;
+        return HttpResponse.json({ data: { accessToken: "token", tokenType: "Bearer", expiresIn: 1800, user: { id: "u", displayName: "Committee", roles: ["COMMITTEE"] } }, meta: { requestId: "test" } });
+      }),
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } }))
+    );
+    render(<App />);
+    await waitFor(() => expect(exchanged).toBe(true));
+  });
+
   it("allows committee users", async () => {
     sessionStorage.setItem("platform.access-token", "token");
     server.use(http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })));
     render(<App />); expect(await screen.findByRole("heading", { name: "管理後台" })).toBeTruthy(); expect(await screen.findByRole("navigation", { name: "管理後台導覽" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "課程媒合" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "公開招生" })).toBeTruthy(); expect(await screen.findByRole("heading", { name: "課程營運" })).toBeTruthy();
+  });
+
+  it("shows a self-review denial code and localizes review statuses", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/coach-availability-proposals", () => HttpResponse.json({ data: [{ id: "availability-1", coachProfileId: "coach-1", startAt: "2026-09-20T01:00:00Z", endAt: "2026-09-20T02:00:00Z", preferredVenueId: null, status: "SUBMITTED", submittedAt: "2026-09-01T00:00:00Z", reviewedBy: null, reviewedAt: null, reviewNote: null }, { id: "availability-2", coachProfileId: "coach-2", startAt: "2026-09-21T01:00:00Z", endAt: "2026-09-21T02:00:00Z", preferredVenueId: null, status: "APPROVED", submittedAt: "2026-09-01T00:00:00Z", reviewedBy: "u", reviewedAt: "2026-09-02T00:00:00Z", reviewNote: null }, { id: "availability-3", coachProfileId: "coach-3", startAt: "2026-09-22T01:00:00Z", endAt: "2026-09-22T02:00:00Z", preferredVenueId: null, status: "REJECTED", submittedAt: "2026-09-01T00:00:00Z", reviewedBy: "u", reviewedAt: "2026-09-02T00:00:00Z", reviewNote: null }], meta: { requestId: "test" } })),
+      http.post("/api/v1/coach-availability-proposals/availability-1/review", () => HttpResponse.json({ error: { code: "REVIEWER_SELF_APPROVAL_FORBIDDEN" } }, { status: 403 }))
+    );
+    render(<App />);
+    expect(await screen.findByText("已通過")).toBeTruthy();
+    expect(await screen.findByText("已退回")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "審核通過" }));
+    expect(await screen.findByText("無法儲存審核結果，請稍後再試。 REVIEWER_SELF_APPROVAL_FORBIDDEN")).toBeTruthy();
+  });
+
+  it("shows the applicant display name to committee reviewers instead of raw identifiers", async () => {
+    sessionStorage.setItem("platform.access-token", "token");
+    server.use(
+      http.get("/api/v1/me", () => HttpResponse.json({ data: { id: "u", displayName: "Committee", email: null, locale: "zh-TW", profileComplete: true, roles: [{ roleCode: "COMMITTEE", organizationId: "o", organizationCode: "MVP", organizationName: "MVP" }] }, meta: { requestId: "test" } })),
+      http.get("/api/v1/coach-applications", () => HttpResponse.json({ data: [{ id: "application-id", coachProfileId: "coach-profile-id", applicantDisplayName: "LINE 暱稱", status: "SUBMITTED", applicationNote: "申請說明", submittedAt: "2026-09-06T12:00:00Z", reviewedBy: null, reviewedAt: null, reviewNote: null }], meta: { requestId: "test" } }))
+    );
+    render(<App />);
+    expect(await screen.findByText("LINE 暱稱")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "查看申請" }));
+    const detail = await screen.findByLabelText("Review detail");
+    expect(within(detail).getByText("申請人顯示名稱")).toBeTruthy();
+    expect(within(detail).getByText("LINE 暱稱")).toBeTruthy();
+    expect(within(detail).queryByText("application-id")).toBeNull();
+    expect(within(detail).queryByText("coach-profile-id")).toBeNull();
   });
 
   it("denies non-admin roles", async () => {
@@ -147,7 +196,7 @@ describe("admin authorization, Slice 3 matching, and Slice 4 open enrollment", (
       http.get("/api/v1/course-offerings/o1", () => HttpResponse.json({ data: detail(), meta: { requestId: "test" } })),
       http.get("/api/v1/course-offerings/o1/registrations", () => HttpResponse.json({ data: { items: [{ id: "r1", userId: "s1", displayName: "Student One", status: "ACTIVE", registeredAt: "2026-08-27T01:00:00Z", cancelledAt: null, cancelReason: null, scheduleConflictIndicator: false, convertedCourseMembershipId: null, courseId: null }], page: 0, size: 100, total: 1 }, meta: { requestId: "test" } })),
       http.post("/api/v1/course-offerings/o1/pricing-preview", async ({ request }) => { const body = await request.json() as { currency: string; pricePerParticipant: number }; return HttpResponse.json({ data: { offeringId: "o1", currency: body.currency, pricePerParticipant: body.pricePerParticipant.toFixed(2), billingMode: "FULL_COURSE", sessionCount: 1, pricingFingerprint: "b".repeat(64) }, meta: { requestId: "test" } }); }),
-      http.post("/api/v1/course-offerings/o1/pricing-confirmation", () => { priceConfirmed = true; return HttpResponse.json({ data: { priceSnapshotId: "ps1", offeringId: "o1", status: "CONFIRMED", currency: "TWD", pricePerParticipant: "1200.00", pricingFingerprint: "b".repeat(64), confirmedBy: "u", confirmedAt: "2026-08-25T04:00:00Z" }, meta: { requestId: "test" } }, { status: 201 }); }),
+      http.post("/api/v1/course-offerings/o1/pricing-confirmation", ({ request }) => { expect(request.headers.get("Idempotency-Key")).toBe(`offering-price-o1-${"b".repeat(40)}`); expect(request.headers.get("Idempotency-Key")?.length).toBeLessThanOrEqual(100); priceConfirmed = true; return HttpResponse.json({ data: { priceSnapshotId: "ps1", offeringId: "o1", status: "CONFIRMED", currency: "TWD", pricePerParticipant: "1200.00", pricingFingerprint: "b".repeat(64), confirmedBy: "u", confirmedAt: "2026-08-25T04:00:00Z" }, meta: { requestId: "test" } }, { status: 201 }); }),
       http.post("/api/v1/course-offerings/o1/publication", () => { status = "OPEN"; return HttpResponse.json({ data: detail(), meta: { requestId: "test" } }); }),
       http.post("/api/v1/course-offerings/o1/closure", () => { status = "CLOSED"; return HttpResponse.json({ data: detail(), meta: { requestId: "test" } }); }),
       http.post("/api/v1/course-offerings/o1/confirmation", () => { status = "CONFIRMED"; formed = true; return HttpResponse.json({ data: { offeringId: "o1", offeringStatus: "CONFIRMED", courseId: "course-1", courseStatus: "ACTIVE", sessionIds: ["cs1"], membershipIds: ["m1", "m2", "m3"], enrollmentIds: ["e1", "e2", "e3"], receivableIds: ["rv1", "rv2", "rv3"] }, meta: { requestId: "test" } }, { status: 201 }); })

@@ -9,6 +9,7 @@ Name | Type
 `authorizationCode` | string
 `codeVerifier` | string
 `nonce` | string
+`redirectUri` | string
 
 ## Example
 
@@ -20,6 +21,7 @@ const example = {
   "authorizationCode": null,
   "codeVerifier": null,
   "nonce": null,
+  "redirectUri": null,
 } satisfies AdminLineExchangeRequest
 
 console.log(example)

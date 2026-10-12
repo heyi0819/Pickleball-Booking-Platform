@@ -70,7 +70,7 @@ public class LineNotificationDeliveryAdapter implements NotificationDeliveryPort
         } catch (RestClientResponseException ex) {
             int status = ex.getStatusCode().value();
             boolean retryable = status == 408 || status == 429 || status >= 500;
-            String code = retryable ? "LINE_HTTP_RETRYABLE" : "LINE_HTTP_PERMANENT";
+            String code = retryable ? "LINE_HTTP_RETRYABLE" : classifyPermanentResponse(ex);
             if (retryable) {
                 throw NotificationDeliveryException.retryable(
                         code, "LINE push returned retryable HTTP " + status, ex);
@@ -86,5 +86,18 @@ public class LineNotificationDeliveryAdapter implements NotificationDeliveryPort
                     "LINE_HTTP_UNAVAILABLE",
                     "LINE push request failed", ex);
         }
+    }
+
+    private static String classifyPermanentResponse(RestClientResponseException exception) {
+        if (exception.getStatusCode().value() != 400) return "LINE_HTTP_PERMANENT";
+        String body = exception.getResponseBodyAsString().toLowerCase();
+        if (body.contains("'to'") || body.contains("\"to\"") || body.contains("recipient")) {
+            return "LINE_RECIPIENT_REJECTED";
+        }
+        if (body.contains("messages") || body.contains("message[") || body.contains("text")) {
+            return "LINE_MESSAGE_REJECTED";
+        }
+        if (body.contains("retry")) return "LINE_RETRY_KEY_REJECTED";
+        return "LINE_HTTP_PERMANENT";
     }
 }

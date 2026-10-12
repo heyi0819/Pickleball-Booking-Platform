@@ -226,8 +226,8 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
   const adminOperations = (token: string) => new AdminOperationsApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   const roleDelegation = (token: string) => new AdminRoleDelegationApi(new Configuration({ basePath: baseUrl, accessToken: token }));
   return {
-    async exchangeAdminLineAuthorizationCode(authorizationCode: string, codeVerifier: string, nonce: string): Promise<LoginData> {
-      try { return (await anonymous.exchangeAdminLineAuthorizationCode({ adminLineExchangeRequest: { authorizationCode, codeVerifier, nonce } })).data; }
+    async exchangeAdminLineAuthorizationCode(authorizationCode: string, codeVerifier: string, nonce: string, redirectUri: string): Promise<LoginData> {
+      try { return (await anonymous.exchangeAdminLineAuthorizationCode({ adminLineExchangeRequest: { authorizationCode, codeVerifier, nonce, redirectUri } })).data; }
       catch (caught) { return mapError(caught); }
     },
     async listAdminReceivables(token: string, query: ListAdminReceivablesRequest): Promise<AdminFinanceReceivablePage> {
@@ -255,7 +255,7 @@ export function createApiClient({ baseUrl }: ApiClientOptions) {
       catch (caught) { return mapError(caught); }
     },
     baseUrl,
-    async loginWithLine(idToken: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken } })).data; } catch (caught) { return mapError(caught); } },
+    async loginWithLine(idToken?: string, accessToken?: string): Promise<LoginData> { try { return (await anonymous.loginWithLine({ lineLoginRequest: { idToken, accessToken } })).data; } catch (caught) { return mapError(caught); } },
     async me(token: string): Promise<Me> { try { return (await authenticated(token).getCurrentUser()).data; } catch (caught) { return mapError(caught); } },
     async roles(token: string): Promise<RoleContext[]> { try { return (await authenticated(token).getCurrentUserRoles()).data; } catch (caught) { return mapError(caught); } },
     async updateProfile(token: string, profile: ProfileUpdateRequest): Promise<Me> { try { return (await authenticated(token).updateCurrentUserProfile({ profileUpdateRequest: profile })).data; } catch (caught) { return mapError(caught); } },
