@@ -68,10 +68,17 @@ class LineNotificationDeliveryAdapterTest {
 
     @Test
     void classifies4xxAsPermanentAnd5xxAsRetryable() {
-        line.stubFor(post(urlEqualTo("/v2/bot/message/push")).willReturn(aResponse().withStatus(400)));
+        line.stubFor(post(urlEqualTo("/v2/bot/message/push")).willReturn(aResponse().withStatus(400)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"message\":\"The property, 'to', in the request body is invalid\"}")));
         assertThatThrownBy(() -> adapter.deliver(message()))
                 .isInstanceOf(NotificationDeliveryException.class)
-                .satisfies(ex -> assertThat(((NotificationDeliveryException) ex).retryable()).isFalse());
+                .satisfies(ex -> {
+                    var delivery = (NotificationDeliveryException) ex;
+                    assertThat(delivery.retryable()).isFalse();
+                    assertThat(delivery.errorCode()).isEqualTo("LINE_RECIPIENT_REJECTED");
+                    assertThat(delivery.getMessage()).doesNotContain("request body");
+                });
 
         line.resetAll();
         line.stubFor(post(urlEqualTo("/v2/bot/message/push")).willReturn(aResponse().withStatus(503)));
